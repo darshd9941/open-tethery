@@ -77,7 +77,7 @@ if ($useExe) {
     $h = Join-Path $script:InstallDir 'helper'
     if (Test-Path $h) { Remove-Item $h -Recurse -Force }
     Copy-Item (Join-Path $repo 'helper') $h -Recurse -Force
-    if (-not (Test-Path (Join-Path $h 'node_modules\ws'))) {
+    if (-not (Test-Path (Join-Path $h 'node_modules\ws')) -or -not (Test-Path (Join-Path $h 'node_modules\werift'))) {
       Push-Location $h; try { & npm install --omit=dev --no-audit --no-fund } finally { Pop-Location }
     }
     Copy-Item $nodeExe (Join-Path $script:InstallDir 'node.exe') -Force
@@ -181,6 +181,12 @@ Invoke-Step "Firewall rule '$($script:RuleName)' inbound TCP $($script:HelperPor
   New-NetFirewallRule -DisplayName $script:RuleName -Direction Inbound -Action Allow -Protocol TCP `
     -LocalPort $script:HelperPort -Profile Private `
     -Description 'Lets phones on your private Wi-Fi open the Open Tethery preview.' | Out-Null
+}
+Invoke-Step "Firewall rule '$($script:RuleName) (video)' inbound UDP for the helper program, Private" {
+  Remove-NetFirewallRule -DisplayName "$($script:RuleName) (video)" -ErrorAction SilentlyContinue
+  New-NetFirewallRule -DisplayName "$($script:RuleName) (video)" -Direction Inbound -Action Allow -Protocol UDP `
+    -Program $launchExe -Profile Private `
+    -Description 'Lets phones receive the low-delay WebRTC video from the Open Tethery helper.' | Out-Null
 }
 foreach ($p in $script:OldRulePatterns) {
   Invoke-Step "Remove old firewall rules '$p'" {

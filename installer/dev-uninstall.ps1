@@ -27,6 +27,7 @@ Invoke-Step "Remove Run entry $($script:RunValueName)" {
 }
 Invoke-Step "Remove firewall rule '$($script:RuleName)'" {
   Remove-NetFirewallRule -DisplayName $script:RuleName -ErrorAction SilentlyContinue
+  Remove-NetFirewallRule -DisplayName "$($script:RuleName) (video)" -ErrorAction SilentlyContinue
 }
 foreach ($p in $script:OldRulePatterns) {
   Invoke-Step "Remove old firewall rules '$p'" {
