@@ -157,6 +157,7 @@ const tpButtons = ['tpStart', 'tpBack5', 'tpBack1', 'tpPlay', 'tpFwd1', 'tpFwd5'
 
 function updateTransport() {
   const cs = controlState({ control, state });
+  $('transport').hidden = hostApp() === 'photoshop'; // nothing to play in Photoshop
   for (const id of tpButtons) $(id).disabled = !cs.enabled;
   $('scrub').disabled = !cs.enabled || !(state?.sequence?.duration > 0);
   const note = $('tpNote');
