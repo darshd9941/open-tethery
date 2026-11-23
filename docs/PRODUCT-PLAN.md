@@ -68,6 +68,37 @@ Legend: ✅ exists and works · 🟡 partly exists · ❌ missing · ➕ you ask
 | "Send a report" diagnostics | yes | ❌ | M7 |
 | **Business** | free tier (watermark, 1080p, 1 device) + paid licence, 2 seats | n/a | only if you want to sell (Questions) |
 
+## 2b. Your feature list (23 Nov 2026), item by item
+
+This is the must-have list. Every line has to work before we call it done.
+
+| # | Feature | Milestone | Notes |
+|---|---|---|---|
+| **1** | **Adobe host plugin (Premiere Pro + After Effects)** | | |
+| 1.1 | Docks as a normal panel in Pr and AE | M0 | Window > Extensions > Open Tethery |
+| 1.2 | Real-time video + audio of the Program Monitor, low delay, Wi-Fi or other connections | M1–M3, M7 | Audio is Premiere only (Adobe sends no AE audio) |
+| 1.3 | Live edit syncing: Lumetri grades, titles, motion graphics, multicam switching, scrubbing, with no export | M1 | Comes for free: the Transmit engine sends exactly what the Program Monitor draws, so every change shows up |
+| 1.4 | Signal telemetry in the panel: sequence/comp name, resolution, frame rate (e.g. 3840x2160 @ 23.976), status IDLE / LIVE | M0 (status), M1 (name, size, fps) | |
+| 1.5 | 4-character session code (e.g. CL7G) + QR code to the viewer address | M0 (QR), M6 (code) | Moving the code up into M0 is cheap; I will do that |
+| **2** | **Phone / web viewer** | | |
+| 2.1 | Join by QR scan or by typing the 4-character code | M0 / M6 | |
+| 2.2 | Audio on/off | M3 | |
+| 2.3 | Full screen, no buttons | M4 | |
+| 2.4 | Save frame to the phone | M4 | |
+| 2.5 | Share the saved frame or the stream link | M4 (frame), M6 (link/invite) | Uses the phone's own share sheet |
+| 2.6 | Now playing: sequence name + aspect ratio (e.g. 9x16) | M1 | |
+| 2.7 | Playback controls from the phone (you asked earlier) | M5 | |
+| **3** | **Social media previews** | | |
+| 3.1 | Instagram Reels, Reddit, YouTube Shorts, Snapchat, X (plus TikTok, Facebook, Pinterest, IG Feed/Story) | M4 | Our own drawings of each app's buttons and text areas |
+| 3.2 | Your own profiles: picture + @handle, switch between several, placeholder caption lines | M4 | Saved on your PC. You pick the picture, or we fetch it from a public profile (optional, M4b) |
+| **4** | **Reference monitoring overlays** | | |
+| 4.1 | Frame rate, timecode, play status, host app, sequence name | M1 / M4 | |
+| 4.2 | Safe zones, rule of thirds, centre mark, grid and guides, letterbox (2.39:1 etc.) | M4 | |
+| 4.3 | Histogram (RGB), waveform (luma), vectorscope (75% targets) | M4 | Plus exposure helpers (false colour, zebras) |
+| 4.4 | Audio meters (stereo) | M4 (after M3) | Premiere only |
+
+Photoshop support stays in the plan as a bonus (M0). There, video, audio and playback items do not apply. The canvas, overlays and social previews do.
+
 ## 3. Where the existing code fits
 
 | Exists | Path | Keep / change |
