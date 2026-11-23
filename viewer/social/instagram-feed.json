@@ -1,0 +1,74 @@
+{
+ "id": "instagram-feed",
+ "name": "Instagram Feed (4:5)",
+ "ref": {
+  "w": 4,
+  "h": 5
+ },
+ "safe": [
+  0.04,
+  0.08,
+  0.92,
+  0.8
+ ],
+ "zones": [
+  {
+   "id": "counter",
+   "kind": "badge",
+   "label": "Slide counter",
+   "rect": [
+    0.82,
+    0.02,
+    0.16,
+    0.06
+   ],
+   "unsafe": true,
+   "pill": {
+    "x": 0.82,
+    "y": 0.02,
+    "w": 0.16,
+    "h": 0.05,
+    "text": "1/3"
+   }
+  },
+  {
+   "id": "tags",
+   "kind": "badge",
+   "label": "Tag / audio",
+   "rect": [
+    0.02,
+    0.9,
+    0.96,
+    0.08
+   ],
+   "unsafe": true,
+   "labelAt": "tc",
+   "icons": [
+    {
+     "shape": "user",
+     "x": 0.07,
+     "y": 0.94,
+     "size": 0.07
+    },
+    {
+     "shape": "mute",
+     "x": 0.93,
+     "y": 0.94,
+     "size": 0.07
+    }
+   ]
+  },
+  {
+   "id": "grid",
+   "kind": "crop",
+   "label": "Profile grid crop 3:4",
+   "rect": [
+    0.0625,
+    0,
+    0.875,
+    1
+   ],
+   "unsafe": false
+  }
+ ]
+}

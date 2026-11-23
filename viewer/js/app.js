@@ -13,8 +13,6 @@ import { createGestures } from './gestures.js';
 import { saveFrame, shareLink } from './share.js';
 import { guessDeviceName } from './device.js';
 import { store } from './storage.js';
-import { initSocial } from './social.js';
-import { initScopes } from './scopes.js';
 
 const $ = (id) => document.getElementById(id);
 const KEY_CODE = 'ot.lastCode';
@@ -45,7 +43,7 @@ let picSrc = { w: 16, h: 9 };
 let lastBitmap = null;
 
 const stats = createStats();
-const audio = createAudioPlayer();
+const audio = createAudioPlayer({ onLevels: (l) => bus.emit('audio-levels', l) });
 const transport = createTransport({
   send: (m) => conn?.send(m),
   getTime: () => curTime,
@@ -582,50 +580,44 @@ for (const sheet of document.querySelectorAll('.sheet')) {
 
 // ---------------------------------------------------------------- overlays
 
-let overlaysInited = false;
-$('btnOverlays').addEventListener('click', async () => {
-  let mod = null;
-  try { mod = await import('/js/overlays/index.js'); } catch { mod = null; }
-  if (mod && !overlaysInited) {
-    overlaysInited = true;
-    try {
-      const init = mod.init || mod.default?.init;
-      if (init) await init({ bus, getStage, panel: $('overlaysPanel'), layer: getStage(), toast });
-    } catch (e) {
-      console.error('overlays init failed', e);
-      toast('Overlays could not start.');
-      return;
-    }
-  }
-  const hasContent = $('overlaysPanel').children.length > 0;
-  if (!mod && !hasContent) { toast('Overlays are coming soon.'); return; }
-  openSheet('sheetOverlays');
-  mod?.open?.();
-});
+// One path: js/overlays/index.js mounts social frames, guides, scopes/exposure and info (see CONTRACT.md).
+// It is loaded at start so saved overlays come back; the Overlays button only opens the sheet.
+const overlaysReady = import('/js/overlays/index.js').then(async (mod) => {
+  await mod.init({
+    bus, getStage, layer: getStage(), panel: $('overlaysPanel'), dock: $('dock'), toast,
+    saveFrame: (opts) => doSave(opts),
+  });
+  return mod;
+}).catch((e) => { console.error('overlays failed to start', e); return null; });
 
-// Feature modules from CONTRACT.md. Stubs today; they render into these containers.
-{
-  const panel = $('overlaysPanel');
-  const socialPanel = document.createElement('div');
-  const scopesPanel = document.createElement('div');
-  const ctx = { bus, layer: getStage() };
-  try { initSocial({ ...ctx, panel: socialPanel }); } catch (e) { console.error(e); }
-  try { initScopes({ ...ctx, panel: scopesPanel, dock: $('dock') }); } catch (e) { console.error(e); }
-  for (const p of [socialPanel, scopesPanel]) if (p.childElementCount) panel.appendChild(p);
-}
+$('btnOverlays').addEventListener('click', async () => {
+  const mod = await overlaysReady;
+  if (!mod) { toast('Overlays could not start.'); return; }
+  openSheet('sheetOverlays');
+  mod.open?.();
+});
 
 // ---------------------------------------------------------------- save / share / fullscreen
 
-$('btnSave').addEventListener('click', async () => {
+async function doSave({ overlays = false } = {}) {
   if (!hasFrame) { toast('No picture to save yet.'); return; }
   try {
-    const r = await saveFrame(canvas, frameFileName(state?.sequence?.name, currentTimecode()));
+    let src = canvas;
+    let name = frameFileName(state?.sequence?.name, currentTimecode());
+    if (overlays) {
+      const mod = await overlaysReady;
+      if (mod?.composite) src = await mod.composite(canvas);
+      name = name.replace(/\.png$/, '_overlays.png');
+      closeSheets();
+    }
+    const r = await saveFrame(src, name);
     if (r === 'downloaded') toast('Frame saved to your downloads.');
     else if (r === 'shared') toast('Frame ready to save.');
   } catch (e) {
     toast(e.message || 'Could not save the frame.');
   }
-});
+}
+$('btnSave').addEventListener('click', () => doSave());
 
 $('btnShare').addEventListener('click', async () => {
   if (!code) return;
