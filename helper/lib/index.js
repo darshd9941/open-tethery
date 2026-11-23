@@ -40,7 +40,11 @@ function createHelper(opts = {}) {
     const local = isLoopbackAddress(normalizeIp(req.socket.remoteAddress)) && originAllowed(req.headers.origin);
     const deny = () => sendJson(res, 403, { error: 'loopback-only' });
 
-    if (p === '/health') return sendJson(res, 200, { ok: true, name: 'open-tethery', version: pkg.version, protocol: 1 });
+    if (p === '/health') {
+      // Public and harmless; the CEP panel (file:// origin) fetches it, so allow cross-origin reads.
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return sendJson(res, 200, { ok: true, name: 'open-tethery', version: pkg.version, protocol: 1 });
+    }
     if (p === '/api/session' && req.method === 'GET') return local ? sendJson(res, 200, hub.sessionInfo()) : deny();
     if (p === '/api/session/new') {
       if (!local) return deny();
