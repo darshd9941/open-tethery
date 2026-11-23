@@ -4,12 +4,15 @@
 // connection replaces the older one.
 
 const net = require('net');
-const { FrameParser, parseFramePayload, TYPE_FRAME_JPEG, TYPE_STATE, TYPE_HEARTBEAT } = require('./otx1');
+const otx1 = require('./otx1');
+
+const { FrameParser, parseFramePayload, TYPE_FRAME_JPEG, TYPE_STATE, TYPE_HEARTBEAT, TYPE_H264, TYPE_AUDIO } = otx1;
 
 const IDLE_TIMEOUT_MS = 15000; // plugin heartbeats every 1 s
 
-// Callbacks: onFrame(frame), onState(obj), onHeartbeat(), onConnection(connected)
-function startIngest({ port, host = '127.0.0.1', onFrame, onState, onHeartbeat, onConnection, log = () => {}, idleTimeoutMs = IDLE_TIMEOUT_MS }) {
+// Callbacks: onFrame(frame), onH264(au), onAudio(chunk), onState(obj), onHeartbeat(), onConnection(connected)
+// The result has send(buffer) for helper -> plugin messages (otx1.requestKeyframeMessage etc.).
+function startIngest({ port, host = '127.0.0.1', onFrame, onH264, onAudio, onState, onHeartbeat, onConnection, log = () => {}, idleTimeoutMs = IDLE_TIMEOUT_MS }) {
   let current = null;
 
   const server = net.createServer((socket) => {
@@ -32,6 +35,14 @@ function startIngest({ port, host = '127.0.0.1', onFrame, onState, onHeartbeat, 
         const frame = parseFramePayload(msg.payload);
         if (!frame) return log('transmit: dropped malformed frame message');
         onFrame && onFrame(frame);
+      } else if (msg.type === TYPE_H264) {
+        const au = otx1.parseH264Payload(msg.payload);
+        if (!au) return log('transmit: dropped malformed H.264 message');
+        onH264 && onH264(au);
+      } else if (msg.type === TYPE_AUDIO) {
+        const chunk = otx1.parseAudioPayload(msg.payload);
+        if (!chunk) return log('transmit: dropped malformed audio message');
+        onAudio && onAudio(chunk);
       } else if (msg.type === TYPE_STATE) {
         try {
           const parsed = JSON.parse(msg.payload.toString('utf8'));
@@ -68,13 +79,19 @@ function startIngest({ port, host = '127.0.0.1', onFrame, onState, onHeartbeat, 
   server.on('error', (err) => log(`transmit: listener error on ${host}:${port}: ${err.message}`));
 
   return new Promise((resolve) => {
-    server.once('error', () => resolve({ ok: false, port: 0, close() {} }));
+    server.once('error', () => resolve({ ok: false, port: 0, send: () => false, close() {} }));
     server.listen(port, host, () => {
       const actual = server.address().port;
       log(`transmit: listening on ${host}:${actual}`);
       resolve({
         ok: true,
         port: actual,
+        // helper -> plugin; false when no plugin is connected
+        send(buf) {
+          if (!current || current.destroyed) return false;
+          current.write(buf);
+          return true;
+        },
         close() {
           if (current) current.destroy();
           server.close();

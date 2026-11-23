@@ -16,14 +16,16 @@ const { toSvg } = require('./qr');
 const { serveViewer, findViewerDir } = require('./static');
 const { isLoopbackAddress, normalizeIp } = require('./session');
 
-// opts override config: port, ingestPort, lanIp, allowControl, viewerDir, logFile, echo,
+// opts override config: rtc (a createRtc() result, for tests), port, ingestPort, lanIp, allowControl, viewerDir, logFile, echo,
 // helloTimeoutMs, configPath, env.
 function createHelper(opts = {}) {
   const cfg = loadConfig({ env: opts.env, configPath: opts.configPath });
   for (const k of ['port', 'ingestPort', 'lanIp', 'allowControl', 'viewerDir']) if (opts[k] !== undefined) cfg[k] = opts[k];
   const log = createLogger({ file: opts.logFile === undefined ? path.join(cfg.dir, 'helper.log') : opts.logFile, echo: opts.echo !== false });
   const viewerDir = findViewerDir(cfg.viewerDir);
-  const rtc = createRtc();
+  // OT_RTC_HOST_ADDRESSES (comma separated) adds extra ICE host addresses, e.g. 127.0.0.1 for tests.
+  const extraHosts = String((opts.env || process.env).OT_RTC_HOST_ADDRESSES || '').split(',').map((x) => x.trim()).filter(Boolean);
+  const rtc = opts.rtc || createRtc({ log, ...(extraHosts.length ? { hostAddresses: extraHosts } : {}) });
   let boundPort = cfg.port;
 
   const getAddresses = (code) => sessionUrls(lanAddresses({ lanIp: cfg.lanIp }), boundPort, code);
@@ -114,10 +116,13 @@ function createHelper(opts = {}) {
         port: cfg.ingestPort,
         log,
         onFrame: (f) => hub.onTransmitFrame(f),
+        onH264: (au) => hub.onTransmitH264(au),
+        onAudio: (a) => hub.onTransmitAudio(a),
         onState: (s) => hub.onTransmitState(s),
         onHeartbeat: () => hub.onTransmitHeartbeat(),
         onConnection: (c) => hub.onTransmitConnection(c),
       });
+      hub.setPluginLink((buf) => ingest.send(buf));
       if (!ingest.ok) log(`WARNING: could not listen on 127.0.0.1:${cfg.ingestPort}; Transmit plugin cannot connect`);
       return { port: boundPort, ingestPort: this.ingestPort };
     },

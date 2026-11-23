@@ -7,6 +7,7 @@
 const os = require('os');
 const { WebSocket } = require('ws');
 const otv1 = require('./otv1');
+const otx1 = require('./otx1');
 const { StateModel } = require('./state');
 const { generateCode, codesMatch, Lockout, normalizeIp, isLoopbackAddress } = require('./session');
 
@@ -53,6 +54,15 @@ class Hub {
     this.latestFrame = null; // OTV1 buffer
     this.stats = { frames: 0, width: 0, height: 0 };
     this.startedAt = now();
+    // H.264 from the Transmit plugin (docs/transmit-protocol.md): WebRTC is offered only while it flows.
+    this.h264Active = false;
+    this.pluginSend = null; // (buffer) => boolean, helper -> plugin over OTX1
+    this.pluginSeq = 0;
+    this.jpegWantedSent = null;
+    if (rtc) {
+      rtc.onChange = () => this.updateJpegWanted();
+      rtc.requestKeyframe = () => this.requestKeyframe();
+    }
     this.lastStateAt = 0;
     this.stateTimer = null;
     this.lastStateSig = '';
@@ -141,6 +151,7 @@ class Hub {
     if (client.role === 'viewer') {
       this.rtc.stop(client);
       this.dropReqsFor(client);
+      this.updateJpegWanted();
     } else if (client.role === 'panel') {
       this.model.clearHost('panel', client.id);
       if (this.controlPanelId === client.id) this.controlPanelId = null;
@@ -202,7 +213,7 @@ class Hub {
       role,
       protocol: 1,
       control: client.control,
-      webrtc: Boolean(this.rtc.available),
+      webrtc: this.webrtcAvailable(client),
       server: { name: 'open-tethery', version: this.version, pcName: os.hostname() },
     });
     if (role === 'panel') {
@@ -243,7 +254,8 @@ class Hub {
         this.onViewerControl(v, msg);
         break;
       case 'rtc-start':
-        this.rtc.start(v);
+        if (!this.webrtcAvailable(v)) v.send({ t: 'error', code: 'unsupported', cmd: 'rtc-start' });
+        else this.rtc.start(v);
         break;
       case 'rtc-answer':
         this.rtc.answer(v, msg.sdp);
@@ -453,7 +465,62 @@ class Hub {
 
   onTransmitConnection(connected) {
     this.model.setTransmitConnected(connected);
+    this.jpegWantedSent = true; // a new plugin connection starts with "jpeg wanted" (the documented default)
+    if (!connected && this.h264Active) {
+      this.h264Active = false;
+      this.announceWebrtc();
+    }
+    if (connected) this.updateJpegWanted();
     this.markDirty();
+  }
+
+  // ---- H.264 from the plugin (OTX1 type 4/5) and the reverse channel (type 64/65) ----
+
+  // send: (buffer) => boolean, writes a helper -> plugin OTX1 message
+  setPluginLink(send) {
+    this.pluginSend = send;
+  }
+
+  // WebRTC is offered to a viewer that accepts it, while werift is loaded and an H.264 source is active.
+  webrtcAvailable(viewer) {
+    return Boolean(this.rtc.available && this.h264Active && viewer && viewer.role === 'viewer' && viewer.accept && viewer.accept.includes('webrtc'));
+  }
+
+  announceWebrtc() {
+    for (const v of this.viewers()) if (v.accept && v.accept.includes('webrtc')) v.send({ t: 'webrtc', available: this.webrtcAvailable(v) });
+    this.updateJpegWanted();
+  }
+
+  requestKeyframe() {
+    if (this.pluginSend) this.pluginSend(otx1.requestKeyframeMessage(this.pluginSeq++));
+  }
+
+  // The plugin sends JPEG alongside H.264 only while some viewer cannot use the H.264 stream.
+  updateJpegWanted() {
+    if (!this.pluginSend) return;
+    const wanted = !this.h264Active || this.viewers().some((v) => !this.rtc.isConnected(v));
+    if (wanted === this.jpegWantedSent) return;
+    if (this.pluginSend(otx1.jpegWantedMessage(this.pluginSeq++, wanted))) this.jpegWantedSent = wanted;
+  }
+
+  onTransmitH264(au) {
+    if (!this.h264Active) {
+      this.h264Active = true;
+      this.log('transmit: H.264 stream active');
+      this.announceWebrtc();
+    }
+    const wasLive = this.model.isLive();
+    this.stats.frames += 1;
+    this.stats.width = au.width;
+    this.stats.height = au.height;
+    this.model.noteFrame({ origin: 'transmit', time: au.time, srcWidth: au.width, srcHeight: au.height });
+    this.rtc.pushH264(au);
+    this.markDirty();
+    if (!wasLive) this.pushState();
+  }
+
+  onTransmitAudio(a) {
+    this.publishAudio(a);
   }
 
   onTransmitHeartbeat() {
@@ -484,9 +551,11 @@ class Hub {
     const wasLive = this.model.isLive();
     const buf = otv1.encodeFrame({ seq: ++this.seq.video, ...f });
     this.latestFrame = buf;
-    this.stats.frames += 1;
-    this.stats.width = f.width;
-    this.stats.height = f.height;
+    if (!(this.h264Active && f.origin === 'transmit')) this.stats.frames += 1; // H.264 units are counted instead
+    if (!this.h264Active) {
+      this.stats.width = f.width;
+      this.stats.height = f.height;
+    }
     this.model.noteFrame({
       origin: f.origin,
       sourceId: f.sourceId,
@@ -507,7 +576,7 @@ class Hub {
     this.model.noteAudio({ sampleRate: a.sampleRate, channels: a.channels });
     this.rtc.pushAudio(a);
     for (const v of this.viewers()) {
-      if (!v.audioOn || this.rtc.isConnected(v)) continue;
+      if (!v.audioOn || (this.rtc.carriesAudio && this.rtc.carriesAudio(v))) continue;
       if (v.ws.readyState !== WebSocket.OPEN || v.ws.bufferedAmount > AUDIO_BACKLOG_LIMIT) continue;
       v.bytes += buf.length;
       v.ws.send(buf, { binary: true });
@@ -582,6 +651,7 @@ class Hub {
   // ---- periodic work ----
 
   housekeeping() {
+    this.updateJpegWanted(); // viewers' WebRTC state changes with time (stall -> JPEG again)
     // idle <-> live and audio availability change with time, not with messages
     const sig = `${this.model.isLive()}|${this.model.snapshot().audio.available}`;
     if (sig !== this.idleSig) {

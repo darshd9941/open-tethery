@@ -21,7 +21,7 @@ Module contract for feature streams (scopes, social frames): `CONTRACT.md`.
 | `js/social.js`, `social/*.json` | social frames (11 platforms as data) + profiles |
 | `js/guides.js` | safe zones, thirds, centre, grid, letterbox mattes |
 | `js/scopes.js`, `js/scope-math.js`, `js/scope-worker.js` | histogram, waveform, vectorscope, false colour, zebras, audio meters |
-| `js/transport-webrtc.js` | stub that reports unsupported (WebRTC comes later) |
+| `js/transport-webrtc.js` | WebRTC receiver (PROTOCOL section 7): answers the helper's offer, trickle ICE, hidden `<video>` drawn to the canvas per frame; falls back to JPEG, retries at most every 10 s |
 
 ### Overlays (M4)
 
@@ -66,10 +66,13 @@ npm test                      # node --test test/*.test.mjs
 
 - Invite view with a QR code (the helper already serves `/api/qr.svg` for the PC side).
 - Service worker (nothing useful to cache; the helper sends `no-store` for `index.html`).
-- WebRTC (stub only).
+- WebRTC audio (Opus); PCM stays on the WebSocket. The audio sync offset also delays the WebRTC picture (frames are copied with `createImageBitmap` while Sound is on).
 
 ## Needs PC / real phone testing
 
+0. **WebRTC on a real phone** (needs the encoder in the Transmit plugin): iPhone Safari (video must play inline, muted, from
+   `requestVideoFrameCallback`, Safari 15.4+), Android Chrome; `Stats > Transport` shows `webrtc`; overlays, scopes and
+   Save frame still work on the WebRTC picture; switching Wi-Fi falls back to JPEG and recovers.
 1. Real helper + Premiere/AE: picture, timecode, LIVE/IDLE, sequence name, aspect and fps look right.
 2. **iPhone Safari audio unlock:** tap Sound with a real stream, audio must start without a second tap; check
    the silent (ringer) switch behaviour; lock/unlock the phone and confirm sound resumes.

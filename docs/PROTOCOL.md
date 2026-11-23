@@ -199,8 +199,14 @@ Signalling rides the same `/ws` socket. The **helper always makes the offer**
 | helper → viewer | `{"t":"rtc-state","state":"connected"\|"failed"\|"closed"}` |
 | viewer → helper | `{"t":"rtc-stop"}` back to binary frames |
 
+Helper -> viewer also: `{"t":"webrtc","available":true|false}` (added with M2): sent to viewers that accept `webrtc` when
+the answer to `welcome.webrtc` changes later (H.264 started or ended after they joined). `welcome.webrtc` is true only
+when the viewer lists `webrtc` in `accept`, the helper has WebRTC support, and an H.264 source is active.
+
 Rules:
 
+- v1 helper sends video only (no audio m-line) until the Opus path exists; PCM (§5 kind 2) keeps carrying audio.
+- RTP timestamps are a 90 kHz arrival clock, not media time (media time can jump when the playhead moves).
 - Local network only: **host candidates, no STUN/TURN servers** in v1. A
   Tailscale address counts as a host candidate.
 - While the peer connection is not `connected`, the helper keeps sending
