@@ -62,7 +62,7 @@ Reply:
 
 ```json
 { "t": "welcome", "id": "v3", "role": "viewer", "protocol": 1,
-  "control": true, "webrtc": false, "server": { "name": "open-tethery", "version": "0.2.0" } }
+  "control": true, "webrtc": false, "server": { "name": "open-tethery", "version": "0.2.0", "pcName": "DARSHAN-PC" } }
 ```
 
 `control` = whether this viewer may send playback commands right now (the
