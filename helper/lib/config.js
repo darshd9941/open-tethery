@@ -44,4 +44,24 @@ function loadConfig({ env = process.env, configPath } = {}) {
   return cfg;
 }
 
-module.exports = { loadConfig, configDir, DEFAULTS };
+// Merges one key into the config file (keeps unknown keys). Returns false on failure.
+function saveConfigKey(file, key, value) {
+  let obj = {};
+  try {
+    const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (parsed && typeof parsed === 'object') obj = parsed;
+  } catch {
+    // no file yet
+  }
+  if (value === null || value === undefined) delete obj[key];
+  else obj[key] = value;
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, `${JSON.stringify(obj, null, 2)}\n`);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+module.exports = { saveConfigKey, loadConfig, configDir, DEFAULTS };

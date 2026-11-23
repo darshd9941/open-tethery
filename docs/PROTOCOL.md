@@ -27,9 +27,19 @@ to it:
 | `GET /` | anyone | Viewer app (`viewer/index.html`). Shows a code-entry box when no code is in the URL. |
 | `GET /c/CL7G` | anyone | Same viewer app; the code is read from the path. **This is what the QR encodes.** |
 | `GET /health` | anyone | `{"ok":true,"name":"open-tethery","version":"0.2.0","protocol":1}` |
-| `GET /api/session` | loopback only | `{"code":"CL7G","urls":["http://192.168.1.20:47825/c/CL7G", ...],"primaryUrl":"...","viewers":2,"source":{...state...}}` |
+| `GET /api/session` | loopback only | `{"code":"CL7G","urls":["http://192.168.1.20:47825/c/CL7G", ...],"primaryUrl":"...","connections":[{"kind":"wifi","label":"Wi-Fi","name":"Wi-Fi","ip":"192.168.1.20","url":"http://192.168.1.20:47825/c/CL7G","recommended":true}, ...],"viewers":2,"source":{...state...}}` (`connections`: see below) |
 | `GET /api/qr.svg?text=...` | loopback only | QR code as SVG (so panels need no QR library). Omit `text` for the primary URL. |
 | `POST /api/session/new` | loopback only | Makes a new code, disconnects all viewers. Returns the same body as `GET /api/session`. |
+
+| `POST /api/report` | loopback only | Writes a diagnostics zip (nothing is uploaded) to `%LOCALAPPDATA%\OpenTethery\reports\` (Linux/mac: `~/.config/open-tethery/reports/`) as `open-tethery-report-<UTC date>.zip`. Returns `{"path":"<zip path>","dir":"<folder>"}`. Contents: helper log tail, config, `/api/session` snapshot, interfaces, node/OS versions, last 50 panel `state` messages, viewer list with telemetry, firewall hint. The session code is replaced by `****` in every file. |
+
+`connections` lists every non-internal IPv4 interface, best first. `kind` is one of `wifi`, `ethernet`, `hotspot`
+(Windows Mobile Hotspot 192.168.137.x, or a phone hotspot subnet 192.168.42.x / 172.20.10.x joined over Wi-Fi),
+`usb` (RNDIS / Apple Mobile Device adapter, or a phone tethering subnet on a wired adapter), `tailscale`
+(100.64.0.0/10 or a name containing Tailscale), `vpn`, `other`. `label` is a display name, `name` the OS adapter name,
+`url` the join URL on that address, `recommended` is true for exactly one entry (the automatic best pick,
+independent of the user's choice). `urls[0]` / `primaryUrl` is the address the QR uses: the panel's choice if set,
+otherwise the recommended one.
 
 Static viewer files are served from `viewer/` (owned by the viewer stream).
 The helper never caches `index.html` (`Cache-Control: no-store`).
@@ -249,6 +259,8 @@ Panel → helper:
   "sequence": {"name":"Main edit","width":3840,"height":2160,"fpsNum":24000,"fpsDen":1001,"duration":512.3},
   "playing": false, "time": 12.5 }
 { "t": "panel-settings", "allowControl": true }
+{ "t": "panel-settings", "connection": "192.168.137.1" }
+{ "t": "panel-settings", "connection": null }
 { "t": "new-session" }
 { "t": "kick", "id": "v3" }
 { "t": "control-result", "req": 7, "ok": true }
@@ -257,8 +269,8 @@ Panel → helper:
 ```
 
 Helper → panel: `state` (§4, plus `viewerList: [{"id":"v3","name":"Pixel 8","ip":"192.168.1.31"}]`,
-`code`, `urls`, `primaryUrl`, `allowControl`), and playback commands to run.
-The helper keeps `allowControl` (default `true`) across panel reconnects; `get-state` asks for a fresh `state` at once. Playback commands to run:
+`code`, `urls`, `primaryUrl`, `connections` (as in §1), `allowControl`), and playback commands to run.
+`panel-settings.connection` makes that interface address the `primaryUrl` (QR) and is saved as `lanIp` in the config file; `null` (or the recommended entry) returns to automatic; an address that is not a current interface is ignored. The helper keeps `allowControl` (default `true`) across panel reconnects; `get-state` asks for a fresh `state` at once. Playback commands to run:
 
 ```json
 { "t": "control", "req": 7, "cmd": "seek", "time": 12.5 }

@@ -190,6 +190,8 @@
         allowControl = !!v;
         if (welcomed) send({ t: 'panel-settings', allowControl: allowControl });
       },
+      // ip string, or null for automatic (helper ignores addresses it does not have)
+      setConnection: function (ip) { return send({ t: 'panel-settings', connection: ip }); },
       getState: function () { return send({ t: 'get-state' }); },
       newSession: function () { return send({ t: 'new-session' }); },
       kick: function (id) { return send({ t: 'kick', id: id }); },
