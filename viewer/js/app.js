@@ -6,6 +6,7 @@ import { codeFromPath, editCode, lockText, CODE_LENGTH } from './code.js';
 import { formatTimecode, formatFps, formatClock, frameFileName } from './timecode.js';
 import { fitRect } from './layout.js';
 import { createConnection } from './net.js';
+import { createWebRtcTransport, isSupported as webrtcSupported } from './transport-webrtc.js';
 import { createAudioPlayer } from './audio.js';
 import { createTransport, controlState, errorText } from './transport.js';
 import { createStats } from './stats.js';
@@ -43,6 +44,23 @@ let picSrc = { w: 16, h: 9 };
 let lastBitmap = null;
 
 const stats = createStats();
+
+// Hidden <video> that receives the WebRTC stream; its frames are drawn onto the canvas (see onRtcFrame).
+const rtcVideo = document.createElement('video');
+rtcVideo.muted = true;
+rtcVideo.playsInline = true;
+rtcVideo.autoplay = true;
+rtcVideo.setAttribute('playsinline', '');
+rtcVideo.setAttribute('aria-hidden', 'true');
+rtcVideo.style.cssText = 'position:fixed;left:0;top:0;width:2px;height:2px;opacity:0;pointer-events:none;';
+document.body.appendChild(rtcVideo);
+const rtc = createWebRtcTransport({
+  send: (m) => conn?.send(m),
+  video: rtcVideo,
+  onFrame: (v) => onRtcFrame(v),
+  onActive: () => { pending = null; },
+  log: (t) => console.info('[rtc]', t),
+});
 const audio = createAudioPlayer({ onLevels: (l) => bus.emit('audio-levels', l) });
 const transport = createTransport({
   send: (m) => conn?.send(m),
@@ -358,9 +376,24 @@ function drain() {
 }
 function closeImage(img) { if (img && typeof img.close === 'function') img.close(); }
 
+// One decoded video frame from the WebRTC stream. Picture size follows the stream; the aspect used for
+// letter-boxing is the sequence's when it matches (same as for JPEG frames).
+let rtcSeq = 0;
+function onRtcFrame(v) {
+  const w = v.videoWidth;
+  const h = v.videoHeight;
+  const seqW = state?.sequence?.width;
+  const seqH = state?.sequence?.height;
+  const sameAspect = seqW && seqH && Math.abs(seqW / seqH - w / h) < 0.02;
+  const p = { width: w, height: h, srcW: sameAspect ? seqW : w, srcH: sameAspect ? seqH : h, time: NaN, seq: ++rtcSeq };
+  if (audio.videoDelayMs() <= 0 && !queue.length) { present({ img: v, p, decodeMs: 0 }); return; }
+  // sound is on: hold the picture back like JPEG frames; the <video> keeps moving, so copy the frame
+  createImageBitmap(v).then((img) => enqueue({ img, p, decodeMs: 0 }), () => {});
+}
+
 function present({ img, p, decodeMs }) {
-  const w = img.width || p.width;
-  const h = img.height || p.height;
+  const w = img.videoWidth || img.width || p.width;
+  const h = img.videoHeight || img.height || p.height;
   if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; }
   ctx2d.drawImage(img, 0, 0, w, h);
   const srcW = p.srcW || w;
@@ -389,6 +422,7 @@ function onBinary(buf) {
   const m = parseOTV1(buf);
   if (!m) return;
   if (m.kind === 'video') {
+    if (rtc.active) return; // WebRTC carries the picture; a late JPEG would flicker
     pending = m;
     if (!decoding) pump();
   } else if (audio.on) {
@@ -397,7 +431,11 @@ function onBinary(buf) {
 }
 
 function onMessage(msg) {
+  if (rtc.handleMessage(msg)) return;
   switch (msg.t) {
+    case 'webrtc':
+      rtc.setAvailable(msg.available === true);
+      break;
     case 'state':
       if (msg.playing && !state?.playing) bumpUi();
       state = msg;
@@ -440,9 +478,11 @@ function startSession(c) {
   conn = createConnection({
     code: c,
     name,
+    accept: webrtcSupported() ? ['jpeg', 'pcm', 'webrtc'] : ['jpeg', 'pcm'],
     handlers: {
       onStatus(status, info) {
         offline = status === 'reconnecting';
+        if (status !== 'open') rtc.connectionLost();
         if (status === 'reconnecting') {
           bus.emit('conn', { status: 'connecting', detail: 'reconnecting' });
           if (hasFrame) setBanner('Connection lost. Reconnecting…');
@@ -455,6 +495,7 @@ function startSession(c) {
       onWelcome(msg) {
         welcome = msg;
         control = !!msg.control;
+        rtc.setAvailable(msg.webrtc === true);
         store.set(KEY_CODE, c);
         const dpr = window.devicePixelRatio || 1;
         conn.send({ t: 'info', name, w: Math.round(screen.width * dpr), h: Math.round(screen.height * dpr) });

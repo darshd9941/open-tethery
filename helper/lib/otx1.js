@@ -12,6 +12,13 @@ const TICKS_PER_SECOND = 254016000000n;
 const TYPE_FRAME_JPEG = 1;
 const TYPE_STATE = 2;
 const TYPE_HEARTBEAT = 3;
+const TYPE_H264 = 4; // plugin -> helper: one H.264 access unit (Annex B)
+const TYPE_AUDIO = 5; // plugin -> helper: PCM chunk
+const TYPE_REQUEST_KEYFRAME = 64; // helper -> plugin, empty payload
+const TYPE_JPEG_WANTED = 65; // helper -> plugin, JSON {"jpeg":true|false}
+const H264_META_SIZE = 16;
+const AUDIO_META_SIZE = 16;
+const FLAG_KEYFRAME = 1;
 
 class ProtocolError extends Error {}
 
@@ -92,6 +99,37 @@ function parseFramePayload(payload) {
   };
 }
 
+// Type 4 payload: 16-byte meta + Annex B bytes. Null when unusable.
+function parseH264Payload(payload) {
+  if (payload.length < H264_META_SIZE + 5) return null;
+  const data = payload.subarray(H264_META_SIZE);
+  // must start with a 3- or 4-byte start code
+  const ok = (data[0] === 0 && data[1] === 0 && data[2] === 1) || (data[0] === 0 && data[1] === 0 && data[2] === 0 && data[3] === 1);
+  if (!ok) return null;
+  const ticks = payload.readBigInt64LE(8);
+  return {
+    keyframe: (payload[0] & FLAG_KEYFRAME) !== 0,
+    width: payload.readUInt16LE(4),
+    height: payload.readUInt16LE(6),
+    ticks,
+    time: Number(ticks) / Number(TICKS_PER_SECOND),
+    data,
+  };
+}
+
+// Type 5 payload: 16-byte meta + int16 interleaved samples. Null when unusable.
+function parseAudioPayload(payload) {
+  if (payload.length < AUDIO_META_SIZE) return null;
+  const sampleRate = payload.readUInt32LE(0);
+  const channels = payload[4];
+  const format = payload[5];
+  const frames = payload.readUInt16LE(6);
+  const samples = payload.subarray(AUDIO_META_SIZE);
+  if (format !== 1 || channels < 1 || channels > 8 || sampleRate < 8000 || samples.length !== frames * channels * 2) return null;
+  const ticks = payload.readBigInt64LE(8);
+  return { sampleRate, channels, format, frames, ticks, time: Number(ticks) / Number(TICKS_PER_SECOND), samples };
+}
+
 // Encoders (used by tools and tests; the helper itself only receives).
 function message(type, seq, payload) {
   const head = Buffer.alloc(HEADER_SIZE);
@@ -114,7 +152,53 @@ function frameMessage(seq, jpeg, { width, height, seqWidth = width, seqHeight = 
   return message(TYPE_FRAME_JPEG, seq, Buffer.concat([meta, jpeg]));
 }
 
+function h264Message(seq, data, { keyframe = false, width, height, ticks = 0n }) {
+  const meta = Buffer.alloc(H264_META_SIZE);
+  meta[0] = keyframe ? FLAG_KEYFRAME : 0;
+  meta.writeUInt16LE(width, 4);
+  meta.writeUInt16LE(height, 6);
+  meta.writeBigInt64LE(BigInt(ticks), 8);
+  return message(TYPE_H264, seq, Buffer.concat([meta, data]));
+}
+
+function audioMessage(seq, samples, { sampleRate = 48000, channels = 2, format = 1, ticks = 0n }) {
+  const meta = Buffer.alloc(AUDIO_META_SIZE);
+  meta.writeUInt32LE(sampleRate, 0);
+  meta[4] = channels;
+  meta[5] = format;
+  meta.writeUInt16LE(samples.length / (channels * 2), 6);
+  meta.writeBigInt64LE(BigInt(ticks), 8);
+  return message(TYPE_AUDIO, seq, Buffer.concat([meta, samples]));
+}
+
+// helper -> plugin
+const requestKeyframeMessage = (seq) => message(TYPE_REQUEST_KEYFRAME, seq, Buffer.alloc(0));
+const jpegWantedMessage = (seq, wanted) => message(TYPE_JPEG_WANTED, seq, Buffer.from(JSON.stringify({ jpeg: Boolean(wanted) })));
+
+function parseJpegWanted(payload) {
+  try {
+    const o = JSON.parse(payload.toString('utf8'));
+    return o && typeof o.jpeg === 'boolean' ? o.jpeg : null;
+  } catch {
+    return null;
+  }
+}
+
 module.exports = {
+  parseH264Payload,
+  parseAudioPayload,
+  h264Message,
+  audioMessage,
+  requestKeyframeMessage,
+  jpegWantedMessage,
+  parseJpegWanted,
+  H264_META_SIZE,
+  AUDIO_META_SIZE,
+  TYPE_H264,
+  TYPE_AUDIO,
+  TYPE_REQUEST_KEYFRAME,
+  TYPE_JPEG_WANTED,
+
   FrameParser,
   ProtocolError,
   parseFramePayload,

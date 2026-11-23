@@ -77,15 +77,18 @@ Name: "{autoprograms}\Uninstall Open Tethery"; Filename: "{uninstallexe}"
 [Run]
 ; Replace the old "Live Video Preview" / "Live Phone Preview" rules and our own rule (idempotent)
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#RuleName}"""; Flags: runhidden; StatusMsg: "Updating firewall..."
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#RuleName} (video)"""; Flags: runhidden; StatusMsg: "Updating firewall..."
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Live Video Preview (TCP 47825)"""; Flags: runhidden
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Live Phone Preview (TCP 47823)"""; Flags: runhidden
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""{#RuleName}"" dir=in action=allow protocol=TCP localport={#Port} profile=private"; Flags: runhidden
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""{#RuleName} (video)"" dir=in action=allow protocol=UDP program=""{app}\OpenTetheryHelper.exe"" profile=private"; Flags: runhidden
 Filename: "{#UpiaExe}"; Parameters: "/install ""{app}\OpenTetheryPhotoshop.ccx"""; Flags: runhidden skipifdoesntexist; StatusMsg: "Installing Photoshop plug-in..."
 Filename: "{sys}\wscript.exe"; Parameters: """{app}\start-helper.vbs"""; Flags: nowait runasoriginaluser postinstall skipifsilent; Description: "Start the Open Tethery helper now"
 
 [UninstallRun]
 Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM {#HelperExe}"; Flags: runhidden; RunOnceId: "KillHelper"
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#RuleName}"""; Flags: runhidden; RunOnceId: "DelRule"
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#RuleName} (video)"""; Flags: runhidden; RunOnceId: "DelRuleVideo"
 Filename: "{#UpiaExe}"; Parameters: "/remove {#PsPluginId}"; Flags: runhidden skipifdoesntexist; RunOnceId: "DelPsPlugin"
 
 [UninstallDelete]
