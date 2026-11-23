@@ -54,7 +54,9 @@ closes the socket.
 ```
 
 - `role`: `"viewer"` (needs `code`), `"panel"` or `"source"` (loopback only,
-  no code).
+  no code). Panels may add `"app": "premiere"|"aftereffects"`.
+- Loopback roles and `/api/*` reject requests whose `Origin` header is an
+  http(s) origin other than loopback (so web pages cannot drive them).
 - `accept` (viewer): media the viewer can play. v1 media: `"jpeg"`, `"pcm"`.
   Reserved for later: `"webrtc"` (H.264 + Opus, see §7).
 
@@ -167,8 +169,12 @@ schedule by `media time`; when playback stops no chunks arrive.
 | `{"t":"ping","ts":1732350000000}` | helper answers `{"t":"pong","ts":…,"serverTs":…}` |
 | `{"t":"info","name":"Pixel 8","w":1080,"h":2400}` | optional device info shown in the panel's phone list |
 
-Control replies: `{"t":"control-ack","cmd":"seek","ok":true}` or
-`{"t":"error","code":"control-off"|"no-host"|"unsupported","cmd":"step"}`.
+Control replies: `{"t":"control-ack","cmd":"seek","ok":true}` (a seek
+replaced by a newer one gets `"coalesced":true`) or
+`{"t":"error","code":"control-off"|"no-host"|"unsupported"|"timeout","cmd":"step"}`.
+
+Other errors the helper may send before closing: `session-ended` (new code
+made), `kicked`, `hello-timeout`, `bad-hello`, `forbidden`.
 Scrubbing: viewers should send at most ~15 `seek` per second; the helper keeps
 only the newest pending seek.
 
@@ -207,7 +213,7 @@ Rules:
 
 ## 7b. Telemetry
 
-Helper → viewers and panel, once per second while any source is connected:
+Helper → viewers and panel, once per second while a Transmit plugin, panel or source is connected:
 
 ```json
 { "t": "stats", "fps": 23.9, "width": 1920, "height": 1080,
