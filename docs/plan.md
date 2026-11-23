@@ -1,3 +1,5 @@
+﻿> Superseded by [PRODUCT-PLAN.md](PRODUCT-PLAN.md) (23 Nov 2026). Kept for history.
+
 # Open Tethery: assessment and build plan
 
 Prepared 23 Nov 2026. Read-only review of `E:\premiere-live-stream`, `E:\screen live video`
@@ -18,7 +20,7 @@ the same network shows the editor's output live, including real-time playback.
 | `E:\premiere-live-stream` | Native C++ **Mercury Transmit** plugin attempt. Contains the Premiere Pro 27.0 C++ SDK (zip + unpacked) and `Transmitter/`, which is Adobe's sample transmitter essentially unmodified. README says "scaffold only". | **Not started in practice.** `x64/Debug/.../unsuccessfulbuild` shows the only build failed. `PushVideo` receives frames and throws them away; audio, encoding and networking are all stubs. |
 
 ### Overlaps
-- The two "screen live" folders share the same architecture (panel → `ws://127.0.0.1:<port>/ws` → Node relay → LAN viewer) and near-identical `relay/`, `viewer/`, `icc.js`, firewall `.bat`, `config.json`. They have already diverged:
+- The two "screen live" folders share the same architecture (panel â†’ `ws://127.0.0.1:<port>/ws` â†’ Node relay â†’ LAN viewer) and near-identical `relay/`, `viewer/`, `icc.js`, firewall `.bat`, `config.json`. They have already diverged:
   - `screen live` has the better **relay** (681 lines: session expiry, stricter handshake, payload limits) and better **viewer** core (726 lines), plus all the test tools and a `.gitignore`.
   - `screen live video` has the **video-specific** viewer extras (aspect guides, timecode/sequence HUD) and the Pr/AE panel.
 - None of the three is under git.
@@ -38,19 +40,19 @@ ExtendScript/CEP is fine for the **control panel**, but the **pixels must come f
 | Tethery feature | Ours today |
 |---|---|
 | QR pairing + short 4-character code, lockout after wrong guesses, ending session kicks all viewers | QR + 128-bit token in URL hash; new Start invalidates old token. No short code, no lockout. |
-| **Real-time playback**: colour, effects, titles, trims stream live while playing | ❌ Still frame after pause only (Pr/AE). |
-| Up to 4K playback, stats HUD (resolution, fps, bitrate, connection) | ❌ Stills; HUD shows timecode/name/resolution only. |
-| **Audio** through the phone speaker (Premiere only) | ❌ |
-| Multiple devices at once, all follow the playhead | ✅ Relay broadcasts to many viewers (tested with 3 phones in the Photoshop version). |
-| Any browser, nothing to install (iPhone, iPad, Android, laptop) | ✅ PWA viewer, wake lock, pinch/zoom, 1:1. |
-| Accurate colour: stream labelled Rec. 709, guidance to turn off True Tone etc. | ✅ for stills (sRGB / P3 ICC injection). Video will need Rec. 709 tagging instead. |
+| **Real-time playback**: colour, effects, titles, trims stream live while playing | âŒ Still frame after pause only (Pr/AE). |
+| Up to 4K playback, stats HUD (resolution, fps, bitrate, connection) | âŒ Stills; HUD shows timecode/name/resolution only. |
+| **Audio** through the phone speaker (Premiere only) | âŒ |
+| Multiple devices at once, all follow the playhead | âœ… Relay broadcasts to many viewers (tested with 3 phones in the Photoshop version). |
+| Any browser, nothing to install (iPhone, iPad, Android, laptop) | âœ… PWA viewer, wake lock, pinch/zoom, 1:1. |
+| Accurate colour: stream labelled Rec. 709, guidance to turn off True Tone etc. | âœ… for stills (sRGB / P3 ICC injection). Video will need Rec. 709 tagging instead. |
 | Overlays: grid, guides, **live scopes** | Partial: 9:16, 4:5, 1:1, title-safe guides. No grid or scopes. |
-| **Social previews**: frame inside Instagram/TikTok/YouTube/etc. UI at true size | ❌ (must be our own drawn mock-ups, not copied platform assets). |
-| Frame export (save a still on the phone) | ❌ (easy). |
-| Device notifications | ❌ |
+| **Social previews**: frame inside Instagram/TikTok/YouTube/etc. UI at true size | âŒ (must be our own drawn mock-ups, not copied platform assets). |
+| Frame export (save a still on the phone) | âŒ (easy). |
+| Device notifications | âŒ |
 | Wi-Fi, hotspot, cable (USB tether), VPN/Tailscale; optional online link | LAN + hotspot work; no cable guide, no remote link. |
-| Encrypted "like a video call", frames never touch a server | ❌ Plain HTTP + WebSocket on LAN. WebRTC gives this for free. |
-| Licensing, 2 seats, Mac + Windows, Premiere/AE 2025+ | ❌ Windows only, unpackaged dev install (PlayerDebugMode). |
+| Encrypted "like a video call", frames never touch a server | âŒ Plain HTTP + WebSocket on LAN. WebRTC gives this for free. |
+| Licensing, 2 seats, Mac + Windows, Premiere/AE 2025+ | âŒ Windows only, unpackaged dev install (PlayerDebugMode). |
 
 **Overall progress vs. target: roughly 25-30%.** Pairing, relay, multi-viewer and the phone viewer UX are solid and reusable. The hard core of the product (native frame capture during playback, video encoding, low-latency transport, audio) is at 0%.
 
@@ -60,22 +62,22 @@ ExtendScript/CEP is fine for the **control panel**, but the **pixels must come f
 
 ```
 Premiere Pro / After Effects
- ├─ Control panel (UXP in Premiere 25+, CEP for AE until its UXP is ready)
- │    Start/Stop, QR + 4-char code, viewer list, quality, audio toggle
- │    talks to the helper over ws://127.0.0.1:<port>/control
- └─ Native Mercury Transmit plugin (C++, thin)          ← frames + audio
-      PushVideo: PPix → downscale + convert (BGRA / NV12)
+ â”œâ”€ Control panel (UXP in Premiere 25+, CEP for AE until its UXP is ready)
+ â”‚    Start/Stop, QR + 4-char code, viewer list, quality, audio toggle
+ â”‚    talks to the helper over ws://127.0.0.1:<port>/control
+ â””â”€ Native Mercury Transmit plugin (C++, thin)          â† frames + audio
+      PushVideo: PPix â†’ downscale + convert (BGRA / NV12)
       PushAudio: float PCM 48 kHz stereo (Premiere only)
-      → localhost socket / shared memory → helper
-                │
+      â†’ localhost socket / shared memory â†’ helper
+                â”‚
 Helper process (separate process, so a crash never takes down Premiere)
-   Phase 1: the existing Node relay  ·  later: optional native binary
+   Phase 1: the existing Node relay  Â·  later: optional native binary
    - H.264 hardware encode (NVENC / QuickSync / AMF via Media Foundation on Windows,
      VideoToolbox on Mac), Opus audio
    - WebRTC (DTLS-SRTP, encrypted) via node-datachannel / libdatachannel
    - HTTP: serves viewer page + signaling, QR/code pairing, lockout
    - Fallback transport: JPEG frames over WebSocket (what exists today)
-                │  LAN / hotspot / USB tether / Tailscale
+                â”‚  LAN / hotspot / USB tether / Tailscale
 Phone viewer (static web page, no install)
    <video> fed by the WebRTC track (hardware H.264 decode, jitter buffer, A/V sync)
    overlays (guides, grid, scopes on a canvas), social-preview frames, stats HUD
@@ -97,14 +99,14 @@ Key decisions and why:
 
 ```
 E:\premiere-live-stream\
-  native\transmit\      ← from Transmitter\ (rewritten)
-  sdk\                  ← stays, git-ignored (Adobe SDK licence: don't commit/redistribute)
-  relay\                ← from "screen live"\relay (the more mature one) + Pr/AE bits
-  viewer\               ← "screen live"\viewer core + guides/timecode from "screen live video"
-  panel\cep\            ← from "screen live video"\extension (export-based capture removed)
-  panel\uxp\            ← new, later
-  photoshop\            ← "screen live"\plugin, kept working as a bonus
-  tools\                ← "screen live"\tools test scripts
+  native\transmit\      â† from Transmitter\ (rewritten)
+  sdk\                  â† stays, git-ignored (Adobe SDK licence: don't commit/redistribute)
+  relay\                â† from "screen live"\relay (the more mature one) + Pr/AE bits
+  viewer\               â† "screen live"\viewer core + guides/timecode from "screen live video"
+  panel\cep\            â† from "screen live video"\extension (export-based capture removed)
+  panel\uxp\            â† new, later
+  photoshop\            â† "screen live"\plugin, kept working as a bonus
+  tools\                â† "screen live"\tools test scripts
   docs\
 ```
 
@@ -119,17 +121,17 @@ Model tiers follow your preference: **Opus** = plan, design, review, hard debugg
 | Task | Model |
 |---|---|
 | `git init` in `E:\premiere-live-stream`, `.gitignore` (sdk/, the SDK zip, x64/, node_modules, logs, build/) | Haiku |
-| Copy relay/viewer/tools from `screen live`, panel from `screen live video`, per §4 | Haiku |
+| Copy relay/viewer/tools from `screen live`, panel from `screen live video`, per Â§4 | Haiku |
 | Merge the two viewers (port guides + timecode HUD into the `screen live` viewer) and the relay differences | Sonnet (Opus reviews the diff) |
 | Run `tools/test-viewer.js` / `mock-plugin.js` against the merged relay; report pass/fail | Haiku |
 
-**Done when:** one repo; mock plugin → relay → phone viewer works with guides and timecode.
+**Done when:** one repo; mock plugin â†’ relay â†’ phone viewer works with guides and timecode.
 
 ### Phase 1: Native transmit plugin that delivers frames (2-4 days, highest risk)
 | Task | Model |
 |---|---|
 | Get the SDK Transmitter sample to **build and load** in Premiere 2026 (VS 2022 x64, SDK include paths, `.prm` into the MediaCore plug-ins folder) and appear under Preferences > Playback | Opus guides, Sonnet edits the project; Haiku reads build logs |
-| In `PushVideo`: read the PPix via the PPix suite, scale to ≤1280 px BGRA, put the latest frame in a ring buffer (drop old frames, never block Premiere's thread) | Sonnet from an Opus brief |
+| In `PushVideo`: read the PPix via the PPix suite, scale to â‰¤1280 px BGRA, put the latest frame in a ring buffer (drop old frames, never block Premiere's thread) | Sonnet from an Opus brief |
 | Send frames to the helper over a localhost socket (length-prefixed). First as **JPEG** (WIC or libjpeg-turbo) so today's relay and viewer show it unchanged | Sonnet |
 | Load the same build in After Effects (Preferences > Video Preview) | Sonnet; Opus debugs host differences |
 
@@ -196,3 +198,4 @@ Model tiers follow your preference: **Opus** = plan, design, review, hard debugg
 
 ## 7. Suggested first step
 Phase 0 plus the first task of Phase 1 (get the sample Transmitter building and selectable in Premiere). If it loads, the rest is engineering; if it doesn't, we find out on day one.
+
