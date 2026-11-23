@@ -134,13 +134,13 @@ test('a throwing runControl still yields control-result ok:false', async () => {
 test('kick, new-session and panel-settings messages', async () => {
   const h = await fakeHelper();
   const { client } = makeClient(h);
-  client.setAllowControl(false);            // before connecting: sent right after welcome
   client.start();
-  const s0 = await h.waitFor((m) => m.t === 'panel-settings');
-  assert.deepEqual(s0, { t: 'panel-settings', allowControl: false });
-
-  client.setAllowControl(true);
-  await h.waitFor((m) => m.t === 'panel-settings' && m.allowControl === true);
+  await h.waitFor((m) => m.t === 'host-state');
+  assert.ok(!h.received.some((m) => m.t === 'panel-settings'));   // helper owns the default
+  client.setAllowControl(false);
+  assert.deepEqual(await h.waitFor((m) => m.t === 'panel-settings'), { t: 'panel-settings', allowControl: false });
+  assert.equal(client.getState(), true);
+  assert.deepEqual(await h.waitFor((m) => m.t === 'get-state'), { t: 'get-state' });
   assert.equal(client.kick('v3'), true);
   assert.equal(client.newSession(), true);
   assert.deepEqual(await h.waitFor((m) => m.t === 'kick'), { t: 'kick', id: 'v3' });
@@ -149,17 +149,15 @@ test('kick, new-session and panel-settings messages', async () => {
   await h.close();
 });
 
-test('reconnects after the helper drops the socket and resends settings and host-state', async () => {
+test('reconnects after the helper drops the socket and resends host-state', async () => {
   const h = await fakeHelper();
   const { client, events } = makeClient(h);
-  client.setAllowControl(true);
   client.start();
   await h.waitFor((m) => m.t === 'host-state');
   const before = h.received.length;
   h.sockets[0].terminate();
   await h.waitFor((m) => m.t === 'hello', before);
   await h.waitFor((m) => m.t === 'host-state', before);
-  await h.waitFor((m) => m.t === 'panel-settings', before);
   assert.ok(events.statuses.includes('helper-down'));
   assert.equal(client.getStatus(), 'connected');
   client.stop();

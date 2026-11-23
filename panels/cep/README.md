@@ -23,7 +23,7 @@ Helper launch order when `/health` does not answer: `%LOCALAPPDATA%\OpenTethery\
 
 ## Tests
 
-`npm install && npm test` (node --test, 32 tests incl. a fake-ExtendScript vm for both hosts).
+`npm install && npm test` (node --test, tests incl. a fake-ExtendScript vm for both hosts).
 Layout screenshots: `NODE_PATH=$(npm root -g) node test/screenshot.js` -> `test/screenshots/`.
 
 ## Control limits

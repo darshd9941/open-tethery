@@ -38,7 +38,7 @@
     var attemptNo = 0;
     var delay = minDelay;
     var lastSent = '';
-    var allowControl = null;   // remembered and resent after reconnect
+    var allowControl = null;
     var lastState = null;
 
     function setStatus(s) {
@@ -115,7 +115,6 @@
         delay = minDelay;
         lastSent = '';
         setStatus('connected');
-        if (allowControl !== null) send({ t: 'panel-settings', allowControl: allowControl });
         startPolling();
       } else if (msg.t === 'state') {
         lastState = msg;
@@ -191,10 +190,11 @@
         allowControl = !!v;
         if (welcomed) send({ t: 'panel-settings', allowControl: allowControl });
       },
+      getState: function () { return send({ t: 'get-state' }); },
       newSession: function () { return send({ t: 'new-session' }); },
       kick: function (id) { return send({ t: 'kick', id: id }); },
       getStatus: function () { return status; },
-      getState: function () { return lastState; }
+      getLastState: function () { return lastState; }
     };
   }
 

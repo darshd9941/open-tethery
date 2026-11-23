@@ -69,6 +69,7 @@
     onStatus: function (s) { status = s; renderHelper(); if (s !== 'connected') render(); }
   });
 
+  var allow = $('allowControl');
   var state = null;
   var status = 'connecting';
   var shownCode = '';
@@ -106,6 +107,7 @@
       shownCode = s.code;
       $('qr').src = httpBase + '/api/qr.svg?v=' + encodeURIComponent(s.code);
     }
+    if (s && typeof s.allowControl === 'boolean') allow.checked = s.allowControl;
     $('code').textContent = (s && s.code) || '----';
     var url = (s && s.primaryUrl) || '';
     $('url').textContent = url.replace(/^https?:\/\//, '');
@@ -173,16 +175,11 @@
   });
   $('newCodeBtn').addEventListener('click', function () { client.newSession(); });
   $('startHelperBtn').addEventListener('click', function () { startHelper(); client.retryNow(); });
-  // Reconnecting makes the helper resend its state, which re-reads engine.transmit.
-  $('recheckBtn').addEventListener('click', function () { client.stop(); client.start(); });
+  $('recheckBtn').addEventListener('click', function () { client.getState(); });
 
-  var allow = $('allowControl');
-  try { allow.checked = window.localStorage.getItem('ot.allowControl') !== '0'; } catch (e) {}
   allow.addEventListener('change', function () {
-    try { window.localStorage.setItem('ot.allowControl', allow.checked ? '1' : '0'); } catch (e) {}
     client.setAllowControl(allow.checked);
   });
-  client.setAllowControl(allow.checked);
 
   renderHelper();
   render();

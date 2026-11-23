@@ -40,7 +40,7 @@ async function main() {
         primaryUrl: 'http://192.168.1.20:47825/c/CL7G',
         host: { app: 'premiere', appName: 'Premiere Pro', version: '27.0' },
         sequence: { name: 'Main edit', width: 3840, height: 2160, fpsNum: 24000, fpsDen: 1001 },
-        engine: { transmit: live.engine, sending: live.engine }, viewers: 2,
+        allowControl: true, engine: { transmit: live.engine, sending: live.engine }, viewers: 2,
         viewerList: [{ id: 'v1', name: 'Pixel 8', ip: '192.168.1.31', delayMs: 140 }, { id: 'v2', name: 'iPhone 15', ip: '192.168.1.44', delayMs: 95 }]
       }));
       ws.send(JSON.stringify({ t: 'stats', fps: 23.9, kbps: 8400 }));
