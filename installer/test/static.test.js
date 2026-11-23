@@ -36,7 +36,7 @@ test('dev-install covers every required action', () => {
   const all = install + common;
   for (const s of ['Invoke-SelfElevate', 'panels\\cep', 'panels\\uxp-photoshop', 'OpenTetheryTransmit.prm',
     'MediaCore', 'New-NetFirewallRule', '-Profile Private', 'PlayerDebugMode', 'UnifiedPluginInstallerAgent.exe',
-    'RunKeyPath', '/health', 'install.log', 'LOCALAPPDATA', 'APPDATA', 'start-helper.vbs']) {
+    'RunKeyPath', '/health', 'install.log', 'LOCALAPPDATA', 'APPDATA', 'start-helper.ps1', 'Get-NetTCPConnection']) {
     assert.ok(all.includes(s), s);
   }
 });

@@ -53,7 +53,7 @@ Invoke-Step 'Stop running helper' { Stop-OpenTetheryHelper }
 $distHelper = Join-Path $PSScriptRoot 'dist\helper'
 $exeSrc = Join-Path $distHelper $script:HelperExe
 $useExe = Test-Path $exeSrc
-$launchTarget = ''   # command line placed in start-helper.vbs
+$launchTarget = ''
 
 if ($useExe) {
   Invoke-Step "Copy $($script:HelperExe) + viewer + profiles from $distHelper to $($script:InstallDir)" {
@@ -94,14 +94,15 @@ if (-not (Test-Path (Join-Path $distHelper 'viewer'))) {
   }
 }
 
-# Hidden launcher: used by the Run key and the panel so no console window appears.
-Invoke-Step 'Write start-helper.vbs launcher' {
-  $vbs = Join-Path $script:InstallDir 'start-helper.vbs'
-  $q = $launchTarget -replace '"', '""'
-  $vbsEnv = 'CreateObject("WScript.Shell").Environment("Process")("OT_VIEWER_DIR") = "' + (Join-Path $script:InstallDir 'viewer') + '"'
-  Set-Content -Path $vbs -Encoding ASCII -Value @(
-    $vbsEnv,
-    ('CreateObject("WScript.Shell").Run "' + $q + '", 0, False'))
+# Hidden launcher: a small .ps1 (antivirus often deletes script-written .vbs files).
+# The Run key and this script use it; the panel starts the exe / node.exe directly.
+$launchExe = if ($useExe) { Join-Path $script:InstallDir $script:HelperExe } else { Join-Path $script:InstallDir 'node.exe' }
+$launchArgs = if ($useExe) { '' } else { '"' + (Join-Path $script:InstallDir ('helper\' + $helperMain)) + '"' }
+$launcherPs1 = Join-Path $script:InstallDir 'start-helper.ps1'
+Invoke-Step 'Write start-helper.ps1 launcher' {
+  $line = "Start-Process -WindowStyle Hidden -WorkingDirectory '$($script:InstallDir)' -FilePath '$launchExe'"
+  if ($launchArgs) { $line += " -ArgumentList '$launchArgs'" }
+  Set-Content -Path $launcherPs1 -Encoding UTF8 -Value $line
 }
 
 # ---- 2. CEP panel (Premiere Pro + After Effects) ----
@@ -189,7 +190,7 @@ foreach ($p in $script:OldRulePatterns) {
 
 # ---- 6. Start with Windows ----
 Invoke-Step "Run entry $($script:RunKeyPath)\$($script:RunValueName)" {
-  $cmd = 'wscript.exe "' + (Join-Path $script:InstallDir 'start-helper.vbs') + '"'
+  $cmd = 'powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File "' + $launcherPs1 + '"'
   New-ItemProperty -Path $script:RunKeyPath -Name $script:RunValueName -Value $cmd -PropertyType String -Force | Out-Null
 }
 
@@ -198,7 +199,8 @@ if ($NoStart) {
   Write-Log 'Not starting helper (-NoStart).'
 } else {
   Invoke-Step 'Start helper (hidden)' {
-    Start-Process wscript.exe -ArgumentList ('"' + (Join-Path $script:InstallDir 'start-helper.vbs') + '"')
+    if ($launchArgs) { Start-Process -WindowStyle Hidden -WorkingDirectory $script:InstallDir -FilePath $launchExe -ArgumentList $launchArgs }
+    else { Start-Process -WindowStyle Hidden -WorkingDirectory $script:InstallDir -FilePath $launchExe }
   }
   if ($WhatIfPreference) {
     Write-Host "WHATIF: GET http://127.0.0.1:$($script:HelperPort)/health expecting ok=true" -ForegroundColor Cyan
@@ -208,7 +210,7 @@ if ($NoStart) {
       Start-Sleep -Seconds 1
       try {
         $h = Invoke-RestMethod "http://127.0.0.1:$($script:HelperPort)/health" -TimeoutSec 2
-        if ($h.ok) { $ok = $true; Write-Log "Helper OK: $($h.name) $($h.version) protocol $($h.protocol)" 'Green' }
+        if ($h.ok -and $h.name -eq 'open-tethery') { $ok = $true; Write-Log "Helper OK: $($h.name) $($h.version) protocol $($h.protocol)" 'Green' }
       } catch { }
     }
     if (-not $ok) { Write-Log "Helper did not answer on port $($script:HelperPort). See $($script:LogFile)." 'Red'; exit 1 }
