@@ -62,7 +62,7 @@ Reply:
 
 ```json
 { "t": "welcome", "id": "v3", "role": "viewer", "protocol": 1,
-  "control": true, "server": { "name": "open-tethery", "version": "0.2.0" } }
+  "control": true, "webrtc": false, "server": { "name": "open-tethery", "version": "0.2.0" } }
 ```
 
 `control` = whether this viewer may send playback commands right now (the
@@ -172,12 +172,61 @@ only the newest pending seek.
 Scopes, overlays, social frames, save frame and share are viewer-side only and
 need no messages.
 
-## 7. Reserved: WebRTC (later, M2)
+## 7. WebRTC signalling (M2; v1 viewers must not depend on it)
 
-When both sides list `"webrtc"` in `accept`, signalling rides the same socket:
-`{"t":"rtc-offer","sdp":"..."}`, `{"t":"rtc-answer","sdp":"..."}`,
-`{"t":"rtc-ice","candidate":{...}}`. Binary kinds 1/2 stay as the fallback.
-Not implemented in v1; viewers must not depend on it.
+Used only when the viewer lists `"webrtc"` in `accept` **and** the `welcome`
+reply has `"webrtc": true`. Otherwise binary kinds 1/2 (§5) are used. Binary
+kinds 1/2 stay the automatic fallback at all times.
+
+Signalling rides the same `/ws` socket. The **helper always makes the offer**
+(it owns the media), so the viewer never needs to guess codecs.
+
+| Direction | Message |
+|---|---|
+| viewer → helper | `{"t":"rtc-start"}` ask for a WebRTC session (after `welcome`) |
+| helper → viewer | `{"t":"rtc-offer","sdp":"v=0..."}` video: H.264 constrained baseline, `packetization-mode=1`; audio: Opus 48 kHz stereo, `sendonly` |
+| viewer → helper | `{"t":"rtc-answer","sdp":"v=0..."}` `recvonly` |
+| both ways | `{"t":"rtc-ice","candidate":{"candidate":"...","sdpMid":"0","sdpMLineIndex":0}}` trickle ICE; `"candidate":null` = end of candidates |
+| helper → viewer | `{"t":"rtc-state","state":"connected"\|"failed"\|"closed"}` |
+| viewer → helper | `{"t":"rtc-stop"}` back to binary frames |
+
+Rules:
+
+- Local network only: **host candidates, no STUN/TURN servers** in v1. A
+  Tailscale address counts as a host candidate.
+- While the peer connection is not `connected`, the helper keeps sending
+  binary JPEG frames. Once `connected`, it stops binary video (and PCM audio)
+  to that viewer. On `failed`/`closed`, or no RTP for 3 s, it resumes binary
+  frames and sends `rtc-state` `failed`.
+- The viewer may retry `rtc-start` at most once every 10 s.
+- Video timing: RTP timestamps map to media time via `state.time`; the viewer
+  shows timecode from `state` / `stats`, not from RTP.
+
+## 7b. Telemetry
+
+Helper → viewers and panel, once per second while any source is connected:
+
+```json
+{ "t": "stats", "fps": 23.9, "width": 1920, "height": 1080,
+  "kbps": 8400, "transport": "jpeg", "viewers": 2,
+  "srcFps": 23.976, "dropped": 3, "uptimeSec": 812 }
+```
+
+- `fps`: frames the helper received from the source in the last second.
+- `kbps`: bytes sent to *this* viewer in the last second x 8 / 1000 (for the
+  panel: total to all viewers).
+- `transport`: `"jpeg"` or `"webrtc"` for this viewer (panel: omitted).
+- `dropped`: frames skipped for this viewer because it was slow (last second).
+
+Viewer → helper, optional, about every 2 s, so the panel can show a delay per phone:
+
+```json
+{ "t": "telemetry", "fps": 23.5, "delayMs": 140, "decodeMs": 6, "w": 1080, "h": 2400 }
+```
+
+`delayMs` is measured with `ping`/`pong` (round trip / 2 plus decode time).
+The helper adds it to that viewer's entry in `viewerList` (§8) as
+`{"fps":..,"delayMs":..}`.
 
 ## 8. Panel ↔ helper (role "panel", loopback only)
 
