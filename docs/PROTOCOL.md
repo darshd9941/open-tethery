@@ -26,7 +26,7 @@ to it:
 |---|---|---|
 | `GET /` | anyone | Viewer app (`viewer/index.html`). Shows a code-entry box when no code is in the URL. |
 | `GET /c/CL7G` | anyone | Same viewer app; the code is read from the path. **This is what the QR encodes.** |
-| `GET /health` | anyone | `{"ok":true,"name":"open-tethery","version":"0.2.0","protocol":1}` |
+| `GET /health` | anyone (sends `Access-Control-Allow-Origin: *`) | `{"ok":true,"name":"open-tethery","version":"0.2.0","protocol":1}` |
 | `GET /api/session` | loopback only | `{"code":"CL7G","urls":["http://192.168.1.20:47825/c/CL7G", ...],"primaryUrl":"...","viewers":2,"source":{...state...}}` |
 | `GET /api/qr.svg?text=...` | loopback only | QR code as SVG (so panels need no QR library). Omit `text` for the primary URL. |
 | `POST /api/session/new` | loopback only | Makes a new code, disconnects all viewers. Returns the same body as `GET /api/session`. |
