@@ -94,7 +94,10 @@ also comes with every frame, so viewers should not rely on `state` for it).
 }
 ```
 
-- `status`: `"idle"` (no source connected, or no frame for 3 s) or `"live"`.
+- `status`: `"live"` or `"idle"`. Transmit plugin: live while frames or
+  heartbeats arrive (idle after 3 s with neither). Role `"source"`
+  (Photoshop): live while connected and it has sent at least one frame; it
+  does **not** need to resend unchanged frames. Idle when nothing is connected.
 - `host.app`: `"premiere" | "aftereffects" | "photoshop"`.
 - `aspect`: reduced ratio written with `x` (`"16x9"`, `"9x16"`, `"4x5"`,
   `"1x1"`, `"2.39x1"` for non-integer ones rounded to 2 decimals).
@@ -259,6 +262,10 @@ A source pushes its own frames when there is no Transmit plugin:
 - `{"t":"source-state", ...same fields as host-state...}`
 - Binary: the same `OTV1` kind-1 layout as §5 (helper rewrites the sequence
   number). Max 32 MiB.
+
+Sources also receive `state` (§4) so they can show the phone count.
+The source embeds any ICC profile in the JPEG itself; the helper forwards
+bytes unchanged.
 
 If both the Transmit plugin and a source are connected, the newest one to send
 a frame is what viewers see.
