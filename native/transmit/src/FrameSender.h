@@ -66,7 +66,8 @@ public:
     void PushAudio(const int16_t* stereo, size_t frames, int64_t ticks);
 
     // --- Tuning ------------------------------------------------------------
-    static constexpr int kMaxFps = 15;
+    static constexpr int kMaxFps = 15;       // capture cap while playing, JPEG-only mode
+    static constexpr int kMaxFpsH264 = 30;   // capture cap while playing, H.264 active
     static constexpr int kMaxEdge = 1280;
     static constexpr float kJpegQuality = 0.8f;
     static constexpr size_t kAudioChunkFrames = 960;  // 20 ms @ 48 kHz
@@ -78,6 +79,7 @@ private:
 
     std::thread worker_;
     AudioQueue audioQueue_{kAudioRate};  // 1 s; oldest dropped on overflow
+    std::atomic<int> captureFps_{kMaxFps};
     std::atomic<bool> audioActive_{false};
     std::atomic<int64_t> lastAudioPushNs_{0};
     std::atomic<bool> running_{false};

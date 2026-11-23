@@ -65,7 +65,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>ws2_32.lib;windowscodecs.lib;ole32.lib;oleaut32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;windowscodecs.lib;ole32.lib;oleaut32.lib;mfplat.lib;mf.lib;mfuuid.lib;strmiids.lib;wmcodecdspuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
@@ -95,9 +95,15 @@
     <ClCompile Include="src\OpenTetheryTransmit.cpp" />
     <ClCompile Include="src\FrameSender.cpp" />
     <ClCompile Include="src\JpegEncoder.cpp" />
+    <ClCompile Include="src\H264Encoder.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\AnnexB.h" />
+    <ClInclude Include="src\AudioPush.h" />
     <ClInclude Include="src\FrameSender.h" />
+    <ClInclude Include="src\H264Encoder.h" />
+    <ClInclude Include="src\ImageOps.h" />
+    <ClInclude Include="src\Otx1.h" />
     <ClInclude Include="src\JpegEncoder.h" />
     <ClInclude Include="src\Log.h" />
   </ItemGroup>
