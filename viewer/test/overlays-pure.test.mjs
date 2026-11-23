@@ -177,7 +177,7 @@ test('guides and scopes config merge ignores junk', () => {
   assert.equal(g.thirds, false);
   assert.equal(g.action.pct, 93);
   const s = mergeScopeConfig({ widgets: { hist: { on: true, size: 9, mode: 'x' } }, zebra: { thr: 10 } });
-  assert.equal(s.widgets.hist.size, 1);
+  assert.equal(s.widgets.hist.size, 0); // default size is small
   assert.equal(s.widgets.hist.mode, 'luma');
   assert.equal(s.zebra.thr, 70);
 });
@@ -188,4 +188,19 @@ test('info lines follow the toggles', () => {
   assert.deepEqual(all, ['00:00:02:00', 'Main', 'PLAYING', '25 fps', 'Premiere Pro']);
   assert.deepEqual(infoLines({ timecode: false, sequence: true }, state, 2), ['Main']);
   assert.deepEqual(infoLines({ timecode: true }, null, NaN), ['--:--:--:--']);
+});
+
+test('scope docking puts widgets into the empty bands and only floats when nothing fits', () => {
+  const stage = { w: 390, h: 480 };
+  const pic = { x: 0, y: 130, w: 390, h: 220 }; // 16:9 on a portrait phone: 130 px free above, 130 below
+  const out = M.dockLayout(stage, pic, [{ w: 152, h: 86 }, { w: 152, h: 86 }, { w: 152, h: 86 }]);
+  assert.ok(out.every((o) => o.docked));
+  for (const o of out) assert.ok(o.y + 86 <= pic.y || o.y >= pic.y + pic.h, 'outside the picture');
+  assert.ok(out[0].x !== out[1].x || out[0].y !== out[1].y);
+  // a 9:16 picture leaves no band: float over the picture, inside the stage
+  const full = M.dockLayout({ w: 390, h: 480 }, { x: 0, y: 0, w: 390, h: 480 }, [{ w: 152, h: 86 }]);
+  assert.equal(full[0].docked, false);
+  assert.ok(full[0].x + 152 <= 390 && full[0].y >= 0);
+  // too tall for the band: floats
+  assert.equal(M.dockLayout(stage, pic, [{ w: 152, h: 200 }])[0].docked, false);
 });

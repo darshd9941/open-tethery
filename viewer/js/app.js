@@ -141,7 +141,7 @@ function updateNowPlaying() {
   const badge = $('liveBadge');
   const live = online && state?.status === 'live';
   badge.textContent = !online ? 'OFFLINE' : live ? 'LIVE' : 'IDLE';
-  badge.className = 'badge' + (live ? ' live' : !online ? ' off' : '');
+  badge.className = 'np-badge' + (live ? ' live' : !online ? ' off' : '');
 
   $('npApp').textContent = state?.host ? appName() : '';
   const seqEl = $('npSeq');

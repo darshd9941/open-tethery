@@ -95,7 +95,7 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
 .np-seq { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 16px; font-weight: 600; }
 .np-tc { flex: none; font-family: var(--mono); font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
 
-.badge {
+.np-badge {
   flex: none;
   display: inline-flex; align-items: center; gap: 6px;
   height: 24px; padding: 0 9px 0 8px;
@@ -103,10 +103,10 @@ svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width:
   font-size: 11px; font-weight: 800; letter-spacing: 0.06em;
   color: #fcd38b; background: rgba(245, 165, 36, 0.16);
 }
-.badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
-.badge.live { color: #6ee7b7; background: rgba(52, 211, 153, 0.16); }
-.badge.live::before { box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.25); }
-.badge.off { color: var(--dim); background: var(--surface-2); }
+.np-badge::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.np-badge.live { color: #6ee7b7; background: rgba(52, 211, 153, 0.16); }
+.np-badge.live::before { box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.25); }
+.np-badge.off { color: var(--dim); background: var(--surface-2); }
 
 /* ---------- stage ---------- */
 
@@ -352,6 +352,7 @@ input[type="range"]:disabled { opacity: 0.35; }
     padding: calc(var(--sat) + 2px) calc(var(--sar) + 262px) 18px calc(var(--sal) + 14px);
     background: linear-gradient(rgba(0, 0, 0, 0.78), rgba(0, 0, 0, 0));
   }
+  #app[data-tray="open"] #bottom { display: none; } /* the side panel has its own tabs; keep the picture clear */
   #app[data-tray="open"] #top { padding-right: calc(var(--sar) + 14px); }
   #bottom {
     bottom: 0;
@@ -363,8 +364,8 @@ input[type="range"]:disabled { opacity: 0.35; }
   .np { height: 40px; }
   .np-seq { text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8); }
   .np-tc { text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8); }
-  .badge { background: rgba(0, 0, 0, 0.45); }
-  .badge.live { background: rgba(4, 40, 28, 0.7); }
+  .np-badge { background: rgba(0, 0, 0, 0.45); }
+  .np-badge.live { background: rgba(4, 40, 28, 0.7); }
 
   .chips-row { padding-bottom: 6px; }
   .qgroup:not([data-on="true"]) { background: rgba(22, 26, 31, 0.88); }

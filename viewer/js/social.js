@@ -171,7 +171,10 @@ export function initSocial({ bus, layer, panel }) {
     const def = ICONS[ic.shape];
     if (!def) return;
     const k = Math.max(7, (ic.size * frame.w) / 2);
-    g.appendChild(s('path', { d: def.d, class: 's-icon' + (def.fill ? ' fill' : ''), transform: `translate(${frame.x + ic.x * frame.w} ${frame.y + ic.y * frame.h}) scale(${k})` }));
+    // keep the whole icon inside the frame, whatever the crop size
+    const cx = Math.min(Math.max(frame.x + ic.x * frame.w, frame.x + k + 1), frame.x + frame.w - k - 1);
+    const cy = Math.min(Math.max(frame.y + ic.y * frame.h, frame.y + k + 1), frame.y + frame.h - k - 1);
+    g.appendChild(s('path', { d: def.d, class: 's-icon' + (def.fill ? ' fill' : ''), transform: `translate(${cx} ${cy}) scale(${k})` }));
   }
 
   // Draws avatar and handle; returns the right edge of the handle text (for the pill collision check).
@@ -261,7 +264,7 @@ export function initSocial({ bus, layer, panel }) {
     for (const r of [
       { x: 0, y: 0, w, h: frame.y }, { x: 0, y: frame.y + frame.h, w, h: ph - frame.y - frame.h },
       { x: 0, y: frame.y, w: frame.x, h: frame.h }, { x: frame.x + frame.w, y: frame.y, w: w - frame.x - frame.w, h: frame.h },
-    ]) if (r.w > 0.5 && r.h > 0.5) svg.appendChild(s('rect', { ...r, class: 's-outside' }));
+    ]) if (r.w > 0.5 && r.h > 0.5) svg.appendChild(s('rect', { x: r.x, y: r.y, width: r.w, height: r.h, class: 's-outside' }));
     const root = s('g', { class: highlight ? 's-hl' : '', opacity: opacity });
     svg.appendChild(root);
     root.appendChild(s('rect', { x: frame.x, y: frame.y, width: frame.w, height: frame.h, class: 's-frame' }));
@@ -285,7 +288,8 @@ export function initSocial({ bus, layer, panel }) {
         const fs = Math.max(MIN_TEXT, Math.min(r.h * 0.5, 13));
         const needW = textW(z.pill.text, fs) + 14;
         const pw = Math.max(r.w, needW), ph2 = Math.max(r.h, fs + 8);
-        const px = r.x + r.w - pw, py = r.y + r.h / 2 - ph2 / 2;
+        const px = Math.min(r.x + r.w, frame.x + frame.w - 2) - pw;
+        const py = Math.min(Math.max(r.y + r.h / 2 - ph2 / 2, frame.y + 1), frame.y + frame.h - ph2 - 1);
         if (px > handleEnd + 6) { // skip the pill when the crop is too narrow to fit it next to the handle
           fg.appendChild(s('rect', { x: px, y: py, width: pw, height: ph2, rx: Math.min(ph2 / 2, 10), class: 's-pill' }));
           fg.appendChild(s('text', { x: px + pw / 2, y: py + ph2 / 2 + fs * 0.35, 'text-anchor': 'middle', class: 's-text', 'font-size': fs }, z.pill.text));

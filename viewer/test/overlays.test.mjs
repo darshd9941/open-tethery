@@ -49,11 +49,14 @@ async function boot(t) {
   return { page, errors, server };
 }
 
+const TAB = { social: 'social', guides: 'guides', scopes: 'scopes', exposure: 'exposure', info: 'info' };
 const openGroup = async (page, id) => {
-  await page.click('#btnOverlays');
-  await page.click(`[data-group="${id}"]`);
+  if (await page.isHidden('#tray')) await page.click(id === 'social' ? '[data-chip="social"]' : `[data-chip-more="${id === 'exposure' ? 'colour' : id}"]`);
+  await page.click(`#tray [data-tab="${TAB[id]}"]`);
+  await page.waitForSelector(`#tray .ov-page[data-page="${TAB[id]}"]:not([hidden])`);
 };
-const closeSheet = (page) => page.click('#sheetOverlays [data-close]');
+const closeSheet = async (page) => { if (await page.isVisible('#tray')) await page.click('[data-close-tray]'); await page.waitForTimeout(250); };
+const pickScope = (page, kind) => page.click(`#tray [data-kind="${kind}"]`);
 const shot = (page, name) => page.screenshot({ path: path.join(shots, `${name}.png`) });
 const toggle = (page, label) => page.locator('.ui-row', { hasText: label }).first().locator('input').check();
 
@@ -69,12 +72,9 @@ const painted = (page, sel) => page.evaluate((s) => {
 
 test('every social frame renders inside the picture and the tile sheet works', { skip }, async (t) => {
   const { page, errors } = await boot(t);
-  await page.click('#btnOverlays');
-  await page.waitForSelector('[data-group="social"]');
-  await shot(page, 'sheet-tiles');
-  await page.click('[data-group="social"]');
+  await page.click('[data-chip="social"]');
   await page.waitForSelector('[data-platform="tiktok"]');
-  assert.equal(await page.locator('[data-platform]').count(), PLATFORMS.length);
+  assert.equal(await page.locator('[data-platform]:not([data-platform=""])').count(), PLATFORMS.length);
   await shot(page, 'sheet-social');
   await closeSheet(page);
 
@@ -98,12 +98,12 @@ test('every social frame renders inside the picture and the tile sheet works', {
     await shot(page, `social-${id}`);
   }
 
-  // without the highlight the zones become plain outlines
-  await openGroup(page, 'social');
-  await page.locator('.ui-row', { hasText: 'Highlight unsafe areas' }).locator('input').uncheck();
-  await closeSheet(page);
+  // the unsafe-area highlight is off by default and opt-in
   assert.equal(await page.locator('[data-ot-layer="social"] .s-safe').count(), 0);
-  await shot(page, 'social-no-highlight');
+  await openGroup(page, 'social');
+  await page.locator('.ui-row', { hasText: 'Highlight unsafe areas' }).locator('input').check();
+  await closeSheet(page);
+  assert.equal(await page.locator('[data-ot-layer="social"] .s-safe').count(), 1);
   assert.deepEqual(errors, []);
 });
 
@@ -173,7 +173,7 @@ test('guides: safe zones, thirds, centre, grid and mattes', { skip }, async (t) 
 test('scopes: histogram, waveform, vectorscope, audio meters, drag and persistence', { skip }, async (t) => {
   const { page, errors } = await boot(t);
   await openGroup(page, 'scopes');
-  await toggle(page, 'Histogram');
+  await pickScope(page, 'hist');
   await page.waitForFunction(() => document.querySelector('.sc-hist canvas') !== null);
   await page.waitForFunction(() => { const c = document.querySelector('.sc-hist canvas'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; for (let i = 3; i < d.length; i += 4) if (d[i] > 200) return true; return false; });
   await shot(page, 'sheet-scopes');
@@ -188,9 +188,10 @@ test('scopes: histogram, waveform, vectorscope, audio meters, drag and persisten
     await shot(page, `scope-hist-${name}`);
   }
   await openGroup(page, 'scopes');
-  await toggle(page, 'Waveform');
-  await toggle(page, 'Vectorscope');
-  await toggle(page, 'Audio');
+  await page.locator('#tray .ui-row', { hasText: 'Show several at once' }).locator('input').check();
+  await pickScope(page, 'wave');
+  await pickScope(page, 'vec');
+  await pickScope(page, 'audio');
   await closeSheet(page);
   await page.waitForTimeout(400);
   assert.ok(await painted(page, '.sc-wave canvas') > 500, 'waveform has pixels');
@@ -211,7 +212,7 @@ test('scopes: histogram, waveform, vectorscope, audio meters, drag and persisten
 
   // size button cycles S -> M -> L
   const w0 = await page.evaluate(() => document.querySelector('.sc-vec').offsetWidth);
-  await page.click('.sc-vec .sc-btn:has-text("S/M/L")');
+  await page.click('.sc-vec .sc-size');
   const w1 = await page.evaluate(() => document.querySelector('.sc-vec').offsetWidth);
   assert.ok(w1 > w0, `size grew ${w0} -> ${w1}`);
   await shot(page, 'scope-vec-large');
@@ -221,10 +222,11 @@ test('scopes: histogram, waveform, vectorscope, audio meters, drag and persisten
   const head = await page.locator('.sc-hist .sc-head').boundingBox();
   await page.mouse.move(head.x + 20, head.y + 10);
   await page.mouse.down();
-  await page.mouse.move(head.x - 60, head.y + 120, { steps: 5 });
+  const dx = head.x > 150 ? -60 : 60;
+  await page.mouse.move(head.x + 20 + dx, head.y + 10 + 100, { steps: 5 });
   await page.mouse.up();
   const after = await page.evaluate(() => { const e = document.querySelector('.sc-hist'); return { x: e.offsetLeft, y: e.offsetTop }; });
-  assert.ok(after.x < before.x - 30 && after.y > before.y + 80, `dragged ${JSON.stringify(before)} -> ${JSON.stringify(after)}`);
+  assert.ok(Math.abs(after.x - before.x) > 30 && after.y > before.y + 60, `dragged ${JSON.stringify(before)} -> ${JSON.stringify(after)}`);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('ot.scopes.pos')));
   assert.ok(saved.hist && saved.hist.y > 0);
   await page.reload();
@@ -239,8 +241,9 @@ test('scopes: histogram, waveform, vectorscope, audio meters, drag and persisten
 test('scope maths on the real picture: highlight shows clipped white, bars hit the targets', { skip }, async (t) => {
   const { page } = await boot(t);
   await openGroup(page, 'scopes');
-  await toggle(page, 'Histogram');
-  await toggle(page, 'Vectorscope');
+  await pickScope(page, 'hist');
+  await page.locator('#tray .ui-row', { hasText: 'Show several at once' }).locator('input').check();
+  await pickScope(page, 'vec');
   await closeSheet(page);
   await page.waitForTimeout(500);
   // vectorscope: the test frame has 75% bars, so the target cells must hold samples
@@ -258,7 +261,7 @@ test('scope maths on the real picture: highlight shows clipped white, bars hit t
 
 test('exposure: false colour with legend and zebras', { skip }, async (t) => {
   const { page, errors } = await boot(t);
-  await openGroup(page, 'scopes');
+  await openGroup(page, 'exposure');
   await toggle(page, 'False colour');
   await page.waitForFunction(() => { const c = document.querySelector('canvas.ot-expo'); return c && !c.hidden && c.getContext('2d').getImageData(c.width >> 1, 10, 1, 1).data[3] > 0; });
   await shot(page, 'sheet-exposure');
@@ -273,7 +276,7 @@ test('exposure: false colour with legend and zebras', { skip }, async (t) => {
   assert.ok(px.disc[0] > 200 && px.disc[1] < 80 && px.disc[2] < 80, `clipped highlight is red: ${px.disc}`);
   await shot(page, 'false-colour');
 
-  await openGroup(page, 'scopes');
+  await openGroup(page, 'exposure');
   await page.locator('.ui-row', { hasText: 'False colour' }).locator('input').uncheck();
   await toggle(page, 'Zebras');
   await page.waitForFunction(() => { const c = document.querySelector('canvas.ot-expo'); return c && !c.hidden; });
@@ -284,7 +287,7 @@ test('exposure: false colour with legend and zebras', { skip }, async (t) => {
   assert.equal(await page.locator('.sc-legend').count(), 0);
   await shot(page, 'zebras-95');
   // at 100% only truly clipped white stays striped; a JPEG white disc is still >= 95 but fewer pixels
-  await openGroup(page, 'scopes');
+  await openGroup(page, 'exposure');
   await page.click('.ui-chip:has-text("100% clipped")');
   await closeSheet(page);
   await page.waitForTimeout(300);
@@ -318,7 +321,7 @@ test('info overlay and save frame with overlays', { skip }, async (t) => {
   };
   const clean = await dl(() => page.click('#btnSave'));
   await page.waitForTimeout(100);
-  const withOv = await dl(async () => { await page.click('#btnOverlays'); await page.click('[data-act="save-overlays"]'); });
+  const withOv = await dl(async () => { await page.click('[data-chip="social"]'); await page.click('[data-act="save-overlays"]'); });
   assert.match(path.basename(withOv), /_overlays\.png$/);
   const a = fs.readFileSync(clean), b = fs.readFileSync(withOv);
   for (const f of [a, b]) {

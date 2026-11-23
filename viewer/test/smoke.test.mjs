@@ -52,10 +52,7 @@ test('viewer connects, draws a frame, shows now-playing and sends control', { sk
 
   assert.equal(await page.textContent('#liveBadge'), 'LIVE');
   assert.equal(await page.textContent('#npApp'), 'Premiere Pro');
-  assert.equal(await page.textContent('#npAspect'), '9x16');
-  assert.match(await page.textContent('#npRes'), /1080×1920 @ 29\.97/);
   assert.match(await page.textContent('#npTc'), /^00:00:12:1[45]$/); // frame time 12.5 s @ 29.97
-  assert.match(await page.textContent('#npPlay'), /Paused/);
 
   // picture is letter-boxed to 9:16 inside the stage and the overlay stage matches it
   const geo = await page.evaluate(() => {
@@ -88,14 +85,20 @@ test('viewer connects, draws a frame, shows now-playing and sends control', { sk
   // stats sheet
   await page.click('#btnStats');
   assert.ok(await page.isVisible('#sheetStats'));
-  assert.match(await page.textContent('#statsList'), /Frame rate/);
+  const stats = await page.textContent('#statsList');
+  assert.match(stats, /Frame rate/);
+  assert.match(stats, /1080×1920/);
+  assert.match(stats, /29\.97 fps/);
+  assert.match(stats, /9x16/);
+  assert.match(stats, /Paused/);
   await page.click('#sheetStats [data-close]');
 
-  // overlays sheet opens with the tile grid (details in overlays.test.mjs)
-  await page.click('#btnOverlays');
-  assert.ok(await page.isVisible('#sheetOverlays'));
-  assert.ok(await page.isVisible('[data-group="social"]'));
-  await page.click('#sheetOverlays [data-close]');
+  // quick-toggle chips and the settings tray (details in overlays.test.mjs, ux.test.mjs)
+  assert.equal(await page.locator('#chips .qgroup').count(), 6);
+  await page.click('[data-chip="social"]');
+  assert.ok(await page.isVisible('#tray'));
+  assert.ok(await page.isVisible('[data-platform="tiktok"]'));
+  await page.click('[data-close-tray]');
 
   // tap the picture hides the controls
   await page.screenshot({ path: path.join(shots, 'viewer-live-iphone13.png') });

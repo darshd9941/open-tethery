@@ -17,7 +17,7 @@ Module contract for feature streams (scopes, social frames): `CONTRACT.md`.
 | `js/gestures.js` | pinch-zoom, pan, double-tap fit, tap toggles UI |
 | `js/frame-bus.js` | **API for overlays/scopes**: `onFrame(cb)`, `getStage()`, `onLayout(cb)`, `getLatestFrame()` |
 | `js/bus.js` | event bus (CONTRACT.md); core emits `frame`, `state`, `layout`, `conn`, `audio-levels` |
-| `js/overlays/index.js`, `js/overlays/info.js`, `js/ui-kit.js` | M4 entry: tile sheet, info overlay, composite for save-with-overlays |
+| `js/overlays/index.js`, `js/overlays/info.js`, `js/ui-kit.js` | M4 entry: chips, settings tray, info overlay, composite for save-with-overlays |
 | `js/social.js`, `social/*.json` | social frames (11 platforms as data) + profiles |
 | `js/guides.js` | safe zones, thirds, centre, grid, letterbox mattes |
 | `js/scopes.js`, `js/scope-math.js`, `js/scope-worker.js` | histogram, waveform, vectorscope, false colour, zebras, audio meters |
@@ -25,8 +25,11 @@ Module contract for feature streams (scopes, social frames): `CONTRACT.md`.
 
 ### Overlays (M4)
 
-Everything is drawn on the phone from the decoded picture; nothing is sent to the PC. Tap **Overlays**: a tile sheet
-(Social frames, Guides, Scopes and exposure, Info) plus **Save frame with overlays**. Details in `CONTRACT.md`.
+Everything is drawn on the phone from the decoded picture; nothing is sent to the PC. A row of chips above the transport
+toggles Frame (tap to choose a platform), Guides, Scopes, False colour, Zebras and Info in one tap; the chevron or a
+long press opens that group's settings in a compact tray under the picture (a side panel in landscape), so the picture
+stays visible and changes live. The tray also has **Save frame with overlays**. Details in `CONTRACT.md`.
+UX screenshots (iPhone 13 portrait/landscape, Pixel 7, 9:16 and 16:9 frames): `test/screenshots/ux/`.
 
 - **Social frames:** Instagram Reels / Feed (4:5) / Story, YouTube (16:9 player), YouTube Shorts, TikTok, X, Facebook,
   Snapchat, Pinterest, Reddit. Our own outline drawings. Each is one file `social/<id>.json` (zones in coordinates

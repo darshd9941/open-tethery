@@ -19,11 +19,12 @@ const ANALYSIS_W = 320;
 const FONT = '-apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
 
 const KINDS = {
-  hist: { label: 'Histogram', ratio: 0.56 },
-  wave: { label: 'Waveform', ratio: 0.62 },
-  vec: { label: 'Vectorscope', ratio: 1 },
-  audio: { label: 'Audio', ratio: 0.42 },
-  legend: { label: 'False colour', ratio: 1.2 },
+  // S is sized to fit the ~90 px empty band above/below a 16:9 picture on a portrait phone (header 24 + canvas, 8 px margins)
+  hist: { label: 'Histogram', ratio: 0.4 },
+  wave: { label: 'Waveform', ratio: 0.4 },
+  vec: { label: 'Vectorscope', ratio: 1, widths: [58, 150, 230] },
+  audio: { label: 'Audio', ratio: 0.3 },
+  legend: { label: 'False colour', ratio: 44 / 290 },
 };
 const PICKABLE = ['hist', 'wave', 'vec', 'audio'];
 const HIST_MODES = [{ value: 'luma', label: 'Luma' }, { value: 'rgb', label: 'RGB' }, { value: 'parade', label: 'Parade' }];
@@ -141,7 +142,7 @@ function drawWave(ctx, W, H, res) {
   for (const p of [0, 25, 50, 75, 100]) {
     const y = Math.min(H - 1, Math.max(0, H - (p / 100) * H));
     hline(ctx, 0, W, y);
-    label(ctx, String(p), 3, Math.min(H - 3, Math.max(11, y - 2)));
+    if (H >= 90 || p % 50 === 0) label(ctx, String(p), 3, Math.min(H - 3, Math.max(11, y - 2)));
   }
 }
 
@@ -177,9 +178,9 @@ function drawVec(ctx, W, H, res) {
   ctx.strokeStyle = 'rgba(255,255,255,.9)';
   for (const t of BAR_TARGETS) {
     ctx.strokeRect(Math.round(px(t.cb) - box / 2) + 0.5, Math.round(py(t.cr) - box / 2) + 0.5, box, box);
-    // names sit on the outside of the box so they do not cover the dots
+    // names sit on the outside of the box so they do not cover the dots (skipped on the tiny S size)
     const out = t.cb >= 0 ? 'left' : 'right';
-    label(ctx, t.name, t.cb >= 0 ? px(t.cb) + box / 2 + 2 : px(t.cb) - box / 2 - 2, py(t.cr) + 4, out === 'left' ? 'left' : 'right');
+    if (W >= 120) label(ctx, t.name, t.cb >= 0 ? px(t.cb) + box / 2 + 2 : px(t.cb) - box / 2 - 2, py(t.cr) + 4, out === 'left' ? 'left' : 'right');
   }
 }
 
@@ -207,13 +208,16 @@ function drawAudio(ctx, W, H, st, now) {
 function drawLegend(ctx, W, H) {
   ctx.clearRect(0, 0, W, H);
   const n = FALSE_COLOUR_BANDS.length;
-  const rh = H / n;
-  FALSE_COLOUR_BANDS.slice().reverse().forEach((b, i) => {
-    const y = i * rh;
+  const cw = (W - 8) / n;
+  const swH = 22;
+  FALSE_COLOUR_BANDS.forEach((b, i) => {
+    const x = 4 + i * cw;
     ctx.fillStyle = b.rgb ? `rgb(${b.rgb})` : 'rgb(130,130,130)';
-    ctx.fillRect(4, y + 2, 12, rh - 4);
-    label(ctx, b.label.replace(/\s{2,}/g, ' '), 22, y + rh * 0.5 + 4);
+    ctx.fillRect(Math.round(x), 2, Math.ceil(cw), swH);
+    label(ctx, String(Math.min(100, Math.round(b.to))), x + cw / 2, 2 + swH / 2 + 4, 'center');
   });
+  label(ctx, 'crushed', 4, H - 3);
+  label(ctx, 'clipped', W - 4, H - 3, 'right');
 }
 
 export function initScopes({ bus, layer, panel, panelExposure, dock }) {
@@ -358,20 +362,21 @@ export function initScopes({ bus, layer, panel, panelExposure, dock }) {
     }
     const hasPic = layoutRect && layoutRect.w > 0 && layoutRect.h > 0;
     const pic = hasPic ? { x: layoutRect.x || 0, y: layoutRect.y || 0, w: layoutRect.w, h: layoutRect.h } : { x: 0, y: 0, w: dr.width, h: dr.height };
-    const spots = dockLayout({ w: dr.width, h: dr.height }, pic, auto.map(([, wd]) => ({ w: wd.el.offsetWidth, h: wd.el.offsetHeight })));
+    const spots = dockLayout({ w: dr.width, h: dr.height }, pic, auto.map(([, wd]) => ({ w: wd.el.offsetWidth, h: wd.el.offsetHeight })), { gap: 4, margin: 4 });
     auto.forEach(([, wd], i) => {
       clampTo(wd.el, spots[i].x, spots[i].y, dr);
       wd.el.dataset.docked = spots[i].docked ? '1' : '0';
     });
   }
   function sizeOf(kind) {
-    const w = kind === 'legend' ? 164 : WIDTHS[cfg.widgets[kind].size];
+    const w = kind === 'legend' ? 290 : (KINDS[kind].widths || WIDTHS)[cfg.widgets[kind].size];
     return { w, h: Math.round(w * KINDS[kind].ratio) };
   }
   function resizeCanvas(kind) {
     const wd = widgets.get(kind);
     const { w, h: hh } = sizeOf(kind);
     const d = dpr();
+    wd.el.classList.toggle('narrow', w < 100); // too small for a title next to the buttons
     wd.canvas.style.width = w + 'px'; wd.canvas.style.height = hh + 'px';
     wd.canvas.width = Math.round(w * d); wd.canvas.height = Math.round(hh * d);
     wd.ctx.setTransform(d, 0, 0, d, 0, 0);
