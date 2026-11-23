@@ -47,7 +47,6 @@ function makeClient(h, extra) {
     WebSocketImpl: WebSocket,
     host: HOST,
     reconnectMs: 20,
-    keepaliveMs: 0,
     onStatus: (s) => events.status.push(s),
     onState: (s) => events.states.push(s),
     onError: (e) => events.errors.push(e),
@@ -117,18 +116,6 @@ test('reconnects after the helper drops the socket and re-sends state and frame'
   await until(() => h.texts.filter((m) => m.t === 'source-state').length === 2);
   await until(() => h.binaries.length === 2); // last frame replayed on welcome
 
-  client.stop();
-  h.wss.close();
-});
-
-test('keep-alive resends the last frame while nothing new is sent', async () => {
-  const h = await fakeHelper();
-  const { client } = makeClient(h, { keepaliveMs: 30 });
-  client.start();
-  await until(() => client.connected);
-  client.sendFrame(JPEG, META);
-  await until(() => h.binaries.length >= 3);
-  assert.ok(h.binaries[2].readUInt32LE(8) > h.binaries[1].readUInt32LE(8));
   client.stop();
   h.wss.close();
 });

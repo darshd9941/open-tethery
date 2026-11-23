@@ -9,7 +9,7 @@ const { HELPER_WS, getSession, newSession } = require('./js/helper-api');
 const { docLine, phonesText, shortUrl, errorText } = require('./js/format');
 
 const SETTINGS_KEY = 'ot.photoshop.settings.v1';
-const SESSION_POLL_MS = 2000;
+const SESSION_POLL_MS = 5000; // code/URL only; phone count comes from `state`
 const LIVE_WINDOW_MS = 5000;
 
 const $ = (id) => document.getElementById(id);
@@ -30,6 +30,7 @@ const ui = {
   note: null,
   failures: 0,
   qrUrl: '',
+  viewers: 0,
 };
 const settings = { size: 1600, profile: DEFAULT_PROFILE };
 
@@ -136,7 +137,7 @@ function render() {
   }
 
   el.doc.textContent = ui.doc ? docLine(ui.doc.name, ui.doc.width, ui.doc.height) : docLine(null);
-  el.phones.textContent = s && !helperDown ? phonesText(s.viewers) : '';
+  el.phones.textContent = s && !helperDown ? phonesText(ui.viewers) : '';
 
   if (ui.note && !helperDown) {
     el.note.textContent = ui.note;
@@ -159,7 +160,9 @@ const client = new SourceClient({
     render();
   },
   onState: (state) => {
-    if (ui.session && typeof state.viewers === 'number') ui.session.viewers = state.viewers;
+    if (typeof state.viewers === 'number') ui.viewers = state.viewers;
+    // code or phone count changed: refresh code/URL now instead of waiting for the poll
+    if (!ui.session || (state.code && state.code !== ui.session.code)) pollSession();
     render();
   },
   onError: (code) => {
@@ -191,6 +194,7 @@ const capture = new PsCapture({
 async function pollSession() {
   try {
     ui.session = await getSession(fetch);
+    if (typeof ui.session.viewers === 'number' && !client.connected) ui.viewers = ui.session.viewers;
     ui.helperUp = true;
     ui.failures = 0;
   } catch {
@@ -203,6 +207,7 @@ async function pollSession() {
 el.newCode.addEventListener('click', async () => {
   try {
     ui.session = await newSession(fetch);
+    ui.viewers = ui.session.viewers || 0;
     ui.helperUp = true;
     ui.note = null;
   } catch (error) {

@@ -9,26 +9,21 @@ const OPEN = 1;
 const MAX_FRAME_BYTES = 32 * 1024 * 1024;
 
 class SourceClient {
-  // opts: { url, WebSocketImpl, host, name, reconnectMs, keepaliveMs,
+  // opts: { url, WebSocketImpl, host, name, reconnectMs,
   //         maxBuffered, onStatus(s), onState(state), onError(msg),
   //         setTimeoutFn, clearTimeoutFn, setIntervalFn, clearIntervalFn }
-  // keepaliveMs: the helper calls a source idle after 3 s without a frame, so
-  // the last frame is re-sent when nothing new went out for this long.
   constructor(opts) {
     this.url = opts.url;
     this.WS = opts.WebSocketImpl;
     this.host = opts.host;
     this.name = opts.name || 'Open Tethery (Photoshop)';
     this.reconnectMs = opts.reconnectMs === undefined ? 2000 : opts.reconnectMs;
-    this.keepaliveMs = opts.keepaliveMs === undefined ? 1500 : opts.keepaliveMs;
     this.maxBuffered = opts.maxBuffered || 8 * 1024 * 1024;
     this.onStatus = opts.onStatus || (() => {});
     this.onState = opts.onState || (() => {});
     this.onError = opts.onError || (() => {});
     this.setTimeoutFn = opts.setTimeoutFn || setTimeout;
     this.clearTimeoutFn = opts.clearTimeoutFn || clearTimeout;
-    this.setIntervalFn = opts.setIntervalFn || setInterval;
-    this.clearIntervalFn = opts.clearIntervalFn || clearInterval;
 
     this.ws = null;
     this.status = 'disconnected'; // disconnected | connecting | connected
@@ -36,9 +31,7 @@ class SourceClient {
     this.sequence = null;
     this.lastFrame = null;
     this.seq = 0;
-    this.sentSinceTick = false;
     this.reconnectTimer = null;
-    this.keepaliveTimer = null;
   }
 
   get connected() {
@@ -54,7 +47,6 @@ class SourceClient {
     this.running = false;
     this.clearTimeoutFn(this.reconnectTimer);
     this.reconnectTimer = null;
-    this._stopKeepalive();
     const ws = this.ws;
     this.ws = null;
     if (ws) {
@@ -100,7 +92,6 @@ class SourceClient {
       this.onError(String(error && error.message || error));
       return false;
     }
-    this.sentSinceTick = true;
     return true;
   }
 
@@ -155,7 +146,6 @@ class SourceClient {
       if (msg.t === 'welcome') {
         this._setStatus('connected');
         this._sendSourceState();
-        this._startKeepalive();
         this._sendLast(); // the viewer gets the current picture straight away
       } else if (msg.t === 'state') {
         this.onState(msg);
@@ -174,28 +164,12 @@ class SourceClient {
   }
 
   _lost() {
-    this._stopKeepalive();
     this._setStatus('disconnected');
     if (!this.running || this.reconnectTimer) return;
     this.reconnectTimer = this.setTimeoutFn(() => {
       this.reconnectTimer = null;
       this._open();
     }, this.reconnectMs);
-  }
-
-  _startKeepalive() {
-    this._stopKeepalive();
-    if (!this.keepaliveMs) return;
-    this.sentSinceTick = true;
-    this.keepaliveTimer = this.setIntervalFn(() => {
-      if (!this.sentSinceTick) this._sendLast();
-      this.sentSinceTick = false;
-    }, this.keepaliveMs);
-  }
-
-  _stopKeepalive() {
-    if (this.keepaliveTimer) this.clearIntervalFn(this.keepaliveTimer);
-    this.keepaliveTimer = null;
   }
 }
 

@@ -16,14 +16,16 @@ the installer, or use the Start Live Preview shortcut).
 | --- | --- |
 | `manifest.json`, `index.html`, `panel.css`, `main.js` | Panel UI and glue |
 | `js/otv1.js` | OTV1 kind-1 frame packer (24-byte header + 8-byte meta + JPEG) |
-| `js/source-client.js` | Protocol client (hello, source-state, binary frames, reconnect, keep-alive) with injected WebSocket |
+| `js/source-client.js` | Protocol client (hello, source-state, binary frames, reconnect) with injected WebSocket |
 | `js/ps-capture.js` | **All Photoshop API calls**: document watching, `imaging.getPixels` + `encodeImageData`, colour profile |
 | `js/icc.js`, `js/icc-profiles.js` | Injects sRGB / Display P3 ICC profile into the JPEG (ported from the old relay, CC0 profiles) |
 | `js/format.js`, `js/helper-api.js` | Pure helpers, `/api/session` calls |
 | `lib/qrcode.js` | QR generator (MIT); the QR is drawn locally from `primaryUrl`, no SVG needed |
 
-Frames are re-sent about every 1.5 s when nothing changes, because the helper
-calls a source idle after 3 s without a frame.
+A source stays live while connected after its first frame (PROTOCOL.md), so no
+keep-alive is sent. After a reconnect the client replays the last frame and
+source-state. The phone count comes from `state.viewers` over the WebSocket;
+`/api/session` is polled every 5 s (and when `state.code` changes) for the code and URL only.
 
 ## Network permission
 
