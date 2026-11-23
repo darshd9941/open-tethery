@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live Video Preview</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="panel">
+    <!-- Header -->
+    <header class="header">
+      <div class="title-row">
+        <div class="title-left">
+          <span id="statusDot" class="dot"></span>
+          <h1 class="title">Live Phone Preview</h1>
+        </div>
+        <span id="hostBadge" class="badge">Detecting...</span>
+      </div>
+      <div id="statusText" class="status-text">Stopped</div>
+    </header>
+
+    <!-- Controls -->
+    <section class="actions">
+      <button id="toggleBtn" class="btn btn-primary">Start Preview</button>
+      <button id="onceBtn" class="btn btn-secondary">Send Now</button>
+    </section>
+
+    <!-- QR Code / Pairing -->
+    <section id="qrWrap" class="qr-section hidden">
+      <div class="qr-card">
+        <div id="qrCode" class="qr-box"></div>
+      </div>
+      <div class="url-row">
+        <div id="pairUrl" class="pair-url" title="Click to copy"></div>
+        <button id="openBrowserBtn" class="btn-sm" title="Open on this PC">Open</button>
+      </div>
+      <p class="qr-hint">Scan with phone camera on the same Wi-Fi</p>
+    </section>
+
+    <!-- Settings -->
+    <section class="settings">
+      <h2 class="section-title">Settings</h2>
+      
+      <div class="setting-item">
+        <label for="profileSelect">Color Profile</label>
+        <select id="profileSelect" class="input">
+          <option value="sRGB">sRGB (Standard default)</option>
+          <option value="Display P3">Display P3 (iPhone / OLED)</option>
+        </select>
+      </div>
+
+      <div class="setting-item">
+        <label for="portInput">Relay Port</label>
+        <input id="portInput" type="number" class="input" value="47825" min="1024" max="65535">
+      </div>
+
+      <div class="setting-item">
+        <div class="label-row">
+          <label for="debounceInput">Scrub Pause Delay</label>
+          <span id="debounceVal" class="val-label">350 ms</span>
+        </div>
+        <input id="debounceInput" type="range" class="range" min="200" max="800" step="50" value="350">
+      </div>
+    </section>
+
+    <!-- Footer info -->
+    <footer class="footer">
+      <span>Auto-sends when timeline playhead pauses</span>
+    </footer>
+  </div>
+
+  <script src="CSInterface.js"></script>
+  <script src="lib/qrcode.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

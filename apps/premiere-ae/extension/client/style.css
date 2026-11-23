@@ -1,0 +1,283 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  user-select: none;
+}
+
+body {
+  background-color: #232323;
+  color: #e0e0e0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 12px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  line-height: 1.4;
+}
+
+.panel {
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.header {
+  border-bottom: 1px solid #333333;
+  padding-bottom: 10px;
+}
+
+.title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.title-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #333333;
+  color: #999999;
+}
+
+.badge.pr {
+  background: #2a1f4d;
+  color: #c9b1ff;
+  border: 1px solid rgba(160, 120, 255, 0.3);
+}
+
+.badge.ae {
+  background: #1f2d4d;
+  color: #b1d2ff;
+  border: 1px solid rgba(120, 180, 255, 0.3);
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #666666;
+  flex-shrink: 0;
+}
+
+.dot.live {
+  background: #2ed573;
+  box-shadow: 0 0 6px #2ed573;
+}
+
+.dot.warn {
+  background: #ffa502;
+}
+
+.dot.err {
+  background: #ff4757;
+}
+
+.status-text {
+  font-size: 11px;
+  color: #999999;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 150ms;
+}
+
+.btn-primary {
+  background: #1473e6;
+  color: #ffffff;
+}
+
+.btn-primary:hover {
+  background: #0d66d0;
+}
+
+.btn-primary.stop {
+  background: #e54b4b;
+}
+
+.btn-primary.stop:hover {
+  background: #cc3e3e;
+}
+
+.btn-secondary {
+  background: #383838;
+  color: #dddddd;
+  border: 1px solid #4a4a4a;
+}
+
+.btn-secondary:hover {
+  background: #444444;
+}
+
+.btn-sm {
+  background: #3a3a3a;
+  border: 1px solid #4a4a4a;
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.qr-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #2a2a2a;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #363636;
+}
+
+.qr-section.hidden {
+  display: none;
+}
+
+.qr-card {
+  background: #ffffff;
+  padding: 10px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+}
+
+.qr-box {
+  display: flex;
+  flex-direction: column;
+}
+
+.qr-row {
+  display: flex;
+}
+
+.qr-cell {
+  background: #ffffff;
+}
+
+.qr-cell.dark {
+  background: #000000;
+}
+
+.url-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.pair-url {
+  flex: 1;
+  font-size: 11px;
+  color: #88c0d0;
+  background: #1e1e1e;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.qr-hint {
+  font-size: 10px;
+  color: #888888;
+  text-align: center;
+}
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #282828;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #333333;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: #aaaaaa;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.setting-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.setting-item label {
+  font-size: 11px;
+  color: #cccccc;
+}
+
+.label-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.val-label {
+  font-size: 11px;
+  color: #888888;
+}
+
+.input, .range {
+  width: 100%;
+}
+
+.input {
+  background: #1e1e1e;
+  border: 1px solid #3a3a3a;
+  color: #ffffff;
+  padding: 5px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #1473e6;
+}
+
+.range {
+  accent-color: #1473e6;
+}
+
+.footer {
+  text-align: center;
+  font-size: 10px;
+  color: #777777;
+  padding-top: 4px;
+}

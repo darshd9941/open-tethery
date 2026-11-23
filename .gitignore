@@ -1,0 +1,53 @@
+# --- Adobe SDK: licensed, never commit -------------------------------
+# Put the Premiere Pro C++ SDK in sdk/ (or point PREMIERE_SDK at it).
+sdk/
+*SDK*.zip
+# Adobe sample sources are marked "ADOBE CONFIDENTIAL"; keep any copies out.
+native/**/adobe-sample/
+
+# --- Native build output ---------------------------------------------
+build/
+out/
+x64/
+Win32/
+ARM64/
+Debug/
+Release/
+*.prm
+*.aex
+*.obj
+*.pdb
+*.ilk
+*.exp
+*.lib
+*.dll
+*.tlog
+*.idb
+*.ipch
+*.VC.db
+*.VC.opendb
+.vs/
+*.vcxproj.user
+*.user
+
+# --- Node -------------------------------------------------------------
+node_modules/
+npm-debug.log*
+
+# --- Runtime / local ---------------------------------------------------
+logs/
+*.log
+.env
+.env.*
+*.pem
+*.key
+*.crt
+*.p12
+*.zxp
+
+# --- OS / editor ------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/

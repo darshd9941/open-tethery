@@ -1,0 +1,9 @@
+{
+  "name": "live-video-preview-relay",
+  "version": "1.0.0",
+  "description": "Local relay server for Premiere Pro and After Effects Live Phone Preview",
+  "main": "server.js",
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}

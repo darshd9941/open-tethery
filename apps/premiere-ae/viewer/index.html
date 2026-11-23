@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1a1a1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Live Video Preview</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="stylesheet" href="viewer.css">
+</head>
+<body>
+  <div id="stage" class="stage">
+    <div id="zoom" class="zoom-layer">
+      <img id="frameA" class="frame visible" alt="Current frame" draggable="false">
+      <img id="frameB" class="frame" alt="Current frame buffer" draggable="false">
+      
+      <!-- Video Aspect Ratio & Safe Margin Guides Overlay -->
+      <div id="guidesOverlay" class="guides-overlay hidden">
+        <div id="guide916" class="guide-box guide-916 hidden"><span class="guide-tag">9:16 Reel / TikTok</span></div>
+        <div id="guide45" class="guide-box guide-45 hidden"><span class="guide-tag">4:5 Feed</span></div>
+        <div id="guide11" class="guide-box guide-11 hidden"><span class="guide-tag">1:1 Square</span></div>
+        <div id="guideSafe" class="guide-box guide-safe hidden"><span class="guide-tag">Title Safe (80%)</span></div>
+      </div>
+    </div>
+  </div>
+
+  <header id="hud" class="hud">
+    <div class="hud-left">
+      <span id="statusDot" class="dot" title="Connection status"></span>
+      <span id="hostBadge" class="host-badge hidden">Pr</span>
+      <div class="hud-titles">
+        <div id="docName" class="doc-name">Waiting for timeline…</div>
+        <div class="hud-sub">
+          <span id="tcDisplay" class="timecode">00:00:00:00</span>
+          <span class="sep">·</span>
+          <span id="resDisplay" class="res-tag">-- × --</span>
+        </div>
+      </div>
+    </div>
+    <div class="hud-right">
+      <button id="guideBtn" class="hud-btn" title="Toggle Guides">Guides</button>
+      <button id="zoomBtn" class="hud-btn" title="Toggle Fit / 1:1">1:1</button>
+    </div>
+  </header>
+
+  <div id="empty" class="empty">
+    <div id="emptySpinner" class="spinner"></div>
+    <div id="emptyTitle" class="empty-title">Connecting to Relay…</div>
+    <div id="emptyText" class="empty-text">Scan the QR code in Premiere Pro or After Effects to pair this screen.</div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script src="viewer.js"></script>
+</body>
+</html>
