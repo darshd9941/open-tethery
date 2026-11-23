@@ -40,6 +40,11 @@ async function main() {
         primaryUrl: 'http://192.168.1.20:47825/c/CL7G',
         host: { app: 'premiere', appName: 'Premiere Pro', version: '27.0' },
         sequence: { name: 'Main edit', width: 3840, height: 2160, fpsNum: 24000, fpsDen: 1001 },
+        connections: [
+          { kind: 'wifi', label: 'Wi-Fi', name: 'Wi-Fi', ip: '192.168.1.20', url: 'http://192.168.1.20:47825/c/CL7G', recommended: true },
+          { kind: 'hotspot', label: 'Phone hotspot', name: 'Local Area Connection* 10', ip: '192.168.137.1', url: 'http://192.168.137.1:47825/c/CL7G', recommended: false },
+          { kind: 'tailscale', label: 'Tailscale', name: 'Tailscale', ip: '100.101.102.103', url: 'http://100.101.102.103:47825/c/CL7G', recommended: false }
+        ],
         allowControl: true, engine: { transmit: live.engine, sending: live.engine }, viewers: 2,
         viewerList: [{ id: 'v1', name: 'Pixel 8', ip: '192.168.1.31', delayMs: 140 }, { id: 'v2', name: 'iPhone 15', ip: '192.168.1.44', delayMs: 95 }]
       }));

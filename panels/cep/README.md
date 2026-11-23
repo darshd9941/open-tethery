@@ -26,6 +26,13 @@ Helper launch order when `/health` does not answer: `%LOCALAPPDATA%\OpenTethery\
 `npm install && npm test` (node --test, tests incl. a fake-ExtendScript vm for both hosts).
 Layout screenshots: `NODE_PATH=$(npm root -g) node test/screenshot.js` -> `test/screenshots/`.
 
+## Connection and report (M7)
+
+The Connection dropdown lists the helper's `connections` (Wi-Fi, Ethernet, Phone hotspot, USB cable, Tailscale, ...) with
+2-3 lines of help; picking one sends `panel-settings {connection}` and the QR reloads. "Send report" calls
+`POST /api/report` and shows the saved path; "Open folder" runs `explorer.exe /select,<zip>` (falls back to
+`openURLInDefaultBrowser` on the folder). Logic is in `client/js/connections.js` (tested).
+
 ## Control limits
 
 - Premiere: no ExtendScript "isPlaying". `playing` is our own flag (set by play/pause) corrected by whether the playhead advances in real time between polls (stops after 2 still polls). Playback uses undocumented QE `qe.startPlayback()/stopPlayback()`. Starting playback from Premiere's own keys is detected only by the playhead moving.
@@ -42,3 +49,5 @@ Layout screenshots: `NODE_PATH=$(npm root -g) node test/screenshot.js` -> `test/
 - host-state polling at 500 ms does not stall the Premiere UI; `app.project.activeSequence` is correct when the timeline is not focused.
 - evalScript reply for sequence names with non-ASCII characters.
 - Engine warning appears/disappears when toggling Open Tethery in Preferences, and "Check again" refreshes it.
+- Connection dropdown: picking Phone hotspot / USB / Tailscale re-renders the QR with that address and a phone can open it.
+- Send report: the `fetch` POST from the `file://` panel page is accepted (CORS), the zip is written, and "Open folder" opens Explorer with the file selected (`cep_node` child_process).

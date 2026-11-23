@@ -3,11 +3,13 @@
 // Wires everything together: HTTP + WebSocket on one port, OTX1 ingest on loopback.
 
 const http = require('http');
+const os = require('os');
 const path = require('path');
 const { WebSocketServer } = require('ws');
 const pkg = require('../package.json');
-const { loadConfig } = require('./config');
-const { lanAddresses, sessionUrls } = require('./lan');
+const { loadConfig, saveConfigKey } = require('./config');
+const { lanAddresses, sessionUrls, connectionList } = require('./lan');
+const { reportsDir, writeReport } = require('./report');
 const { createLogger } = require('./log');
 const { Hub, originAllowed } = require('./hub');
 const { startIngest } = require('./ingest');
@@ -26,8 +28,20 @@ function createHelper(opts = {}) {
   const rtc = createRtc();
   let boundPort = cfg.port;
 
-  const getAddresses = (code) => sessionUrls(lanAddresses({ lanIp: cfg.lanIp }), boundPort, code);
-  const hub = new Hub({ log, rtc, version: pkg.version, allowControl: cfg.allowControl, helloTimeoutMs: opts.helloTimeoutMs, getAddresses });
+  // opts.interfaces (object or function) replaces os.networkInterfaces() in tests.
+  const ifaces = () => (typeof opts.interfaces === 'function' ? opts.interfaces() : opts.interfaces || os.networkInterfaces());
+  const getAddresses = (code) => ({
+    ...sessionUrls(lanAddresses({ lanIp: cfg.lanIp, interfaces: ifaces() }), boundPort, code),
+    connections: connectionList({ interfaces: ifaces(), port: boundPort, code }),
+  });
+  // Panel picked a connection (an interface IP) or null for automatic. Persisted as lanIp.
+  const setConnection = (ip) => {
+    if (ip !== null && !connectionList({ interfaces: ifaces(), port: boundPort, code: '' }).some((c) => c.ip === ip)) return false;
+    cfg.lanIp = ip;
+    saveConfigKey(cfg.configPath, 'lanIp', ip);
+    return true;
+  };
+  const hub = new Hub({ log, rtc, version: pkg.version, allowControl: cfg.allowControl, helloTimeoutMs: opts.helloTimeoutMs, getAddresses, setConnection });
 
   function sendJson(res, status, obj) {
     res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
@@ -61,6 +75,29 @@ function createHelper(opts = {}) {
         return res.end(svg);
       } catch (err) {
         return sendJson(res, 400, { error: err.message });
+      }
+    }
+    if (p === '/api/report') {
+      if (!local) return deny();
+      if (req.method !== 'POST') return sendJson(res, 405, { error: 'method-not-allowed' });
+      res.setHeader('Access-Control-Allow-Origin', '*'); // the CEP panel page is file://
+      try {
+        const dir = opts.reportsDir || reportsDir(opts.env || process.env);
+        const file = writeReport({
+          dir,
+          code: hub.code,
+          log: log.tail(1000),
+          cfg: { port: boundPort, ingestPort: cfg.ingestPort, lanIp: cfg.lanIp, allowControl: hub.allowControl, viewerDir: cfg.viewerDir, configPath: cfg.configPath },
+          session: hub.sessionInfo(),
+          interfaces: ifaces(),
+          recentStates: hub.recentStates.map((m) => JSON.parse(m)),
+          viewers: hub.viewerReport(),
+          version: pkg.version,
+        });
+        log(`report written: ${file}`);
+        return sendJson(res, 200, { path: file, dir });
+      } catch (err) {
+        return sendJson(res, 500, { error: String(err.message || err) });
       }
     }
     if (p === '/api/log') {

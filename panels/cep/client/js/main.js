@@ -3,6 +3,7 @@
   'use strict';
   var OT = window.OT;
   var F = OT.format;
+  var C = OT.connections;
   var $ = function (id) { return document.getElementById(id); };
 
   function loadConfig() {
@@ -72,7 +73,9 @@
   var allow = $('allowControl');
   var state = null;
   var status = 'connecting';
-  var shownCode = '';
+  var shownQr = '';
+  var shownConn = '';
+  var lastReport = null;
 
   // ---- rendering
   function renderHelper() {
@@ -91,6 +94,31 @@
     p.className = 'pill ' + (live ? 'live' : 'idle');
   }
 
+  function renderConnections(s) {
+    var conns = (s && s.connections) || [];
+    $('connSection').hidden = !conns.length;
+    var sel = C.selected(conns, s && s.primaryUrl);
+    var key = JSON.stringify(conns.map(function (c) { return [c.ip, c.kind, c.recommended]; })) + (sel ? sel.ip : '');
+    if (key === shownConn) return;
+    shownConn = key;
+    var dd = $('connection');
+    dd.textContent = '';
+    C.options(conns).forEach(function (o) {
+      var op = document.createElement('option');
+      op.value = o.value;
+      op.textContent = o.text;
+      dd.appendChild(op);
+    });
+    if (sel) dd.value = sel.ip;
+    var help = $('connHelp');
+    help.textContent = '';
+    C.helpLines(sel ? sel.kind : 'other').forEach(function (line) {
+      var li = document.createElement('li');
+      li.textContent = line;
+      help.appendChild(li);
+    });
+  }
+
   function render() {
     var s = status === 'connected' ? state : null;
     setPill(F.statusLabel(s) === 'LIVE');
@@ -103,10 +131,13 @@
       $('engineSteps').textContent = warn.steps;
     }
 
-    if (s && s.code && s.code !== shownCode) {
-      shownCode = s.code;
-      $('qr').src = httpBase + '/api/qr.svg?v=' + encodeURIComponent(s.code);
+    // The QR follows the chosen address: reload it whenever code or primary URL changes.
+    var qrKey = s && s.code ? s.code + '|' + (s.primaryUrl || '') : '';
+    if (qrKey && qrKey !== shownQr) {
+      shownQr = qrKey;
+      $('qr').src = httpBase + '/api/qr.svg?v=' + encodeURIComponent(qrKey);
     }
+    renderConnections(s);
     if (s && typeof s.allowControl === 'boolean') allow.checked = s.allowControl;
     $('code').textContent = (s && s.code) || '----';
     var url = (s && s.primaryUrl) || '';
@@ -176,6 +207,39 @@
   $('newCodeBtn').addEventListener('click', function () { client.newSession(); });
   $('startHelperBtn').addEventListener('click', function () { startHelper(); client.retryNow(); });
   $('recheckBtn').addEventListener('click', function () { client.getState(); });
+
+  $('connection').addEventListener('change', function () {
+    var s = state;
+    var setting = C.choiceToSetting((s && s.connections) || [], $('connection').value);
+    if (setting !== undefined) client.setConnection(setting);
+  });
+
+  function showReportMsg(text, path) {
+    lastReport = path || null;
+    $('reportMsg').textContent = text;
+    $('openFolderBtn').hidden = !path;
+  }
+
+  $('reportBtn').addEventListener('click', function () {
+    showReportMsg('Saving report...', null);
+    window.fetch(httpBase + '/api/report', { method: 'POST' })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j || !j.path) throw new Error((j && j.error) || 'failed');
+        showReportMsg('Saved to ' + j.path + ' (nothing was uploaded).', j.path);
+      })
+      .catch(function (e) { showReportMsg('Could not save the report: ' + (e && e.message ? e.message : e), null); });
+  });
+
+  $('openFolderBtn').addEventListener('click', function () {
+    if (!lastReport) return;
+    var plat = (typeof process !== 'undefined' && process.platform) || '';
+    var c = C.openFolderCommand(lastReport, plat);
+    try {
+      if (c && cp) { cp.spawn(c.cmd, c.args, { detached: true, stdio: 'ignore' }).unref(); return; }
+    } catch (e) { /* fall through */ }
+    if (cs) cs.openURLInDefaultBrowser('file:///' + C.dirOf(lastReport).replace(/\\/g, '/'));
+  });
 
   allow.addEventListener('change', function () {
     client.setAllowControl(allow.checked);

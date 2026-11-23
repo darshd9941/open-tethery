@@ -31,13 +31,15 @@ function originAllowed(origin) {
 }
 
 class Hub {
-  constructor({ log, rtc, version, allowControl = true, helloTimeoutMs = HELLO_TIMEOUT_MS, getAddresses, lockout = new Lockout(), now = Date.now }) {
+  constructor({ log, rtc, version, allowControl = true, helloTimeoutMs = HELLO_TIMEOUT_MS, getAddresses, setConnection = null, lockout = new Lockout(), now = Date.now }) {
     this.log = log;
     this.rtc = rtc;
     this.version = version;
     this.allowControl = allowControl;
     this.helloTimeoutMs = helloTimeoutMs;
-    this.getAddresses = getAddresses; // () => { urls, primaryUrl }
+    this.getAddresses = getAddresses; // (code) => { urls, primaryUrl, connections }
+    this.setConnection = setConnection; // (ip|null) => boolean; persists the choice
+    this.recentStates = []; // last 50 state messages sent to the panel (for reports)
     this.lockout = lockout;
     this.now = now;
     this.model = new StateModel({ now });
@@ -79,8 +81,8 @@ class Hub {
   }
 
   sessionInfo() {
-    const { urls, primaryUrl } = this.getAddresses(this.code);
-    return { code: this.code, urls, primaryUrl, viewers: this.viewers().length, source: this.model.snapshot(this.viewers().length) };
+    const { urls, primaryUrl, connections = [] } = this.getAddresses(this.code);
+    return { code: this.code, urls, primaryUrl, connections, viewers: this.viewers().length, source: this.model.snapshot(this.viewers().length) };
   }
 
   controlPanel() {
@@ -360,6 +362,12 @@ class Hub {
         break;
       case 'panel-settings':
         if (typeof msg.allowControl === 'boolean') this.setAllowControl(msg.allowControl);
+        if ((typeof msg.connection === 'string' || msg.connection === null) && this.setConnection) {
+          if (this.setConnection(msg.connection || null)) {
+            this.log(`connection set to ${msg.connection || 'auto'}`);
+            this.markDirty();
+          }
+        }
         break;
       case 'new-session':
         this.newSession();
@@ -540,7 +548,7 @@ class Hub {
   stateFor(client) {
     const state = this.model.snapshot(this.viewers().length);
     if (client.role === 'panel') {
-      const { urls, primaryUrl } = this.getAddresses(this.code);
+      const { urls, primaryUrl, connections = [] } = this.getAddresses(this.code);
       state.viewerList = this.viewers().map((v) => ({
         id: v.id,
         name: v.name,
@@ -551,6 +559,7 @@ class Hub {
       state.code = this.code;
       state.urls = urls;
       state.primaryUrl = primaryUrl;
+      state.connections = connections;
       state.allowControl = this.allowControl;
     }
     return state;
@@ -577,6 +586,15 @@ class Hub {
     this.lastStateSig = sig;
     for (const v of [...this.viewers(), ...this.byRole('source')]) this.sendRaw(v, viewerState);
     for (const p of panels) this.sendRaw(p, panelState);
+    if (panelState) {
+      this.recentStates.push(panelState);
+      if (this.recentStates.length > 50) this.recentStates.shift();
+    }
+  }
+
+  // Viewer list with telemetry, for diagnostics reports.
+  viewerReport() {
+    return this.viewers().map((v) => ({ id: v.id, name: v.name, ip: v.ip, info: v.info, telemetry: v.tele, bytes: v.bytes, dropped: v.dropped }));
   }
 
   // ---- periodic work ----
