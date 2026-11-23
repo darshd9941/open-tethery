@@ -11,13 +11,18 @@
     return base + s + rest;
   }
 
-  // Candidates in priority order: installer's start-helper.vbs, installed exe, then dev "node <repo>/helper/bin/...".
+  // Candidates in priority order: installed exe, installed node.exe + helper source (dev install),
+  // installer's start-helper.vbs, then dev "node <repo>/helper/bin/...". The process is spawned
+  // directly with windowsHide, because antivirus may delete .vbs launchers.
   function candidates(deps, config) {
     var env = deps.env || {};
     var list = [];
     if (env.LOCALAPPDATA) {
-      list.push({ kind: 'vbs', file: join(env.LOCALAPPDATA, 'OpenTethery\\start-helper.vbs', '\\') });
-      list.push({ kind: 'exe', file: join(env.LOCALAPPDATA, 'OpenTethery\\OpenTetheryHelper.exe', '\\') });
+      var dir = join(env.LOCALAPPDATA, 'OpenTethery', '\\');
+      list.push({ kind: 'exe', file: join(dir, 'OpenTetheryHelper.exe', '\\') });
+      list.push({ kind: 'node', file: join(dir, 'helper\\bin\\open-tethery-helper.js', '\\'),
+        node: join(dir, 'node.exe', '\\') });
+      list.push({ kind: 'vbs', file: join(dir, 'start-helper.vbs', '\\') });
     }
     if (config && config.devHelperPath) {
       list.push({ kind: 'node', file: config.devHelperPath });
@@ -28,7 +33,9 @@
   function find(deps, config) {
     var list = candidates(deps, config);
     for (var i = 0; i < list.length; i++) {
-      try { if (deps.fs.existsSync(list[i].file)) return list[i]; } catch (e) {}
+      try {
+        if (deps.fs.existsSync(list[i].file) && (!list[i].node || deps.fs.existsSync(list[i].node))) return list[i];
+      } catch (e) {}
     }
     return null;
   }
@@ -37,7 +44,7 @@
   function start(deps, config) {
     var found = find(deps, config);
     if (!found) {
-      return { ok: false, reason: 'Could not find OpenTetheryHelper.exe in %LOCALAPPDATA%\\OpenTethery, and no devHelperPath is set in client/config.json.' };
+      return { ok: false, reason: 'Could not find the helper in %LOCALAPPDATA%\\OpenTethery (run installer\\dev-install.ps1), and no devHelperPath is set in client/config.json.' };
     }
     try {
       var child;
@@ -49,7 +56,7 @@
         child = deps.spawn(found.file, [], opts);
       } else {
         // Inside Adobe's CEF, process.execPath is the host app, not node. Use "node" from PATH.
-        child = deps.spawn(deps.nodeCommand || 'node', [found.file], opts);
+        child = deps.spawn(found.node || deps.nodeCommand || 'node', [found.file], opts);
       }
       if (child && typeof child.on === 'function') child.on('error', function () {});
       if (child && typeof child.unref === 'function') child.unref();

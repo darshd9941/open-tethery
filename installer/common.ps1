@@ -47,7 +47,8 @@ function Test-Admin {
 # Re-launch the calling script elevated (one UAC prompt) with the same switches.
 function Invoke-SelfElevate {
   param([string]$ScriptPath, [hashtable]$Bound)
-  $a = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$ScriptPath`"")
+  # -NoExit keeps the admin window open so errors stay readable.
+  $a = @('-NoExit', '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$ScriptPath`"")
   foreach ($k in $Bound.Keys) {
     $v = $Bound[$k]
     if ($v -is [switch]) { if ($v.IsPresent) { $a += "-$k" } }
@@ -64,6 +65,11 @@ function Stop-OpenTetheryHelper {
   Get-CimInstance Win32_Process -Filter "Name='node.exe'" -ErrorAction SilentlyContinue |
     Where-Object { $_.CommandLine -like "*$($script:InstallDir)*" } |
     ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+  # Anything else still holding our ports (e.g. the old Live Preview relay on 47825/47826).
+  Get-NetTCPConnection -LocalPort $script:HelperPort, ($script:HelperPort + 1) -State Listen -ErrorAction SilentlyContinue |
+    ForEach-Object { Get-Process -Id $_.OwningProcess -ErrorAction SilentlyContinue } |
+    Where-Object { $_.ProcessName -in @('node', $([IO.Path]::GetFileNameWithoutExtension($script:HelperExe))) } |
+    Stop-Process -Force -ErrorAction SilentlyContinue
   Start-Sleep -Milliseconds 500
 }
 

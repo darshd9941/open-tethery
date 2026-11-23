@@ -60,35 +60,45 @@ test('code validation', () => {
   assert.ok(!F.isValidCode('CL7'));
 });
 
-test('helper launcher picks exe first, then dev node script', () => {
-  const exe = 'C:\\Users\\a\\AppData\\Local\\OpenTethery\\OpenTetheryHelper.exe';
+test('helper launcher: exe, installed node, vbs, then dev node script', () => {
+  const dir = 'C:\\Users\\a\\AppData\\Local\\OpenTethery\\';
+  const exe = dir + 'OpenTetheryHelper.exe';
+  const inode = dir + 'node.exe';
+  const ijs = dir + 'helper\\bin\\open-tethery-helper.js';
+  const vbs = dir + 'start-helper.vbs';
   const calls = [];
   const spawn = (cmd, args, opts) => { calls.push({ cmd, args, opts }); return { on() {}, unref() { calls.push('unref'); } }; };
   const env = { LOCALAPPDATA: 'C:\\Users\\a\\AppData\\Local' };
   const dev = '/repo/helper/bin/open-tethery-helper.js';
+  const has = (...files) => ({ existsSync: (p) => files.includes(p) });
 
-  const vbs = 'C:\\Users\\a\\AppData\\Local\\OpenTethery\\start-helper.vbs';
-  let r = L.start({ fs: { existsSync: (p) => p === vbs || p === exe || p === dev }, spawn, env }, { devHelperPath: dev });
-  assert.equal(r.via, 'vbs');
-  assert.equal(calls[0].cmd, 'wscript.exe');
-  assert.deepEqual(calls[0].args, [vbs]);
-
-  calls.length = 0;
-  r = L.start({ fs: { existsSync: (p) => p === exe || p === dev }, spawn, env }, { devHelperPath: dev });
+  let r = L.start({ fs: has(exe, inode, ijs, vbs, dev), spawn, env }, { devHelperPath: dev });
   assert.equal(r.via, 'exe');
   assert.equal(calls[0].cmd, exe);
   assert.equal(calls[0].opts.detached, true);
+  assert.equal(calls[0].opts.windowsHide, true);
   assert.equal(calls[1], 'unref');
 
   calls.length = 0;
-  r = L.start({ fs: { existsSync: (p) => p === dev }, spawn, env }, { devHelperPath: dev });
+  r = L.start({ fs: has(inode, ijs, vbs, dev), spawn, env }, { devHelperPath: dev });
+  assert.equal(r.via, 'node');
+  assert.equal(calls[0].cmd, inode);
+  assert.deepEqual(calls[0].args, [ijs]);
+
+  calls.length = 0;
+  r = L.start({ fs: has(ijs, vbs, dev), spawn, env }, { devHelperPath: dev });
+  assert.equal(r.via, 'vbs');
+  assert.equal(calls[0].cmd, 'wscript.exe');
+
+  calls.length = 0;
+  r = L.start({ fs: has(dev), spawn, env }, { devHelperPath: dev });
   assert.equal(r.via, 'node');
   assert.equal(calls[0].cmd, 'node');
   assert.deepEqual(calls[0].args, [dev]);
 
   r = L.start({ fs: { existsSync: () => false }, spawn, env }, { devHelperPath: '' });
   assert.equal(r.ok, false);
-  assert.match(r.reason, /OpenTetheryHelper\.exe/);
+  assert.match(r.reason, /dev-install/);
 
   r = L.start({ fs: { existsSync: () => true }, spawn: () => { throw new Error('boom'); }, env }, {});
   assert.deepEqual(r, { ok: false, reason: 'boom' });
