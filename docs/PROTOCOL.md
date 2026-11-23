@@ -246,10 +246,13 @@ Panel → helper:
 { "t": "new-session" }
 { "t": "kick", "id": "v3" }
 { "t": "control-result", "req": 7, "ok": true }
+{ "t": "control-result", "req": 8, "ok": false, "code": "unsupported", "message": "No Play command in this AE version" }
+{ "t": "get-state" }
 ```
 
 Helper → panel: `state` (§4, plus `viewerList: [{"id":"v3","name":"Pixel 8","ip":"192.168.1.31"}]`,
-`code`, `urls`, `primaryUrl`), and playback commands to run:
+`code`, `urls`, `primaryUrl`, `allowControl`), and playback commands to run.
+The helper keeps `allowControl` (default `true`) across panel reconnects; `get-state` asks for a fresh `state` at once. Playback commands to run:
 
 ```json
 { "t": "control", "req": 7, "cmd": "seek", "time": 12.5 }
