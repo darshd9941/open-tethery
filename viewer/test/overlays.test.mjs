@@ -82,7 +82,7 @@ test('every social frame renders inside the picture and the tile sheet works', {
     await openGroup(page, 'social');
     await page.click(`[data-platform="${id}"]`);
     await closeSheet(page);
-    await page.waitForFunction(() => document.querySelectorAll('[data-ot-layer="social"] .s-zone').length > 0);
+    await page.waitForFunction(() => document.querySelectorAll('[data-ot-layer="social"] .s-icon').length > 0);
     // everything drawn must stay inside the picture
     const bad = await page.evaluate(() => {
       const svg = document.querySelector('[data-ot-layer="social"]');
@@ -132,7 +132,7 @@ test('profiles: handle, caption and picture are stored and drawn', { skip }, asy
   // survives reload
   await page.reload();
   await page.waitForFunction(() => document.getElementById('cover').hidden);
-  await page.waitForFunction(() => document.querySelector('[data-ot-layer="social"] .s-zone'));
+  await page.waitForFunction(() => document.querySelector('[data-ot-layer="social"] .s-icon'));
   assert.equal(await page.locator('[data-ot-layer="social"] image').count(), 1);
   assert.deepEqual(errors, []);
 });
@@ -312,7 +312,7 @@ test('info overlay and save frame with overlays', { skip }, async (t) => {
   await openGroup(page, 'social');
   await page.click('[data-platform="tiktok"]');
   await closeSheet(page);
-  await page.waitForFunction(() => document.querySelector('[data-ot-layer="social"] .s-zone'));
+  await page.waitForFunction(() => document.querySelector('[data-ot-layer="social"] .s-icon'));
   const dl = async (fn) => {
     const [d] = await Promise.all([page.waitForEvent('download'), fn()]);
     const file = path.join(shots, 'saved-' + d.suggestedFilename());

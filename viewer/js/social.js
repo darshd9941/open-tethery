@@ -267,10 +267,17 @@ export function initSocial({ bus, layer, panel }) {
     ]) if (r.w > 0.5 && r.h > 0.5) svg.appendChild(s('rect', { x: r.x, y: r.y, width: r.w, height: r.h, class: 's-outside' }));
     const root = s('g', { class: highlight ? 's-hl' : '', opacity: opacity });
     svg.appendChild(root);
-    root.appendChild(s('rect', { x: frame.x, y: frame.y, width: frame.w, height: frame.h, class: 's-frame' }));
-    for (const z of p.zones) {
-      const r = toPx(frame, z.rect);
-      root.appendChild(s('rect', { x: r.x, y: r.y, width: r.w, height: r.h, class: `s-zone ${z.kind}${z.unsafe ? ' unsafe' : ''}` }));
+    // Clean by default: only the app's own UI (icons, handle, caption) is drawn. Zone boxes appear
+    // only with "Highlight unsafe areas" or "Show labels"; the crop outline only when the crop is
+    // smaller than the picture.
+    if (frame.w < w - 1 || frame.h < ph - 1) {
+      root.appendChild(s('rect', { x: frame.x, y: frame.y, width: frame.w, height: frame.h, class: 's-frame' }));
+    }
+    if (highlight || showLabels) {
+      for (const z of p.zones) {
+        const r = toPx(frame, z.rect);
+        root.appendChild(s('rect', { x: r.x, y: r.y, width: r.w, height: r.h, class: `s-zone ${z.kind}${z.unsafe ? ' unsafe' : ''}` }));
+      }
     }
     if (highlight) {
       const sb = toPx(frame, p.safe);

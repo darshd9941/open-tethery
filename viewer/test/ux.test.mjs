@@ -122,7 +122,7 @@ for (const device of DEVICES) {
       }
       await shot('tray-frame');
       await page.click('[data-platform="instagram-reels"]');
-      await page.waitForFunction(() => document.querySelectorAll('[data-ot-layer="social"] .s-zone').length > 0);
+      await page.waitForFunction(() => document.querySelectorAll('[data-ot-layer="social"] .s-icon').length > 0);
       await page.waitForTimeout(200);
       await shot('tray-frame-reels');
       // tapping the picture closes the tray
@@ -173,7 +173,7 @@ for (const device of DEVICES) {
       }
       // switch the frame off with the x on the chip
       await page.click('[data-chip-clear="social"]');
-      assert.equal(await page.locator('[data-ot-layer="social"] .s-zone').count(), 0);
+      assert.equal(await page.locator('[data-ot-layer="social"] .s-icon').count(), 0);
 
       // frame settings: labels and highlight are opt-in
       await page.click('[data-chip="social"]');
