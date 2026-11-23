@@ -386,6 +386,28 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // PC-only pairing page (shows the QR code). Loopback only; phones on the LAN never get it.
+  if ((pathname === '/host' || pathname === '/host-qr.js') && isLoopback(req.socket.remoteAddress)) {
+    const file = pathname === '/host'
+      ? path.join(ROOT, 'relay', 'host.html')
+      : path.join(ROOT, 'extension', 'client', 'lib', 'qrcode.js');
+    fs.readFile(file, (error, data) => {
+      if (error) {
+        res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+        res.end('Not found');
+        return;
+      }
+      res.writeHead(200, {
+        'Content-Type': pathname === '/host' ? MIME['.html'] : MIME['.js'],
+        'Content-Length': data.length,
+        'Cache-Control': 'no-store',
+        'X-Content-Type-Options': 'nosniff',
+      });
+      res.end(data);
+    });
+    return;
+  }
+
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     res.writeHead(405, { 'Content-Type': 'text/plain' });
     res.end('Method not allowed');

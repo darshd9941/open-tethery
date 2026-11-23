@@ -34,7 +34,7 @@ echo Starting Live Video Preview Relay on port %PORT%...
 echo Keep this window open while editing in Premiere Pro or After Effects.
 echo.
 
-start "" powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; Start-Process 'http://127.0.0.1:%PORT%/'"
+start "" powershell -NoProfile -WindowStyle Hidden -Command "Start-Sleep -Seconds 2; Start-Process 'http://127.0.0.1:%PORT%/host'"
 
 node "relay\server.js"
 
