@@ -89,15 +89,66 @@
   }
 
   if (!token) {
-    showEmpty(
-      'Preview relay is running',
-      'Scan the QR code shown in the Live Phone Preview panel in Photoshop. If you already scanned it, open that link again — it contains the access token for the current preview session.',
-      'waiting'
-    );
+    showEmpty('Join the preview', '', 'waiting');
+    emptySpinner.hidden = true;
+    emptyText.innerHTML = '';
+    const form = document.createElement('form');
+    form.className = 'code-form';
+    form.setAttribute('autocomplete', 'off');
+    const lead = document.createElement('p');
+    lead.textContent = 'Enter the 4-letter code shown in Photoshop';
+    const input = document.createElement('input');
+    input.className = 'code-input';
+    input.type = 'text';
+    input.maxLength = 4;
+    input.setAttribute('autocapitalize', 'characters');
+    input.setAttribute('autocorrect', 'off');
+    input.setAttribute('spellcheck', 'false');
+    input.setAttribute('inputmode', 'text');
+    input.setAttribute('aria-label', '4-letter code');
+    input.placeholder = 'ABCD';
+    const btn = document.createElement('button');
+    btn.type = 'submit';
+    btn.className = 'primary-btn';
+    btn.textContent = 'Join';
+    const msg = document.createElement('div');
+    msg.className = 'code-error';
+    msg.setAttribute('role', 'alert');
+    form.append(lead, input, btn, msg);
+    emptyText.appendChild(form);
+    input.addEventListener('input', () => {
+      input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    });
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const code = input.value.trim().toUpperCase();
+      if (code.length !== 4) {
+        msg.textContent = 'Type all 4 letters shown in Photoshop.';
+        return;
+      }
+      btn.disabled = true;
+      msg.textContent = '';
+      try {
+        const res = await fetch('/api/join?code=' + encodeURIComponent(code), { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          location.hash = 'pair=' + data.token;
+          location.reload();
+          return;
+        }
+        msg.textContent = res.status === 429
+          ? 'Too many tries. Wait a minute and try again.'
+          : "That code doesn't match. Check the panel in Photoshop.";
+      } catch {
+        msg.textContent = "Can't reach the PC. Make sure it is on the same Wi-Fi.";
+      }
+      btn.disabled = false;
+    });
     statusDot.className = 'dot';
     docName.textContent = 'Waiting for pairing';
     details.textContent = location.host;
     hud.classList.remove('hidden');
+    setTimeout(() => input.focus(), 50);
     return;
   }
 
@@ -126,7 +177,7 @@
     statusDot.className = 'dot';
     if (!state.hasFrame) {
       docName.textContent = 'Waiting for Photoshop';
-      showEmpty('Waiting for Photoshop', message || 'Press Start in the Live Phone Preview panel, then edit the document.', 'waiting');
+      showEmpty('Waiting for Photoshop', message || 'Open the Open Tethery panel in Photoshop.', 'waiting');
     }
   }
 
@@ -140,6 +191,11 @@
     state.ended = true;
     clearTimeout(state.reconnectTimer);
     clearInterval(state.pingTimer);
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+    } catch {
+      /* ignore */
+    }
     statusDot.className = 'dot ended';
     docName.textContent = 'Session ended';
     showEmpty('Session ended', message, 'ended');
@@ -198,7 +254,7 @@
       if (state.ended) return;
 
       if (event.code === 4003) {
-        setEnded('The preview was stopped in Photoshop. Press Start again and rescan the QR code.');
+        setEnded('The preview was stopped in Photoshop. Open the Open Tethery panel and scan the QR code again, or type the new code.');
         return;
       }
 

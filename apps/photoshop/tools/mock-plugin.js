@@ -9,11 +9,16 @@
 
 const fs = require('fs');
 const path = require('path');
-const WebSocket = require('../relay/node_modules/ws');
+let WebSocket;
+try {
+  WebSocket = require('../relay/node_modules/ws');
+} catch {
+  WebSocket = require('ws'); // e.g. via NODE_PATH
+}
 
 const ROOT = path.resolve(__dirname, '..');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
-const port = config.port || 47823;
+const port = Number(process.env.OPEN_TETHERY_PORT) || config.port || 47823;
 const token = process.argv[2] && !process.argv[2].startsWith('--')
   ? process.argv[2]
   : 'testtoken0123456789abcdef0123456789';
@@ -31,11 +36,16 @@ ws.on('open', () => {
 ws.on('message', (data) => {
   const message = JSON.parse(data.toString());
   if (message.type === 'registered') {
-    console.log('registered:', message.url);
+    console.log('registered:', message.url, 'code:', message.code);
+    if (!/^[A-HJ-NP-Z2-9]{4}$/.test(String(message.code || ''))) {
+      console.error('FAIL: registered message has no valid 4-character code');
+      process.exit(1);
+    }
     sendFrame();
     if (loop) setInterval(sendFrame, 2500);
   }
   if (message.type === 'pong') console.log('pong');
+  if (message.type === 'status' && typeof message.viewers === 'number') console.log('viewers:', message.viewers);
 });
 
 ws.on('close', (code, reason) => {

@@ -375,3 +375,24 @@ body {
     font-size: 12.5px;
   }
 }
+
+.code-form { display: flex; flex-direction: column; gap: 14px; margin-top: 4px; }
+.code-form p { color: var(--muted); font-size: 15px; }
+.code-input {
+  width: 100%;
+  box-sizing: border-box;
+  height: 76px;
+  border-radius: 14px;
+  border: 1px solid var(--chip-border);
+  background: #111;
+  color: #fff;
+  text-align: center;
+  text-transform: uppercase;
+  font: 700 44px/1 ui-monospace, Menlo, Consolas, monospace;
+  letter-spacing: 0.35em;
+  padding-left: 0.35em;
+}
+.code-input:focus { outline: 2px solid #9ecbff; }
+.code-form .primary-btn { height: 54px; font-size: 18px; }
+.code-error { min-height: 20px; color: #ff9b9b; font-size: 14px; }
+.spinner[hidden] { display: none; }
