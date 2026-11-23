@@ -1,0 +1,70 @@
+:root {
+  --bg: #232323;
+  --card: #2d2d2d;
+  --line: #3d3d3d;
+  --text: #dcdcdc;
+  --dim: #9a9a9a;
+  --accent: #4ec9b0;
+  --live: #3ddc84;
+  --warn-bg: #3a2f1a;
+  --warn-line: #8a6a1f;
+  --warn-text: #f0d48a;
+  --danger: #e5604f;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body { font: 12px/1.4 "Segoe UI", system-ui, -apple-system, sans-serif; overflow-x: hidden; }
+[hidden] { display: none !important; }
+
+.panel { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 12px; min-height: 100vh; }
+
+.top { display: flex; align-items: center; justify-content: space-between; }
+h1 { font-size: 13px; font-weight: 600; margin: 0; letter-spacing: .02em; }
+h2 { font-size: 11px; font-weight: 600; margin: 0 0 6px; color: var(--dim); text-transform: uppercase; letter-spacing: .06em; }
+
+.pill { font-size: 10px; font-weight: 700; letter-spacing: .08em; padding: 3px 9px; border-radius: 10px; border: 1px solid var(--line); color: var(--dim); }
+.pill.live { color: #0b2316; background: var(--live); border-color: var(--live); }
+
+.pairing { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.qr { background: #fff; padding: 10px; border-radius: 8px; width: 220px; height: 220px; display: flex; align-items: center; justify-content: center; }
+.qr img { display: block; width: 200px; height: 200px; }
+.code { font: 700 40px/1 Consolas, "Courier New", monospace; letter-spacing: .22em; padding-left: .22em; color: #fff; }
+.url-row { display: flex; align-items: center; gap: 8px; width: 100%; }
+.url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--dim); font-size: 11px; text-align: right; }
+
+.btn { font: inherit; color: var(--text); background: #3a3a3a; border: 1px solid #4a4a4a; border-radius: 4px; padding: 6px 12px; cursor: pointer; }
+.btn:hover { background: #454545; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #07261f; font-weight: 600; }
+.btn.small { padding: 3px 10px; font-size: 11px; }
+.btn.ghost { background: transparent; }
+.btn.danger { color: var(--danger); }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; }
+.card p { margin: 0 0 8px; }
+.card.warn { background: var(--warn-bg); border-color: var(--warn-line); color: var(--warn-text); }
+.card.warn h2 { color: var(--warn-text); font-size: 12px; text-transform: none; letter-spacing: 0; }
+.steps { font-weight: 600; color: #fff; }
+
+.seq { background: var(--card); border-radius: 6px; padding: 8px 12px; }
+.seq-name { font-weight: 600; font-size: 13px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seq-info { color: var(--accent); font-variant-numeric: tabular-nums; }
+.seq-host { color: var(--dim); font-size: 11px; }
+
+.phone-list { list-style: none; margin: 0 0 8px; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.phone-list li { display: flex; align-items: center; gap: 8px; background: var(--card); border-radius: 4px; padding: 5px 8px; }
+.phone-list .who { flex: 1; min-width: 0; }
+.phone-list .name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #fff; }
+.phone-list .ip { color: var(--dim); font-size: 10px; }
+.phone-list .delay { color: var(--dim); font-variant-numeric: tabular-nums; }
+.phone-list .empty { color: var(--dim); background: transparent; padding-left: 0; }
+
+.switch-row { display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 4px 0; }
+.switch-row input { position: absolute; opacity: 0; pointer-events: none; }
+.switch { width: 32px; height: 18px; border-radius: 9px; background: #555; position: relative; transition: background .15s; flex: none; }
+.switch::after { content: ""; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: transform .15s; }
+.switch-row input:checked + .switch { background: var(--accent); }
+.switch-row input:checked + .switch::after { transform: translateX(14px); }
+.switch-row input:focus-visible + .switch { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.stats { margin-top: auto; color: var(--dim); font-size: 11px; text-align: center; font-variant-numeric: tabular-nums; }
