@@ -70,7 +70,7 @@ test('viewer connects, draws a frame, shows now-playing and sends control', { sk
   const hello = server.received.find((m) => m.t === 'hello');
   assert.equal(hello.role, 'viewer');
   assert.equal(hello.code, 'ABCD');
-  assert.deepEqual(hello.accept, ['jpeg', 'pcm']);
+  assert.deepEqual(hello.accept, ['jpeg', 'pcm', 'webrtc']); // Chromium has RTCPeerConnection
   assert.equal(hello.protocol, 1);
   assert.ok(server.received.find((m) => m.t === 'info' && m.w > 0));
   assert.ok(await page.evaluate(() => localStorage.getItem('ot.lastCode')) === 'ABCD');
