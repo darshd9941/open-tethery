@@ -10,7 +10,7 @@ const FIELDS = [
   ['timecode', 'Timecode'], ['sequence', 'Sequence name'], ['play', 'Play state'], ['fps', 'Frame rate'], ['host', 'Host app'],
 ];
 
-const CSS = '.i-bg{fill:rgba(0,0,0,.6)}.i-t{fill:#fff;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:600}';
+const CSS = '.i-bg{fill:rgba(0,0,0,.55)}.i-t{fill:#fff;font-family:ui-monospace,Menlo,Consolas,monospace;font-weight:600}';
 
 // Lines to show for the current config and state. Pure.
 export function infoLines(cfg, state, time) {
@@ -26,7 +26,8 @@ export function infoLines(cfg, state, time) {
 }
 
 export function initInfo({ bus, layer, panel }) {
-  const cfg = Object.assign({ timecode: false, sequence: false, play: false, fps: false, host: false }, loadJson(KEY, {}, store));
+  const cfg = Object.assign({ timecode: false, sequence: false, play: false, fps: false, host: false, hidden: false }, loadJson(KEY, {}, store));
+  const anyOn = () => FIELDS.some(([k]) => cfg[k]);
   const svg = mountSvg(layer, 'info');
   let size = { w: layer.clientWidth || 0, h: layer.clientHeight || 0 };
   let time = getLatestFrame()?.time ?? NaN;
@@ -34,22 +35,26 @@ export function initInfo({ bus, layer, panel }) {
 
   function render(force) {
     const { w, h } = size;
-    const lines = infoLines(cfg, bus.last('state'), time);
+    const lines = cfg.hidden ? [] : infoLines(cfg, bus.last('state'), time);
     const key = `${w}x${h}|${lines.join('|')}`;
     if (!force && key === drawn) return;
     drawn = key;
     svg.replaceChildren(s('style', {}, CSS));
     if (!(w > 0 && h > 0) || !lines.length) return;
     setViewBox(svg, w, h);
-    const fs = Math.max(10, Math.min(15, w * 0.04));
+    const fs = Math.max(12, Math.min(16, w * 0.04));
     const lh = fs * 1.5;
-    const bw = Math.min(w - 12, Math.max(...lines.map((l) => l.length)) * fs * 0.62 + 14);
+    const bw = Math.min(w - 12, Math.max(...lines.map((l) => l.length)) * fs * 0.62 + 16);
     svg.appendChild(s('rect', { x: 6, y: 6, width: bw, height: lines.length * lh + 6, rx: 6, class: 'i-bg' }));
     lines.forEach((l, i) => svg.appendChild(s('text', { x: 13, y: 6 + 3 + lh * (i + 0.5) + fs * 0.35, 'font-size': fs, class: 'i-t' }, l)));
   }
 
-  const save = () => { store.set(KEY, JSON.stringify(cfg)); render(true); };
-  panel.append(section('Show on picture', ...FIELDS.map(([k, label]) => toggleRow(label, cfg[k], (v) => { cfg[k] = v; save(); }).el)));
+  const rows = {};
+  const save2 = () => { store.set(KEY, JSON.stringify(cfg)); render(true); };
+  panel.append(section('Show on picture', ...FIELDS.map(([k, label]) => {
+    rows[k] = toggleRow(label, cfg[k], (v) => { cfg[k] = v; cfg.hidden = false; save2(); });
+    return rows[k].el;
+  })));
 
   const apply = (r) => { size = { w: r.w, h: r.h }; render(true); };
   bus.on('layout', apply);
@@ -64,7 +69,14 @@ export function initInfo({ bus, layer, panel }) {
   if (last) apply(last); else render(true);
 
   return {
-    isActive: () => Object.values(cfg).some(Boolean),
-    summary: () => { const n = Object.values(cfg).filter(Boolean).length; return n ? `${n} shown` : 'Off'; },
+    isActive: () => !cfg.hidden && anyOn(),
+    // quick toggle: hide/show; showing with nothing selected switches on timecode + sequence name
+    toggle() {
+      if (!cfg.hidden && anyOn()) { cfg.hidden = true; save2(); return false; }
+      if (!anyOn()) { cfg.timecode = true; cfg.sequence = true; rows.timecode.set(true); rows.sequence.set(true); }
+      cfg.hidden = false; save2();
+      return true;
+    },
+    summary: () => { const n = FIELDS.filter(([k]) => cfg[k]).length; return !cfg.hidden && n ? `${n} shown` : 'Off'; },
   };
 }

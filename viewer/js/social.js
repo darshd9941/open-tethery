@@ -2,7 +2,7 @@
 // profile bar and top/bottom bars. Zones come from /social/<id>.json (normalised to a reference frame),
 // so adding a platform is a data change. Pure helpers are exported for tests; initSocial draws SVG.
 import { store } from './storage.js';
-import { h, s, mountSvg, setViewBox, toggleRow, section, loadJson } from './ui-kit.js';
+import { h, s, mountSvg, setViewBox, toggleRow, sliderRow, section, loadJson } from './ui-kit.js';
 
 export const LABEL_AT = ['tl', 'tr', 'bl', 'br', 'tc', 'bc'];
 export const KINDS = ['topbar', 'bottombar', 'buttons', 'caption', 'profile', 'badge', 'crop'];
@@ -112,34 +112,39 @@ export function coverCrop(sw, sh) {
 }
 
 const CSS = `
-.s-outside{fill:rgba(0,0,0,.55)}.s-frame{fill:none;stroke:rgba(255,255,255,.55);stroke-width:1;stroke-dasharray:4 3}
-.s-zone{fill:rgba(0,0,0,.28);stroke:rgba(255,255,255,.55);stroke-width:1}
+.s-outside{fill:rgba(0,0,0,.6)}
+.s-frame{fill:none;stroke:rgba(255,255,255,.7);stroke-width:1;vector-effect:non-scaling-stroke}
+.s-zone{fill:rgba(0,0,0,.17);stroke:rgba(255,255,255,.4);stroke-width:1;vector-effect:non-scaling-stroke}
 .s-zone.crop{fill:none;stroke:#7dd3fc;stroke-dasharray:6 4}
-.s-hl .s-zone.unsafe{fill:rgba(248,113,113,.38);stroke:#f87171}
-.s-safe{fill:rgba(52,211,153,.08);stroke:#34d399;stroke-width:1.5;stroke-dasharray:5 3}
-.s-icon{fill:none;stroke:#fff;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.s-hl .s-zone.unsafe{fill:rgba(248,113,113,.34);stroke:#f87171}
+.s-safe{fill:rgba(52,211,153,.08);stroke:#34d399;stroke-width:1.5;stroke-dasharray:5 3;vector-effect:non-scaling-stroke}
+.s-icon{fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .s-icon.fill{fill:#fff;stroke:none}
 .s-bar{fill:rgba(255,255,255,.75)}
 .s-avatar-bg{fill:#4b5563;stroke:#fff;stroke-width:1.2}
 .s-text{fill:#fff;font-family:-apple-system,Helvetica,Arial,sans-serif;font-weight:600}
 .s-cap{font-weight:400}
-.s-pill{fill:none;stroke:#fff;stroke-width:1.2}
-.s-label{fill:#fff;font:600 9px -apple-system,Helvetica,Arial,sans-serif;paint-order:stroke;stroke:rgba(0,0,0,.85);stroke-width:2.5px}
+.s-pill{fill:rgba(255,255,255,.14);stroke:#fff;stroke-width:1.2;vector-effect:non-scaling-stroke}
+.s-label{fill:#fff;font:600 11px -apple-system,Helvetica,Arial,sans-serif;paint-order:stroke;stroke:rgba(0,0,0,.85);stroke-width:2.5px}
 `;
 
 const KEY_PLATFORM = 'ot.social.platform';
 const KEY_HL = 'ot.social.unsafe';
+const KEY_LABELS = 'ot.social.labels';
+const KEY_OPACITY = 'ot.social.opacity';
 const KEY_PROFILES = 'ot.social.profiles';
 const KEY_PROFILE = 'ot.social.profile';
 
-const DEFAULT_PROFILE = () => ({ id: 'p' + Date.now().toString(36), handle: 'yourhandle', caption: '', avatar: '' });
+const DEFAULT_PROFILE = () => ({ id: 'p' + Date.now().toString(36), handle: 'yourhandle', caption: 'Your caption goes here #hashtag', avatar: '' });
 
 export function initSocial({ bus, layer, panel }) {
   const svg = mountSvg(layer, 'social');
   const cache = new Map();
   let index = [];
   let platformId = store.get(KEY_PLATFORM) || '';
-  let highlight = store.get(KEY_HL) !== '0';
+  let highlight = store.get(KEY_HL) === '1'; // off by default
+  let showLabels = store.get(KEY_LABELS) === '1'; // off by default
+  let opacity = Math.min(1, Math.max(0.3, parseFloat(store.get(KEY_OPACITY)) || 1));
   let profiles = loadJson(KEY_PROFILES, [], store);
   if (!Array.isArray(profiles) || !profiles.length) profiles = [{ ...DEFAULT_PROFILE(), id: 'p1' }];
   let profileId = store.get(KEY_PROFILE) || profiles[0].id;
@@ -159,52 +164,69 @@ export function initSocial({ bus, layer, panel }) {
     return p;
   }
 
+  const MIN_TEXT = 12; // CSS px: handle, caption and button text never get smaller than this
+  const textW = (str, fs, k = 0.56) => str.length * fs * k;
+
   function drawIcon(g, ic, frame) {
     const def = ICONS[ic.shape];
     if (!def) return;
-    const k = (ic.size * frame.w) / 2;
+    const k = Math.max(7, (ic.size * frame.w) / 2);
     g.appendChild(s('path', { d: def.d, class: 's-icon' + (def.fill ? ' fill' : ''), transform: `translate(${frame.x + ic.x * frame.w} ${frame.y + ic.y * frame.h}) scale(${k})` }));
   }
 
+  // Draws avatar and handle; returns the right edge of the handle text (for the pill collision check).
   function drawProfileBits(g, z, frame, prof) {
+    let handleEnd = 0;
+    let avatarEdge = 0;
     if (z.avatar) {
-      const cx = frame.x + z.avatar.x * frame.w, cy = frame.y + z.avatar.y * frame.h, r = z.avatar.r * frame.w;
+      const r = Math.max(z.avatar.r * frame.w, 9);
+      const cx = frame.x + z.avatar.x * frame.w, cy = frame.y + z.avatar.y * frame.h;
+      avatarEdge = cx + r;
       g.appendChild(s('circle', { cx, cy, r, class: 's-avatar-bg' }));
+      const id = `av${++uid}`;
+      g.appendChild(s('clipPath', { id }, s('circle', { cx, cy, r })));
       if (prof.avatar) {
-        const id = `av${++uid}`;
-        g.appendChild(s('clipPath', { id }, s('circle', { cx, cy, r })));
         g.appendChild(s('image', { href: prof.avatar, x: cx - r, y: cy - r, width: 2 * r, height: 2 * r, 'clip-path': `url(#${id})`, preserveAspectRatio: 'xMidYMid slice' }));
       } else {
         g.appendChild(s('circle', { cx, cy: cy - r * 0.2, r: r * 0.3, fill: '#d1d5db' }));
-        const id = `av${++uid}`;
-        g.appendChild(s('clipPath', { id }, s('circle', { cx, cy, r })));
         g.appendChild(s('ellipse', { cx, cy: cy + r * 0.85, rx: r * 0.62, ry: r * 0.5, fill: '#d1d5db', 'clip-path': `url(#${id})` }));
       }
     }
     if (z.handle) {
-      const fs = Math.max(9, z.handle.size * frame.w);
-      g.appendChild(s('text', { x: frame.x + z.handle.x * frame.w, y: frame.y + z.handle.y * frame.h + fs * 0.35, class: 's-text', 'font-size': fs }, '@' + (prof.handle || 'yourhandle')));
+      const fs = Math.max(MIN_TEXT, z.handle.size * frame.w);
+      const label = '@' + (prof.handle || 'yourhandle');
+      const x = Math.max(frame.x + z.handle.x * frame.w, avatarEdge + 5);
+      g.appendChild(s('text', { x, y: frame.y + z.handle.y * frame.h + fs * 0.35, class: 's-text', 'font-size': fs }, label));
+      handleEnd = x + textW(label, fs);
     }
+    return handleEnd;
   }
 
   function drawCaption(g, z, frame, prof) {
     const lines = z.lines || [];
+    if (!lines.length) return;
     const text = (prof.caption || '').trim();
-    const fs = Math.max(9, 0.03 * frame.h * 0.62);
+    const fs = Math.max(MIN_TEXT, 0.022 * frame.h);
+    // lines keep their data positions but are never closer than a text line height apart
+    const step = Math.max(fs * 1.3, lines.length > 1 ? (lines[1].y - lines[0].y) * frame.h : 0);
+    const bottom = frame.y + (z.rect[1] + z.rect[3]) * frame.h;
+    const y0 = frame.y + lines[0].y * frame.h;
+    const fit = Math.max(1, Math.min(lines.length, Math.floor((bottom - y0 - fs * 0.4) / step) + 1));
     let chunks = [];
-    if (text && lines.length) {
+    if (text) {
       const maxW = Math.max(...lines.map((l) => l.w)) * frame.w;
-      chunks = wrapText(text, Math.floor(maxW / (fs * 0.52)), lines.length);
+      chunks = wrapText(text, Math.floor(maxW / (fs * 0.54)), fit);
     }
-    lines.forEach((l, i) => {
-      const x = frame.x + l.x * frame.w, y = frame.y + l.y * frame.h;
+    for (let i = 0; i < fit; i++) {
+      const l = lines[i];
+      const x = frame.x + l.x * frame.w, y = y0 + i * step;
       if (chunks[i]) g.appendChild(s('text', { x, y: y + fs * 0.35, class: 's-text s-cap', 'font-size': fs }, chunks[i]));
-      else g.appendChild(s('rect', { x, y: y - 2.5, width: l.w * frame.w, height: 5, rx: 2.5, class: 's-bar' }));
-    });
+      else if (!text) g.appendChild(s('rect', { x, y: y - 2, width: l.w * frame.w, height: 4, rx: 2, class: 's-bar' }));
+    }
   }
 
   let token = 0;
-  // Zone labels: skipped on small zones or when a pill fills the zone; anchored to stay inside the frame.
+  // Zone labels (off by default): skipped on small zones or when a pill fills the zone.
   function labelWanted(z, frame) {
     const r = toPx(frame, z.rect);
     if (r.h < 22) return false;
@@ -212,12 +234,12 @@ export function initSocial({ bus, layer, panel }) {
   }
   function drawLabel(root, z, frame) {
     const r = toPx(frame, z.rect);
-    const est = z.label.length * 5.3;
+    const est = z.label.length * 6;
     const pos = z.labelAt || (z.kind === 'bottombar' ? 'tl' : z.kind === 'profile' ? 'tc' : 'bl');
     let x = pos.endsWith('c') ? r.x + r.w / 2 : pos.endsWith('r') ? r.x + r.w - 3 : r.x + 3;
     let anchor = pos.endsWith('c') ? 'middle' : pos.endsWith('r') ? 'end' : 'start';
     if (anchor === 'start' && x + est > frame.x + frame.w - 2) { x = Math.min(r.x + r.w, frame.x + frame.w) - 3; anchor = 'end'; }
-    const y = pos.startsWith('t') ? r.y + 9 : r.y + r.h - 3;
+    const y = pos.startsWith('t') ? r.y + 12 : r.y + r.h - 3;
     root.appendChild(s('text', { x, y, class: 's-label', 'text-anchor': anchor }, z.label));
   }
 
@@ -230,14 +252,18 @@ export function initSocial({ bus, layer, panel }) {
     if (my !== token || p.id !== platformId) return; // a newer render is on its way
     svg.replaceChildren(s('style', {}, CSS));
     setViewBox(svg, w, ph);
+    // soft shadow so white icons and text stay readable on any picture (an SVG filter so it also exports)
+    svg.appendChild(s('defs', {}, s('filter', { id: 's-shadow', x: '-20%', y: '-20%', width: '140%', height: '140%' },
+      s('feDropShadow', { dx: 0, dy: 1, stdDeviation: 1.4, 'flood-color': '#000', 'flood-opacity': 0.6 }))));
     const frame = fitFrame(w, ph, p.ref);
     const prof = profile();
-    const root = s('g', { class: highlight ? 's-hl' : '' });
-    // dim whatever lies outside the platform's frame (when the picture has a different shape)
+    // the platform's crop sits centred on the picture; everything outside it is darkened
     for (const r of [
       { x: 0, y: 0, w, h: frame.y }, { x: 0, y: frame.y + frame.h, w, h: ph - frame.y - frame.h },
       { x: 0, y: frame.y, w: frame.x, h: frame.h }, { x: frame.x + frame.w, y: frame.y, w: w - frame.x - frame.w, h: frame.h },
-    ]) if (r.w > 0.5 && r.h > 0.5) root.appendChild(s('rect', { ...r, class: 's-outside' }));
+    ]) if (r.w > 0.5 && r.h > 0.5) svg.appendChild(s('rect', { ...r, class: 's-outside' }));
+    const root = s('g', { class: highlight ? 's-hl' : '', opacity: opacity });
+    svg.appendChild(root);
     root.appendChild(s('rect', { x: frame.x, y: frame.y, width: frame.w, height: frame.h, class: 's-frame' }));
     for (const z of p.zones) {
       const r = toPx(frame, z.rect);
@@ -246,28 +272,37 @@ export function initSocial({ bus, layer, panel }) {
     if (highlight) {
       const sb = toPx(frame, p.safe);
       root.appendChild(s('rect', { x: sb.x, y: sb.y, width: sb.w, height: sb.h, class: 's-safe' }));
-      root.appendChild(s('text', { x: sb.x + 4, y: sb.y + 11, class: 's-label' }, 'safe'));
+      root.appendChild(s('text', { x: sb.x + 4, y: sb.y + 13, class: 's-label' }, 'safe'));
     }
+    const fg = s('g', { filter: 'url(#s-shadow)' });
+    root.appendChild(fg);
     for (const z of p.zones) {
-      for (const ic of z.icons || []) drawIcon(root, ic, frame);
-      if (z.kind === 'caption' || z.lines) drawCaption(root, z, frame, prof);
-      drawProfileBits(root, z, frame, prof);
+      for (const ic of z.icons || []) drawIcon(fg, ic, frame);
+      if (z.kind === 'caption' || z.lines) drawCaption(fg, z, frame, prof);
+      const handleEnd = drawProfileBits(fg, z, frame, prof);
       if (z.pill) {
         const r = toPx(frame, [z.pill.x, z.pill.y, z.pill.w, z.pill.h]);
-        root.appendChild(s('rect', { x: r.x, y: r.y, width: r.w, height: r.h, rx: Math.min(r.h / 2, 10), class: 's-pill' }));
-        root.appendChild(s('text', { x: r.x + r.w / 2, y: r.y + r.h / 2 + 3.5, 'text-anchor': 'middle', class: 's-text', 'font-size': Math.max(9, Math.min(r.h * 0.5, 12)) }, z.pill.text));
+        const fs = Math.max(MIN_TEXT, Math.min(r.h * 0.5, 13));
+        const needW = textW(z.pill.text, fs) + 14;
+        const pw = Math.max(r.w, needW), ph2 = Math.max(r.h, fs + 8);
+        const px = r.x + r.w - pw, py = r.y + r.h / 2 - ph2 / 2;
+        if (px > handleEnd + 6) { // skip the pill when the crop is too narrow to fit it next to the handle
+          fg.appendChild(s('rect', { x: px, y: py, width: pw, height: ph2, rx: Math.min(ph2 / 2, 10), class: 's-pill' }));
+          fg.appendChild(s('text', { x: px + pw / 2, y: py + ph2 / 2 + fs * 0.35, 'text-anchor': 'middle', class: 's-text', 'font-size': fs }, z.pill.text));
+        }
       }
-      if (highlight && z.unsafe && labelWanted(z, frame)) drawLabel(root, z, frame);
     }
-    svg.appendChild(root);
+    if (showLabels) for (const z of p.zones) if (labelWanted(z, frame)) drawLabel(root, z, frame);
   }
 
   // ---------------- panel
-  const grid = h('div', { class: 'ui-tiles small', role: 'group', 'aria-label': 'Platform' });
+  const grid = h('div', { class: 'ui-chips', role: 'group', 'aria-label': 'Platform' });
   const buttons = new Map();
-  const markPlatform = () => { for (const [id, b] of buttons) b.setAttribute('aria-pressed', String(id === platformId)); };
+  const offBtn = h('button', { type: 'button', class: 'ui-chip', 'data-platform': '', onclick: () => selectPlatform('') }, 'Off');
+  grid.appendChild(offBtn);
+  const markPlatform = () => { for (const [id, b] of buttons) b.setAttribute('aria-pressed', String(id === platformId)); offBtn.setAttribute('aria-pressed', String(!platformId)); };
   function addPlatformButton(id, name) {
-    const b = h('button', { type: 'button', class: 'ui-tile', 'data-platform': id, onclick: () => selectPlatform(platformId === id ? '' : id) }, name);
+    const b = h('button', { type: 'button', class: 'ui-chip', 'data-platform': id, onclick: () => selectPlatform(platformId === id ? '' : id) }, name);
     buttons.set(id, b);
     grid.appendChild(b);
   }
@@ -328,9 +363,11 @@ export function initSocial({ bus, layer, panel }) {
   fillSelect();
   syncFields();
   const hlToggle = toggleRow('Highlight unsafe areas', highlight, (v) => { highlight = v; store.set(KEY_HL, v ? '1' : '0'); render(); }, 'Red = covered by the app, green = clear');
+  const lblToggle = toggleRow('Show labels', showLabels, (v) => { showLabels = v; store.set(KEY_LABELS, v ? '1' : '0'); render(); }, 'Names of the top bar, buttons, caption…');
+  const opSlider = sliderRow('Opacity', { min: 0.3, max: 1, step: 0.05, value: opacity, fmt: (v) => Math.round(v * 100) + '%' }, (v) => { opacity = v; store.set(KEY_OPACITY, v); render(); });
   panel.append(
     section('Platform', grid),
-    hlToggle.el,
+    opSlider.el, lblToggle.el, hlToggle.el,
     section('Profile', h('div', { class: 'ui-profile' }, avatarImg, select), h('label', { class: 'ui-field' }, 'Handle', handleIn), h('label', { class: 'ui-field' }, 'Caption', capIn), h('div', { class: 'ui-btns' }, picBtn, newBtn, delBtn), fileIn),
   );
 
@@ -348,6 +385,8 @@ export function initSocial({ bus, layer, panel }) {
   return {
     isActive: () => !!platformId,
     summary: () => (platformId ? (index.find((p) => p.id === platformId)?.name || platformId) : 'Off'),
+    // short name for the quick-toggle chip: "Instagram Feed (4:5)" -> "Instagram Feed"
+    shortName: () => (platformId ? (index.find((p) => p.id === platformId)?.name || platformId).replace(/\s*\(.*\)\s*$/, '') : ''),
     select: selectPlatform,
   };
 }

@@ -34,7 +34,7 @@ export function defaultState(over = {}) {
   };
 }
 
-// opts: { code, jpeg, state, control, sendFrame, onMessage(msg, ws) }
+// opts: { code, jpeg, jw, jh, srcW, srcH, state, control, sendFrame, onMessage(msg, ws) }
 export async function startFakeServer(opts = {}) {
   const code = opts.code || 'ABCD';
   const received = [];
@@ -59,7 +59,7 @@ export async function startFakeServer(opts = {}) {
         ws.send(JSON.stringify({ t: 'welcome', id: 'v1', role: 'viewer', protocol: 1, control: opts.control ?? true, webrtc: false, server: { name: 'open-tethery', version: '0.2.0', pcName: opts.pcName || 'STUDIO-PC' } }));
         ws.send(JSON.stringify(opts.state || defaultState()));
         if (opts.jpeg && opts.sendFrame !== false) {
-          ws.send(makeFrame({ jpeg: opts.jpeg, w: opts.jw || 180, h: opts.jh || 320, srcW: 1080, srcH: 1920 }));
+          ws.send(makeFrame({ jpeg: opts.jpeg, w: opts.jw || 180, h: opts.jh || 320, srcW: opts.srcW || 1080, srcH: opts.srcH || 1920 }));
         }
       } else if (msg.t === 'ping') {
         ws.send(JSON.stringify({ t: 'pong', ts: msg.ts, serverTs: Date.now() }));
@@ -72,6 +72,8 @@ export async function startFakeServer(opts = {}) {
   const port = server.address().port;
   return {
     port, code, received,
+    // push a message (object = JSON state/etc.) to every connected viewer
+    broadcast: (msg) => { for (const c of wss.clients) c.send(JSON.stringify(msg)); },
     url: `http://127.0.0.1:${port}`,
     close: () => new Promise((r) => { for (const c of wss.clients) c.terminate(); wss.close(); server.close(r); }),
   };

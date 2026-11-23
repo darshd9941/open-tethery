@@ -1,50 +1,45 @@
-/* Overlay sheet: tiles, rows, chips (used by js/ui-kit.js and the overlay modules). */
-#sheetOverlays { background: transparent; }
-#sheetOverlays .sheet-card { max-height: 52dvh; box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5); }
-
+/* Overlay settings content (inside the tray): rows, chips, fields (used by js/ui-kit.js and the overlay modules). */
 .ot-svg { stroke: none; stroke-width: 1; fill: none; position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: hidden; }
 canvas.ot-expo { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: 0.88; }
 
-.ui-section { margin: 0 0 14px; }
-.ui-section h3, .ov-back h3 { margin: 12px 0 6px; font-size: 13px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--dim); }
-.ov-back { display: flex; align-items: center; gap: 10px; }
-.ov-back h3 { margin: 0; }
+.ic { width: 20px; height: 20px; }
 
-.ui-tiles { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
-.ui-tiles.small { grid-template-columns: repeat(3, 1fr); }
-.ui-tile {
-  min-height: 44px; padding: 8px 6px; border-radius: 12px; border: 1px solid var(--line);
-  background: var(--surface-2); color: var(--text); font: inherit; font-size: 13px; line-height: 1.2;
-  display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; text-align: left;
-}
-.ui-tiles.small .ui-tile { align-items: center; text-align: center; }
-.ui-tile.big { min-height: 64px; padding: 10px 12px; font-size: 15px; }
-.ui-tile small { color: var(--dim); font-size: 12px; }
-.ui-tile[aria-pressed="true"] { border-color: var(--accent); }
-.ui-tile[aria-pressed="true"] small { color: var(--accent); }
+.ui-section { margin: 0 0 12px; }
+.ui-section h3 { margin: 10px 0 4px; font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: var(--dim); }
 
-.ui-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 44px; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
+.ui-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 15px; }
 .ui-label { display: flex; flex-direction: column; }
-.ui-label small { color: var(--dim); font-size: 12px; }
-.ui-row input[type="checkbox"] { width: 44px; height: 26px; accent-color: var(--accent); flex: none; }
+.ui-label small { color: var(--dim); font-size: 12px; line-height: 1.3; }
+
+/* switches */
+.ui-row input[type="checkbox"] {
+  -webkit-appearance: none; appearance: none; flex: none; position: relative;
+  width: 48px; height: 28px; margin: 0; border-radius: 14px; background: var(--line-strong); transition: background 0.15s;
+}
+.ui-row input[type="checkbox"]::after {
+  content: ""; position: absolute; left: 3px; top: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; transition: transform 0.15s;
+}
+.ui-row input[type="checkbox"]:checked { background: var(--accent); }
+.ui-row input[type="checkbox"]:checked::after { transform: translateX(20px); background: var(--accent-ink); }
+
 .ui-slider input { flex: 1; min-width: 80px; }
-.ui-slider output { min-width: 40px; text-align: right; font-family: var(--mono); font-size: 13px; }
+.ui-slider output { min-width: 42px; text-align: right; font-family: var(--mono); font-size: 13px; }
 .ui-step { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--dim); }
-.ui-step button { width: 36px; height: 36px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface-2); color: var(--text); font-size: 18px; }
+.ui-step button { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line-strong); background: var(--surface-2); color: var(--text); font-size: 18px; }
 .ui-step output { min-width: 18px; text-align: center; color: var(--text); font-family: var(--mono); }
 
-.ui-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0; }
+.ui-chips { display: flex; flex-wrap: wrap; gap: 8px; padding: 6px 0; }
 .ui-chip, .ui-btn {
-  min-height: 40px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--line);
+  min-height: 44px; padding: 0 16px; border-radius: 22px; border: 1px solid var(--line-strong);
   background: var(--surface-2); color: var(--text); font: inherit; font-size: 14px;
 }
 .ui-chip[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 650; }
 .ui-btn.wide { width: 100%; margin-top: 8px; border-radius: 12px; }
-.ui-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
-.ui-note { color: var(--dim); font-size: 12px; margin: 8px 0; line-height: 1.4; }
+.ui-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.ui-note { color: var(--dim); font-size: 12.5px; margin: 8px 0; line-height: 1.45; }
 
 .ui-profile { display: flex; align-items: center; gap: 10px; }
-.ui-profile select { flex: 1; min-height: 44px; border-radius: 10px; background: var(--surface-2); color: var(--text); border: 1px solid var(--line); font-size: 15px; padding: 0 8px; }
-.ui-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid var(--line); }
+.ui-profile select { flex: 1; min-height: 44px; border-radius: 10px; background: var(--surface-2); color: var(--text); border: 1px solid var(--line-strong); font-size: 16px; padding: 0 8px; }
+.ui-avatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 1px solid var(--line-strong); }
 .ui-field { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; font-size: 12px; color: var(--dim); }
-.ui-field input, .ui-field textarea { background: var(--surface-2); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 10px; font: inherit; font-size: 16px; }
+.ui-field input, .ui-field textarea { background: var(--surface-2); color: var(--text); border: 1px solid var(--line-strong); border-radius: 10px; padding: 10px; font: inherit; font-size: 16px; -webkit-user-select: text; user-select: text; }

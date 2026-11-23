@@ -126,16 +126,9 @@ function updateNowPlaying() {
   badge.className = 'badge' + (live ? ' live' : !online ? ' off' : '');
 
   $('npApp').textContent = state?.host ? appName() : '';
-  $('npSeq').textContent = state ? (state.sequence?.name || 'No sequence') : (conn?.welcomed ? 'Waiting…' : 'Connecting…');
-
-  const s = state?.sequence;
-  const aspect = $('npAspect');
-  aspect.hidden = !s?.aspect;
-  aspect.textContent = s?.aspect || '';
-  const fps = formatFps(seqFps());
-  $('npRes').textContent = s?.width && s?.height ? `${s.width}×${s.height}${fps ? ' @ ' + fps : ''}` : '';
-  $('npPlay').textContent = state && typeof state.playing === 'boolean' && hostApp() !== 'photoshop'
-    ? (state.playing ? '▶ Playing' : '❚❚ Paused') : '';
+  const seqEl = $('npSeq');
+  seqEl.textContent = state ? (state.sequence?.name || 'No sequence') : (conn?.welcomed ? 'Waiting…' : 'Connecting…');
+  seqEl.title = state?.host ? `${appName()}${state.sequence?.name ? ' · ' + state.sequence.name : ''}` : '';
   updateTimecode();
 }
 
@@ -266,14 +259,47 @@ const gestures = createGestures({
   stage,
   zoomEl: $('zoom'),
   getContent: () => ({ w: pic.offsetWidth, h: pic.offsetHeight, srcW: picSrc.w }),
-  onTap: () => setUi(app.dataset.ui !== 'shown'),
+  onTap: () => {
+    bumpUi();
+    dismissHint();
+    if (overlays?.isOpen()) overlays.close(); // tap on the picture closes the settings tray
+    else setUi(app.dataset.ui !== 'shown');
+  },
 });
 
 new ResizeObserver(layoutPic).observe(stage);
 
 function setUi(shown) {
   app.dataset.ui = shown ? 'shown' : 'hidden';
+  if (shown) bumpUi();
 }
+
+// Controls hide by themselves 3 s after the last touch while playing (tap the picture to bring them back).
+const AUTO_HIDE_MS = 3000;
+let lastTouch = Date.now();
+function bumpUi() { lastTouch = Date.now(); }
+for (const ev of ['pointerdown', 'keydown', 'input']) document.addEventListener(ev, bumpUi, true);
+setInterval(() => {
+  if (app.dataset.ui !== 'shown' || app.dataset.tray === 'open' || scrubbing) return;
+  if (!state?.playing || hostApp() === 'photoshop') return;
+  if (document.querySelector('.sheet:not([hidden])')) return;
+  if (Date.now() - lastTouch > AUTO_HIDE_MS) setUi(false);
+}, 400);
+
+// ---------------------------------------------------------------- first-run tip
+
+const KEY_HINT = 'ot.hintSeen';
+function showHint() {
+  if (store.get(KEY_HINT) === '1') return;
+  $('hint').hidden = false;
+  setTimeout(dismissHint, 14000);
+}
+function dismissHint() {
+  if ($('hint').hidden) return;
+  $('hint').hidden = true;
+  store.set(KEY_HINT, '1');
+}
+$('hintClose').addEventListener('click', dismissHint);
 
 async function decodeJpeg(bytes) {
   const blob = new Blob([bytes], { type: 'image/jpeg' });
@@ -340,7 +366,9 @@ function present({ img, p, decodeMs }) {
   const srcW = p.srcW || w;
   const srcH = p.srcH || h;
   if (srcW !== picSrc.w || srcH !== picSrc.h) { picSrc = { w: srcW, h: srcH }; layoutPic(); }
+  const first = !hasFrame;
   hasFrame = true;
+  if (first) showHint();
   if (Number.isFinite(p.time)) curTime = p.time;
   stats.frameShown(decodeMs);
 
@@ -371,6 +399,7 @@ function onBinary(buf) {
 function onMessage(msg) {
   switch (msg.t) {
     case 'state':
+      if (msg.playing && !state?.playing) bumpUi();
       state = msg;
       if (state.playing === false && Number.isFinite(state.time)) curTime = state.time;
       else if (!Number.isFinite(curTime) && Number.isFinite(state.time)) curTime = state.time;
@@ -542,7 +571,17 @@ function renderStats() {
   const s = stats.snapshot();
   const sv = s.server || {};
   const n = (v, d = 0, unit = '') => (Number.isFinite(v) ? v.toFixed(d) + unit : '–');
+  const seq = state?.sequence;
+  const fps = formatFps(seqFps());
   const rows = [
+    ['Sequence'],
+    ['Name', seq?.name || '–'],
+    ['Size', seq?.width && seq?.height ? `${seq.width}×${seq.height}` : '–'],
+    ['Frame rate', fps ? `${fps} fps` : '–'],
+    ['Aspect', seq?.aspect || '–'],
+    ['App', state?.host ? appName() : '–'],
+    ['State', typeof state?.playing === 'boolean' && hostApp() !== 'photoshop' ? (state.playing ? 'Playing' : 'Paused') : '–'],
+    ['Connection'],
     ['Frame rate (shown)', n(s.fps, 1, ' fps')],
     ['Frame rate (from PC)', n(sv.fps, 1, ' fps')],
     ['Picture size', picSrc ? `${canvas.width}×${canvas.height}` : '–'],
@@ -557,7 +596,8 @@ function renderStats() {
   dl.replaceChildren();
   for (const [k, v] of rows) {
     const dt = document.createElement('dt'); dt.textContent = k;
-    const dd = document.createElement('dd'); dd.textContent = v;
+    const dd = document.createElement('dd'); dd.textContent = v ?? '';
+    if (v === undefined) dt.className = 'group';
     dl.append(dt, dd);
   }
 }
@@ -580,22 +620,21 @@ for (const sheet of document.querySelectorAll('.sheet')) {
 
 // ---------------------------------------------------------------- overlays
 
-// One path: js/overlays/index.js mounts social frames, guides, scopes/exposure and info (see CONTRACT.md).
-// It is loaded at start so saved overlays come back; the Overlays button only opens the sheet.
+// One path: js/overlays/index.js mounts social frames, guides, scopes/exposure and info, builds the quick-toggle
+// chip row and owns the settings tray (see CONTRACT.md). It loads at start so saved overlays come back.
+let overlays = null;
 const overlaysReady = import('/js/overlays/index.js').then(async (mod) => {
   await mod.init({
-    bus, getStage, layer: getStage(), panel: $('overlaysPanel'), dock: $('dock'), toast,
+    bus, getStage, layer: getStage(), tray: $('tray'), chips: $('chips'), dock: $('dock'), toast,
     saveFrame: (opts) => doSave(opts),
+    onTray: (open) => {
+      app.dataset.tray = open ? 'open' : 'closed';
+      if (open) { setUi(true); dismissHint(); }
+    },
   });
+  overlays = mod;
   return mod;
 }).catch((e) => { console.error('overlays failed to start', e); return null; });
-
-$('btnOverlays').addEventListener('click', async () => {
-  const mod = await overlaysReady;
-  if (!mod) { toast('Overlays could not start.'); return; }
-  openSheet('sheetOverlays');
-  mod.open?.();
-});
 
 // ---------------------------------------------------------------- save / share / fullscreen
 
@@ -608,7 +647,6 @@ async function doSave({ overlays = false } = {}) {
       const mod = await overlaysReady;
       if (mod?.composite) src = await mod.composite(canvas);
       name = name.replace(/\.png$/, '_overlays.png');
-      closeSheets();
     }
     const r = await saveFrame(src, name);
     if (r === 'downloaded') toast('Frame saved to your downloads.');

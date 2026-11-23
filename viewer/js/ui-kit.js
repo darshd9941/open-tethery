@@ -20,6 +20,11 @@ export function s(tag, attrs = {}, ...kids) {
   return el;
 }
 
+// Icon from the sprite in index.html (symbol ids "i-<name>").
+export function icon(name, cls = '') {
+  return s('svg', { class: ('ic ' + cls).trim(), 'aria-hidden': 'true' }, s('use', { href: '#i-' + name }));
+}
+
 // An SVG that covers the layer; viewBox is the picture size in CSS px so exports scale cleanly.
 export function mountSvg(layer, name) {
   const svg = s('svg', { class: 'ot-svg', 'data-ot-layer': name, preserveAspectRatio: 'none', xmlns: SVG_NS });

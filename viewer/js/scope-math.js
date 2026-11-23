@@ -140,3 +140,39 @@ export function levelToMeter(v, floorDb = -60) {
   const db = 20 * Math.log10(v);
   return Math.min(1, Math.max(0, (db - floorDb) / -floorDb));
 }
+
+// Where to put floating scope widgets. `stage` {w,h} is the dock, `pic` {x,y,w,h} the picture inside it,
+// `sizes` [{w,h}] the widgets in order. Widgets go into the empty bands around the picture (above, below,
+// left, right: the largest band first, filled left to right in rows); only a widget that fits no band
+// floats over the picture, packed down the right-hand side. Returns [{x, y, docked}] in the same order.
+export function dockLayout(stage, pic, sizes, { gap = 6, margin = 6 } = {}) {
+  const S = { w: stage.w, h: stage.h };
+  const bands = [
+    { x: 0, y: 0, w: S.w, h: pic.y },
+    { x: 0, y: pic.y + pic.h, w: S.w, h: S.h - (pic.y + pic.h) },
+    { x: 0, y: 0, w: pic.x, h: S.h },
+    { x: pic.x + pic.w, y: 0, w: S.w - (pic.x + pic.w), h: S.h },
+  ].filter((b) => b.w > 0 && b.h > 0).sort((a, b) => b.w * b.h - a.w * a.h)
+    .map((b) => ({ ...b, cx: b.x + margin, cy: b.y + margin, rowH: 0 }));
+  const out = [];
+  let fx = S.w - margin, fy = margin, fcol = 0; // floating column over the picture
+  for (const sz of sizes) {
+    let spot = null;
+    for (const b of bands) {
+      let cx = b.cx, cy = b.cy, rowH = b.rowH;
+      if (cx + sz.w > b.x + b.w - margin + 0.5) { cx = b.x + margin; cy += rowH + gap; rowH = 0; } // next row
+      if (cx + sz.w <= b.x + b.w - margin + 0.5 && cy + sz.h <= b.y + b.h - margin + 0.5) {
+        spot = { x: cx, y: cy, docked: true };
+        b.cx = cx + sz.w + gap; b.cy = cy; b.rowH = Math.max(rowH, sz.h);
+        break;
+      }
+    }
+    if (!spot) {
+      if (fy + sz.h > S.h - margin && fy > margin) { fx -= fcol + gap; fy = margin; fcol = 0; }
+      spot = { x: Math.max(0, fx - sz.w), y: fy, docked: false };
+      fy += sz.h + gap; fcol = Math.max(fcol, sz.w);
+    }
+    out.push(spot);
+  }
+  return out;
+}
