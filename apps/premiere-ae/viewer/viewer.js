@@ -125,7 +125,14 @@
       ws.send(JSON.stringify({ type: 'hello', role: 'viewer', token }));
     };
 
+    ws.binaryType = 'arraybuffer';
+
     ws.onmessage = (event) => {
+      // Binary = JPEG frame from the native plugin: [u32 LE metaLen][meta JSON][JPEG]
+      if (typeof event.data !== 'string') {
+        handleBinaryFrame(event.data);
+        return;
+      }
       let msg;
       try {
         msg = JSON.parse(event.data);
@@ -161,6 +168,33 @@
     state.reconnectTimer = setTimeout(connect, wait);
   }
 
+  function handleBinaryFrame(buf) {
+    if (!(buf instanceof ArrayBuffer) || buf.byteLength < 8) return;
+    const metaLen = new DataView(buf).getUint32(0, true);
+    if (4 + metaLen >= buf.byteLength) return;
+    let meta;
+    try {
+      meta = JSON.parse(new TextDecoder().decode(new Uint8Array(buf, 4, metaLen)));
+    } catch {
+      return;
+    }
+    const blob = new Blob([new Uint8Array(buf, 4 + metaLen)], { type: meta.mime || 'image/jpeg' });
+    state.hasFrame = true;
+    hideEmpty();
+    statusDot.className = 'dot live';
+    updateMeta(meta);
+    queueFrame(null, meta, blob);
+  }
+
+  function showNativeStatus(msg) {
+    const tx = msg.transmit;
+    if (!tx || !tx.connected || state.hasFrame) return;
+    showEmpty(
+      'Premiere connected',
+      tx.playing ? 'Playing... waiting for the first frame.' : 'Idle. Move the playhead or press play in Premiere.'
+    );
+  }
+
   function handleMessage(msg) {
     switch (msg.type) {
       case 'welcome': {
@@ -175,6 +209,8 @@
 
         if (msg.hasFrame && msg.frame) {
           updateMeta(msg.frame);
+        } else if (msg.transmit && msg.transmit.connected) {
+          showNativeStatus(msg);
         } else {
           showEmpty('Waiting for Timeline…', 'Scrub or pause the timeline in Premiere Pro or After Effects to send a frame.');
         }
@@ -183,6 +219,7 @@
 
       case 'status': {
         if (msg.frame) updateMeta(msg.frame);
+        showNativeStatus(msg);
         if (msg.pluginOnline && state.hasFrame) {
           statusDot.className = 'dot live';
         } else if (!msg.pluginOnline && state.hasFrame) {
@@ -232,8 +269,9 @@
   let pendingFrame = null;
   let rendering = false;
 
-  function queueFrame(data, meta) {
-    pendingFrame = { data, meta };
+  function queueFrame(data, meta, blob) {
+    if (pendingFrame && pendingFrame.blobUrl) URL.revokeObjectURL(pendingFrame.blobUrl);
+    pendingFrame = { data, meta, blobUrl: blob ? URL.createObjectURL(blob) : null };
     if (!rendering) pump();
   }
 
@@ -243,17 +281,19 @@
       while (pendingFrame) {
         const f = pendingFrame;
         pendingFrame = null;
-        await render(f.data, f.meta);
+        await render(f.data, f.meta, f.blobUrl);
       }
     } finally {
       rendering = false;
     }
   }
 
-  async function render(base64, meta) {
+  let activeBlobUrl = null;
+
+  async function render(base64, meta, blobUrl) {
     const next = active === frameA ? frameB : frameA;
-    const mime = (meta && meta.mime) || (base64.startsWith('iVBORw') ? 'image/png' : 'image/jpeg');
-    const url = `data:${mime};base64,${base64}`;
+    const mime = (meta && meta.mime) || (base64 && base64.startsWith('iVBORw') ? 'image/png' : 'image/jpeg');
+    const url = blobUrl || `data:${mime};base64,${base64}`;
 
     const probe = new Image();
     probe.src = url;
@@ -281,6 +321,8 @@
     next.classList.add('visible');
     active.classList.remove('visible');
     active = next;
+    if (activeBlobUrl) URL.revokeObjectURL(activeBlobUrl);
+    activeBlobUrl = blobUrl || null;
 
     if (isFirst || isFit) {
       fitToScreen();

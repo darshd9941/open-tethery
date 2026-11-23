@@ -11,7 +11,9 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { WebSocketServer } = require('ws');
+const crypto = require('crypto');
 const { resolveProfile, injectProfile } = require('./icc');
+const { startTransmitIngest } = require('./transmit-ingest');
 
 const ROOT = path.resolve(__dirname, '..');
 const VIEWER_DIR = path.join(ROOT, 'viewer');
@@ -20,17 +22,24 @@ const LOG_DIR = path.join(ROOT, 'logs');
 const LOG_PATH = path.join(LOG_DIR, 'relay.log');
 
 const DEFAULT_PORT = 47825;
+const DEFAULT_TRANSMIT_PORT = 47826; // native Transmit plugin ingest (loopback only)
+const NATIVE_LIVE_MS = 3000; // native frames this recent mean the native plugin "owns" the preview
+const VIEWER_BACKLOG_MIN = 256 * 1024; // skip frames for a viewer with more than this (or one frame) queued
 const AUTH_TIMEOUT_MS = 15000;
 const MAX_FRAME_BASE64 = 28 * 1024 * 1024; // ~21 MB
 const MAX_FRAME_META_NAME = 300;
 
 function loadConfig() {
-  const defaults = { port: DEFAULT_PORT, lanIp: null };
+  const defaults = { port: DEFAULT_PORT, lanIp: null, transmitPort: DEFAULT_TRANSMIT_PORT };
   try {
     const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
     const parsed = JSON.parse(raw);
     return {
       port: Number.isInteger(parsed.port) ? parsed.port : defaults.port,
+      transmitPort:
+        Number.isInteger(parsed.transmitPort) && parsed.transmitPort > 0 && parsed.transmitPort < 65536
+          ? parsed.transmitPort
+          : defaults.transmitPort,
       lanIp: typeof parsed.lanIp === 'string' && parsed.lanIp.trim() ? parsed.lanIp.trim() : null,
     };
   } catch {
@@ -142,6 +151,11 @@ function serveStatic(res, pathname) {
 
 const config = loadConfig();
 const PORT = config.port;
+const TRANSMIT_PORT = config.transmitPort;
+
+function isLoopback(addr) {
+  return addr === '127.0.0.1' || addr === '::1' || addr === '::ffff:127.0.0.1';
+}
 const LAN_IP = pickLanIp(config.lanIp);
 const BASE_URL = `http://${LAN_IP}:${PORT}/`;
 const STARTED_AT = Date.now();
@@ -151,17 +165,30 @@ let pluginSocket = null;
 let pluginInfo = null;
 let lastFrame = null;
 const viewers = new Set();
+let transmit = null; // set once the ingest listener starts
+let lastNativeFrameAt = 0;
+let skippedFrames = 0;
+
+function transmitStatus() {
+  return transmit ? transmit.status() : { connected: false, playing: false, fps: 0 };
+}
+
+function nativeLive() {
+  return transmitStatus().connected && Date.now() - lastNativeFrameAt < NATIVE_LIVE_MS;
+}
 
 function frameMeta() {
   return lastFrame ? lastFrame.meta : null;
 }
 
 function statusPayload() {
+  const tx = transmitStatus();
   return {
     type: 'status',
-    pluginOnline: Boolean(pluginSocket),
+    pluginOnline: Boolean(pluginSocket) || tx.connected,
     hasFrame: Boolean(lastFrame),
     frame: frameMeta(),
+    transmit: tx,
     serverTime: Date.now(),
   };
 }
@@ -191,6 +218,83 @@ function broadcast(value) {
 
 function broadcastStatus() {
   broadcast(statusPayload());
+}
+
+// ---- Native Transmit plugin frames -> viewers (binary WebSocket messages) ----
+// Wire format to viewers: [u32 LE metaLen][meta JSON utf8][JPEG bytes].
+function buildBinaryFrame(meta, jpeg) {
+  const metaBuf = Buffer.from(JSON.stringify(meta), 'utf8');
+  const head = Buffer.alloc(4);
+  head.writeUInt32LE(metaBuf.length, 0);
+  return Buffer.concat([head, metaBuf, jpeg]);
+}
+
+function viewerCanTake(viewer, wire) {
+  return viewer.bufferedAmount <= Math.max(VIEWER_BACKLOG_MIN, wire.length);
+}
+
+// Latest frame wins per viewer: if a phone is backed up we do not queue, we
+// remember only the newest frame in viewer.pendingWire and flush it later.
+function sendBinaryToViewer(viewer, wire) {
+  if (viewer.readyState !== viewer.OPEN) return;
+  if (!viewerCanTake(viewer, wire)) {
+    viewer.pendingWire = wire;
+    skippedFrames += 1;
+    return;
+  }
+  viewer.pendingWire = null;
+  try {
+    viewer.send(wire, { binary: true });
+  } catch {
+    // closed
+  }
+}
+
+function broadcastBinary(wire) {
+  for (const viewer of viewers) sendBinaryToViewer(viewer, wire);
+}
+
+setInterval(() => {
+  for (const viewer of viewers) {
+    if (viewer.pendingWire && viewer.readyState === viewer.OPEN && viewerCanTake(viewer, viewer.pendingWire)) {
+      const wire = viewer.pendingWire;
+      viewer.pendingWire = null;
+      try {
+        viewer.send(wire, { binary: true });
+      } catch {
+        // closed
+      }
+    }
+  }
+}, 100).unref();
+
+function handleTransmitFrame(frame, status, state) {
+  // The native plugin has no pairing flow of its own: make sure a session exists.
+  if (!sessionToken) sessionToken = crypto.randomBytes(24).toString('base64url');
+  lastNativeFrameAt = Date.now();
+  const meta = {
+    name: (state && typeof state.sequence === 'string' && state.sequence.slice(0, MAX_FRAME_META_NAME)) || 'Premiere Pro',
+    timecode: frame.timecode,
+    host: 'Premiere Pro',
+    mime: 'image/jpeg',
+    width: frame.width,
+    height: frame.height,
+    seqWidth: frame.seqWidth,
+    seqHeight: frame.seqHeight,
+    fps: Math.round(frame.fps * 1000) / 1000,
+    profile: 'sRGB',
+    source: 'transmit',
+    timestamp: lastNativeFrameAt,
+    bytes: frame.jpeg.length,
+  };
+  const wire = buildBinaryFrame(meta, frame.jpeg);
+  lastFrame = { base64: null, wire, meta, receivedAt: lastNativeFrameAt };
+  broadcastBinary(wire);
+}
+
+function handleTransmitChange(status) {
+  if (status.connected && !sessionToken) sessionToken = crypto.randomBytes(24).toString('base64url');
+  broadcastStatus();
 }
 
 function clearSession(reason) {
@@ -260,8 +364,12 @@ const server = http.createServer((req, res) => {
       ip: LAN_IP,
       port: PORT,
       url: BASE_URL,
-      pluginOnline: Boolean(pluginSocket),
+      pluginOnline: Boolean(pluginSocket) || transmitStatus().connected,
       plugin: pluginInfo,
+      transmit: { ...transmitStatus(), port: TRANSMIT_PORT, viewersSkippedFrames: skippedFrames },
+      // Pairing URL for the native plugin flow (no CEP panel to show a QR). Loopback callers only.
+      pairUrl:
+        sessionToken && isLoopback(req.socket.remoteAddress) ? `${BASE_URL}#pair=${sessionToken}` : undefined,
       hasSession: Boolean(sessionToken),
       viewers: viewers.size,
       hasFrame: Boolean(lastFrame),
@@ -361,7 +469,13 @@ function attachViewer(ws, token) {
     type: 'welcome',
     serverTime: Date.now(),
   });
-  if (lastFrame) {
+  if (lastFrame && lastFrame.wire) {
+    try {
+      ws.send(lastFrame.wire, { binary: true });
+    } catch {
+      // closed
+    }
+  } else if (lastFrame) {
     send(ws, {
       type: 'frame',
       data: lastFrame.base64,
@@ -376,6 +490,8 @@ function handlePluginMessage(ws, msg) {
   if (ws !== pluginSocket) return;
 
   if (msg.type === 'frame') {
+    // Native plugin wins while its frames are live.
+    if (nativeLive()) return;
     if (typeof msg.data !== 'string' || msg.data.length < 32) return;
     if (msg.data.length > MAX_FRAME_BASE64) {
       log('dropped oversized frame');
@@ -513,6 +629,14 @@ const pingInterval = setInterval(() => {
 
 wss.on('close', () => {
   clearInterval(pingInterval);
+});
+
+transmit = startTransmitIngest({
+  port: TRANSMIT_PORT,
+  host: '127.0.0.1',
+  onFrame: handleTransmitFrame,
+  onChange: handleTransmitChange,
+  log,
 });
 
 server.listen(PORT, '0.0.0.0', () => {
