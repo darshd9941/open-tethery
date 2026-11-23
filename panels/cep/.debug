@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionList>
+  <!-- Chrome remote debugging: open http://localhost:8099 while the panel is open. -->
+  <Extension Id="com.opentethery.panel.main">
+    <HostList>
+      <Host Name="PPRO" Port="8099"/>
+      <Host Name="AEFT" Port="8100"/>
+    </HostList>
+  </Extension>
+</ExtensionList>

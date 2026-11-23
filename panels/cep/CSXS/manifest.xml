@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionManifest Version="11.0" ExtensionBundleId="com.opentethery.panel" ExtensionBundleVersion="0.2.0" ExtensionBundleName="Open Tethery"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <Author>Open Tethery</Author>
+  <Contact mailto=""/>
+  <Legal href=""/>
+  <Abstract href=""/>
+  <ExtensionList>
+    <Extension Id="com.opentethery.panel.main" Version="0.2.0"/>
+  </ExtensionList>
+  <ExecutionEnvironment>
+    <HostList>
+      <!-- Premiere Pro 2024 (24.x) and newer -->
+      <Host Name="PPRO" Version="[24.0,99.9]"/>
+      <!-- After Effects 2024 (24.x) and newer -->
+      <Host Name="AEFT" Version="[24.0,99.9]"/>
+    </HostList>
+    <LocaleList>
+      <Locale Code="All"/>
+    </LocaleList>
+    <RequiredRuntimeList>
+      <RequiredRuntime Name="CSXS" Version="11.0"/>
+    </RequiredRuntimeList>
+  </ExecutionEnvironment>
+  <DispatchInfoList>
+    <Extension Id="com.opentethery.panel.main">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./client/index.html</MainPath>
+          <ScriptPath>./host/host.jsx</ScriptPath>
+          <CEFCommandLine>
+            <Parameter>--enable-nodejs</Parameter>
+            <Parameter>--mixed-context</Parameter>
+          </CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+          <AutoVisible>true</AutoVisible>
+        </Lifecycle>
+        <UI>
+          <Type>Panel</Type>
+          <Menu>Open Tethery</Menu>
+          <Geometry>
+            <Size><Width>320</Width><Height>560</Height></Size>
+            <MinSize><Width>260</Width><Height>420</Height></MinSize>
+            <MaxSize><Width>700</Width><Height>1400</Height></MaxSize>
+          </Geometry>
+          <Icons>
+            <Icon Type="Normal">./client/icons/panel@1x.png</Icon>
+            <Icon Type="RollOver">./client/icons/panel@1x.png</Icon>
+            <Icon Type="DarkNormal">./client/icons/panel@1x.png</Icon>
+            <Icon Type="DarkRollOver">./client/icons/panel@1x.png</Icon>
+          </Icons>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+  </DispatchInfoList>
+</ExtensionManifest>
