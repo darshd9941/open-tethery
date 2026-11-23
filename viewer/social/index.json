@@ -1,0 +1,48 @@
+{
+ "platforms": [
+  {
+   "id": "instagram-reels",
+   "name": "Instagram Reels"
+  },
+  {
+   "id": "instagram-feed",
+   "name": "Instagram Feed (4:5)"
+  },
+  {
+   "id": "instagram-story",
+   "name": "Instagram Story"
+  },
+  {
+   "id": "youtube",
+   "name": "YouTube (16:9 player)"
+  },
+  {
+   "id": "youtube-shorts",
+   "name": "YouTube Shorts"
+  },
+  {
+   "id": "tiktok",
+   "name": "TikTok"
+  },
+  {
+   "id": "x",
+   "name": "X"
+  },
+  {
+   "id": "facebook",
+   "name": "Facebook"
+  },
+  {
+   "id": "snapchat",
+   "name": "Snapchat"
+  },
+  {
+   "id": "pinterest",
+   "name": "Pinterest"
+  },
+  {
+   "id": "reddit",
+   "name": "Reddit"
+  }
+ ]
+}

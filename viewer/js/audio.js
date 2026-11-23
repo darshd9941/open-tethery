@@ -1,7 +1,9 @@
 // PCM playback through Web Audio with a small jitter buffer (scheduling maths in jitter.js).
 import { JitterScheduler, latencies } from './jitter.js';
+import { chunkLevels } from './scope-math.js';
 
-export function createAudioPlayer() {
+// onLevels({l,r,peakL,peakR}) is called per pushed chunk (app.js publishes it as bus 'audio-levels').
+export function createAudioPlayer({ onLevels } = {}) {
   let ctx = null;
   let gain = null;
   let on = false;
@@ -49,6 +51,7 @@ export function createAudioPlayer() {
     push(chunk) {
       if (!on || !ctx || ctx.state !== 'running') return false;
       const { sampleRate, channels, frames, samples, time } = chunk;
+      if (onLevels) { try { onLevels(chunkLevels(samples, channels)); } catch { /* meters must never break sound */ } }
       const dur = frames / sampleRate;
       const r = sched.schedule(ctx.currentTime, time, dur, latencies(offsetMs, true).audioSec);
       if (r.drop) return false;

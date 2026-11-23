@@ -1,0 +1,182 @@
+{
+ "id": "facebook",
+ "name": "Facebook",
+ "ref": {
+  "w": 9,
+  "h": 16
+ },
+ "safe": [
+  0.04,
+  0.12,
+  0.78,
+  0.56
+ ],
+ "zones": [
+  {
+   "id": "top",
+   "kind": "topbar",
+   "label": "Top bar",
+   "rect": [
+    0,
+    0,
+    1,
+    0.1
+   ],
+   "unsafe": true,
+   "icons": [
+    {
+     "shape": "back",
+     "x": 0.06,
+     "y": 0.05,
+     "size": 0.05
+    },
+    {
+     "shape": "search",
+     "x": 0.84,
+     "y": 0.05,
+     "size": 0.05
+    },
+    {
+     "shape": "more",
+     "x": 0.94,
+     "y": 0.05,
+     "size": 0.05
+    }
+   ]
+  },
+  {
+   "id": "actions",
+   "kind": "buttons",
+   "label": "Buttons",
+   "rect": [
+    0.84,
+    0.5,
+    0.16,
+    0.35
+   ],
+   "unsafe": true,
+   "icons": [
+    {
+     "shape": "heart",
+     "x": 0.92,
+     "y": 0.55,
+     "size": 0.06
+    },
+    {
+     "shape": "comment",
+     "x": 0.92,
+     "y": 0.625,
+     "size": 0.06
+    },
+    {
+     "shape": "share",
+     "x": 0.92,
+     "y": 0.7,
+     "size": 0.06
+    },
+    {
+     "shape": "more",
+     "x": 0.92,
+     "y": 0.775,
+     "size": 0.06
+    }
+   ]
+  },
+  {
+   "id": "profile",
+   "kind": "profile",
+   "label": "Page",
+   "rect": [
+    0,
+    0.72,
+    0.82,
+    0.07
+   ],
+   "unsafe": true,
+   "avatar": {
+    "x": 0.08,
+    "y": 0.755,
+    "r": 0.035
+   },
+   "handle": {
+    "x": 0.15,
+    "y": 0.755,
+    "size": 0.032
+   },
+   "pill": {
+    "x": 0.56,
+    "y": 0.735,
+    "w": 0.2,
+    "h": 0.04,
+    "text": "Follow"
+   }
+  },
+  {
+   "id": "caption",
+   "kind": "caption",
+   "label": "Description",
+   "rect": [
+    0,
+    0.8,
+    0.82,
+    0.12
+   ],
+   "unsafe": true,
+   "lines": [
+    {
+     "x": 0.04,
+     "y": 0.82,
+     "w": 0.72
+    },
+    {
+     "x": 0.04,
+     "y": 0.85,
+     "w": 0.6
+    },
+    {
+     "x": 0.04,
+     "y": 0.88,
+     "w": 0.3
+    }
+   ]
+  },
+  {
+   "id": "nav",
+   "kind": "bottombar",
+   "label": "Bottom bar",
+   "rect": [
+    0,
+    0.93,
+    1,
+    0.07
+   ],
+   "unsafe": true,
+   "icons": [
+    {
+     "shape": "home",
+     "x": 0.125,
+     "y": 0.972,
+     "size": 0.05
+    },
+    {
+     "shape": "play",
+     "x": 0.375,
+     "y": 0.972,
+     "size": 0.05
+    },
+    {
+     "shape": "user",
+     "x": 0.625,
+     "y": 0.972,
+     "size": 0.05
+    },
+    {
+     "shape": "more",
+     "x": 0.875,
+     "y": 0.972,
+     "size": 0.05
+    }
+   ]
+  }
+ ]
+}

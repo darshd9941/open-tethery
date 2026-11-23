@@ -1,0 +1,92 @@
+{
+ "id": "instagram-story",
+ "name": "Instagram Story",
+ "ref": {
+  "w": 9,
+  "h": 16
+ },
+ "safe": [
+  0.05,
+  0.16,
+  0.9,
+  0.62
+ ],
+ "zones": [
+  {
+   "id": "progress",
+   "kind": "topbar",
+   "label": "Progress and profile",
+   "rect": [
+    0,
+    0,
+    1,
+    0.13
+   ],
+   "unsafe": true,
+   "icons": [
+    {
+     "shape": "close",
+     "x": 0.93,
+     "y": 0.085,
+     "size": 0.05
+    },
+    {
+     "shape": "more",
+     "x": 0.82,
+     "y": 0.085,
+     "size": 0.06
+    }
+   ],
+   "avatar": {
+    "x": 0.09,
+    "y": 0.085,
+    "r": 0.035
+   },
+   "handle": {
+    "x": 0.17,
+    "y": 0.085,
+    "size": 0.03
+   },
+   "lines": [
+    {
+     "x": 0.04,
+     "y": 0.03,
+     "w": 0.92
+    }
+   ]
+  },
+  {
+   "id": "reply",
+   "kind": "bottombar",
+   "label": "Reply bar",
+   "rect": [
+    0,
+    0.86,
+    1,
+    0.14
+   ],
+   "unsafe": true,
+   "pill": {
+    "x": 0.04,
+    "y": 0.9,
+    "w": 0.68,
+    "h": 0.06,
+    "text": "Send message"
+   },
+   "icons": [
+    {
+     "shape": "heart",
+     "x": 0.8,
+     "y": 0.93,
+     "size": 0.065
+    },
+    {
+     "shape": "send",
+     "x": 0.92,
+     "y": 0.93,
+     "size": 0.065
+    }
+   ]
+  }
+ ]
+}

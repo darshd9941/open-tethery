@@ -1,0 +1,82 @@
+{
+ "id": "x",
+ "name": "X",
+ "ref": {
+  "w": 16,
+  "h": 9
+ },
+ "safe": [
+  0.04,
+  0.1,
+  0.92,
+  0.68
+ ],
+ "zones": [
+  {
+   "id": "duration",
+   "kind": "badge",
+   "label": "Duration / mute",
+   "rect": [
+    0.02,
+    0.82,
+    0.96,
+    0.16
+   ],
+   "unsafe": true,
+   "pill": {
+    "x": 0.02,
+    "y": 0.84,
+    "w": 0.1,
+    "h": 0.1,
+    "text": "0:15"
+   },
+   "icons": [
+    {
+     "shape": "mute",
+     "x": 0.95,
+     "y": 0.89,
+     "size": 0.03
+    }
+   ]
+  },
+  {
+   "id": "centre",
+   "kind": "buttons",
+   "label": "Play button (hides while playing)",
+   "rect": [
+    0.45,
+    0.36,
+    0.1,
+    0.31
+   ],
+   "unsafe": false,
+   "icons": [
+    {
+     "shape": "play",
+     "x": 0.5,
+     "y": 0.5,
+     "size": 0.05
+    }
+   ]
+  },
+  {
+   "id": "top",
+   "kind": "badge",
+   "label": "Alt badge",
+   "rect": [
+    0.84,
+    0.02,
+    0.14,
+    0.12
+   ],
+   "unsafe": false,
+   "pill": {
+    "x": 0.9,
+    "y": 0.03,
+    "w": 0.08,
+    "h": 0.1,
+    "text": "ALT"
+   }
+  }
+ ]
+}

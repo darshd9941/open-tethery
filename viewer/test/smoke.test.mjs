@@ -91,9 +91,11 @@ test('viewer connects, draws a frame, shows now-playing and sends control', { sk
   assert.match(await page.textContent('#statsList'), /Frame rate/);
   await page.click('#sheetStats [data-close]');
 
-  // overlays: no module yet -> "coming soon"
+  // overlays sheet opens with the tile grid (details in overlays.test.mjs)
   await page.click('#btnOverlays');
-  await page.waitForFunction(() => /coming soon/i.test(document.getElementById('toast').textContent));
+  assert.ok(await page.isVisible('#sheetOverlays'));
+  assert.ok(await page.isVisible('[data-group="social"]'));
+  await page.click('#sheetOverlays [data-close]');
 
   // tap the picture hides the controls
   await page.screenshot({ path: path.join(shots, 'viewer-live-iphone13.png') });
