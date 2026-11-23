@@ -13,6 +13,7 @@
 
 #include "FrameSender.h"
 #include "JpegEncoder.h"
+#include "Otx1.h"
 #include "Log.h"
 
 #include <algorithm>
@@ -32,23 +33,6 @@ constexpr auto kPlayingTimeout = std::chrono::milliseconds(1000);
 constexpr auto kIdlePoll = std::chrono::milliseconds(50);
 constexpr DWORD kSendTimeoutMs = 1000;
 constexpr int kConnectTimeoutMs = 500;
-constexpr uint32_t kMaxPayload = 32u * 1024u * 1024u;
-
-enum MsgType : uint8_t { kMsgVideoJpeg = 1, kMsgState = 2, kMsgHeartbeat = 3 };
-
-void PutU16(uint8_t* p, uint16_t v) {
-    p[0] = static_cast<uint8_t>(v);
-    p[1] = static_cast<uint8_t>(v >> 8);
-}
-void PutU32(uint8_t* p, uint32_t v) {
-    for (int i = 0; i < 4; ++i) p[i] = static_cast<uint8_t>(v >> (8 * i));
-}
-void PutU64(uint8_t* p, uint64_t v) {
-    for (int i = 0; i < 8; ++i) p[i] = static_cast<uint8_t>(v >> (8 * i));
-}
-uint16_t Clamp16(int v) {
-    return static_cast<uint16_t>(std::max(0, std::min(v, 65535)));
-}
 
 // --- Loopback TCP connection -----------------------------------------------
 
@@ -145,11 +129,7 @@ public:
 
         buffer_.resize(16 + payload);
         uint8_t* h = buffer_.data();
-        std::memcpy(h, "OTXF", 4);
-        h[4] = type;
-        h[5] = h[6] = h[7] = 0;
-        PutU32(h + 8, static_cast<uint32_t>(payload));
-        PutU32(h + 12, seq_++);
+        BuildHeader(h, type, static_cast<uint32_t>(payload), seq_++);
         if (aLen) std::memcpy(h + 16, a, aLen);
         if (bLen) std::memcpy(h + 16 + aLen, b, bLen);
 
@@ -320,6 +300,22 @@ void FrameSender::SetPlaying(bool playing) {
     cv_.notify_one();
 }
 
+void FrameSender::SetAudioActive(bool active) {
+    const bool was = audioActive_.exchange(active);
+    if (was && !active) audioQueue_.Clear();
+}
+
+void FrameSender::PushAudio(const int16_t* stereo, size_t frames, int64_t ticks) {
+    if (!running_ || !audioActive_ || !stereo || !frames) return;
+    audioQueue_.Push(stereo, frames, ticks);
+    lastAudioPushNs_ = std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now().time_since_epoch()).count();
+    {
+        // Take the lock so the notify cannot slip between the worker's predicate check and its wait.
+        std::lock_guard<std::mutex> lock(mutex_);
+    }
+    cv_.notify_one();
+}
+
 void FrameSender::Run() {
     Log("worker started");
     const HRESULT coHr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
@@ -346,6 +342,7 @@ void FrameSender::Run() {
         if (wsaOk && !conn.IsOpen() && Clock::now() >= nextConnect) {
             if (conn.Open()) {
                 Log("connected to relay on 127.0.0.1:47826");
+                audioQueue_.Clear();  // never replay stale audio to a new connection
                 loggedDown = false;
                 std::lock_guard<std::mutex> lock(mutex_);
                 stateDirty_ = true;  // state goes first on every new connection
@@ -371,9 +368,12 @@ void FrameSender::Run() {
             auto now = Clock::now();
             auto wake = now + kIdlePoll;
             if (open && slotFull_ && nextFrameAllowed < wake) wake = nextFrameAllowed;
+            const bool audioOn = audioActive_.load();
+            if (audioOn && now + std::chrono::milliseconds(10) < wake) wake = now + std::chrono::milliseconds(10);
             cv_.wait_until(lock, wake, [&] {
                 return stop_ || (open && stateDirty_) ||
-                       (open && slotFull_ && Clock::now() >= nextFrameAllowed);
+                       (open && slotFull_ && Clock::now() >= nextFrameAllowed) ||
+                       (open && audioOn && audioQueue_.Frames() >= kAudioChunkFrames);
             });
             if (stop_) break;
 
@@ -422,19 +422,37 @@ void FrameSender::Run() {
             int stride = 0;
             ScaleBgraToBgr(work, outW, outH, scaled, stride);
             if (jpeg.Encode(scaled.data(), outW, outH, stride, kJpegQuality, encoded)) {
-                uint8_t meta[24];
-                PutU16(meta + 0, Clamp16(outW));
-                PutU16(meta + 2, Clamp16(outH));
-                PutU16(meta + 4, Clamp16(work.seqWidth > 0 ? work.seqWidth : work.width));
-                PutU16(meta + 6, Clamp16(work.seqHeight > 0 ? work.seqHeight : work.height));
-                PutU64(meta + 8, static_cast<uint64_t>(work.timeTicks));
-                PutU32(meta + 16, work.fpsNum);
-                PutU32(meta + 20, work.fpsNum ? work.fpsDen : 0);
+                uint8_t meta[kJpegMetaSize];
+                BuildJpegMeta(meta, outW, outH, work.seqWidth > 0 ? work.seqWidth : work.width,
+                              work.seqHeight > 0 ? work.seqHeight : work.height, work.timeTicks, work.fpsNum,
+                              work.fpsDen);
                 if (conn.Send(kMsgVideoJpeg, meta, sizeof(meta), encoded.data(), encoded.size()))
                     lastSent = Clock::now();
             } else if (!encodeErrorLogged) {
                 Log("JPEG encode failed (further failures not logged)");
                 encodeErrorLogged = true;
+            }
+        }
+
+        // Audio: drain the queue in 20 ms chunks. A short tail is flushed once
+        // the producer has been quiet for 25 ms. Nothing is kept while disconnected.
+        if (!conn.IsOpen()) {
+            audioQueue_.Clear();
+        } else {
+            int sentChunks = 0;
+            std::vector<int16_t> pcm;
+            int64_t pcmTicks = -1;
+            const int64_t nowNs =
+                std::chrono::duration_cast<std::chrono::nanoseconds>(Clock::now().time_since_epoch()).count();
+            const bool quiet = nowNs - lastAudioPushNs_.load() > 25000000;
+            while (sentChunks < 16 && audioQueue_.Pop(kAudioChunkFrames, quiet, pcm, pcmTicks)) {
+                uint8_t meta[kAudioMetaSize];
+                BuildAudioMeta(meta, kAudioRate, 2, static_cast<uint16_t>(pcm.size() / 2), pcmTicks);
+                if (!conn.Send(kMsgAudioPcm, meta, sizeof(meta), reinterpret_cast<const uint8_t*>(pcm.data()),
+                               pcm.size() * sizeof(int16_t)))
+                    break;
+                lastSent = Clock::now();
+                ++sentChunks;
             }
         }
 

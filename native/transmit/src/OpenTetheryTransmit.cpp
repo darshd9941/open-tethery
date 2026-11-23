@@ -1,7 +1,9 @@
 // Open Tethery — native Transmit plugin
 // Premiere Pro Mercury Transmit entry point. Receives Program Monitor frames,
 // copies the newest one into FrameSender's slot and returns immediately.
-// Video only: no audio and no playback clock (Premiere keeps its own clock).
+// Video via PushVideo; audio via "push audio" (Transmit interface v4): the
+// user's normal speakers stay the clock device and this plugin is an extra,
+// mirrored output, so we offer no playback clock.
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
 #endif
@@ -13,16 +15,20 @@
 #include "PrSDKTransmit.h"
 #include "PrSDKPPixSuite.h"
 #include "PrSDKTimeSuite.h"
+#include "PrSDKStringSuite.h"
 #include "PrSDKPixelFormat.h"
 #include "SPBasic.h"
 
+#include "AudioPush.h"
 #include "FrameSender.h"
 #include "Log.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cstdlib>
 #include <cstring>
 #include <new>
+#include <vector>
 
 namespace {
 
@@ -44,11 +50,14 @@ struct InstanceData {
 struct ModuleState {
     SPBasicSuite* sp = nullptr;
     PrSDKPPixSuite* ppix = nullptr;
+    PrSDKStringSuite* strings = nullptr;
     PrTime hostTicksPerSecond = kProtocolTicksPerSecond;
     otx::FrameSender* sender = nullptr;
     csSDK_int32 hostInterfaceVersion = tmInterfaceVersion;
     int instanceCount = 0;
     bool invertRows = false;  // escape hatch: OPEN_TETHERY_FLIP=1
+    bool audioEnabled = false;      // push audio offered (host >= v4, not After Effects, not disabled)
+    bool audioAsDevice = true;      // also report outAudioAvailable (OPEN_TETHERY_AUDIO=push turns this off)
 };
 
 ModuleState g;
@@ -90,6 +99,23 @@ void FrameRateFromTicks(PrTime ticksPerFrame, uint32_t& num, uint32_t& den) {
     den = static_cast<uint32_t>(d);
 }
 
+// After Effects loads Transmit plug-ins too (Video Preview) but has no use for
+// audio from them. Detect it by the host executable name.
+bool HostIsAfterEffects() {
+    char path[MAX_PATH] = {};
+    if (!GetModuleFileNameA(nullptr, path, MAX_PATH)) return false;
+    for (char* c = path; *c; ++c) *c = static_cast<char>(std::tolower(static_cast<unsigned char>(*c)));
+    return std::strstr(path, "afterfx") != nullptr;
+}
+
+void ConfigureAudio() {
+    char mode[16] = {};
+    GetEnvironmentVariableA("OPEN_TETHERY_AUDIO", mode, sizeof(mode));
+    const bool off = std::strcmp(mode, "0") == 0 || std::strcmp(mode, "off") == 0;
+    g.audioAsDevice = std::strcmp(mode, "push") != 0;
+    g.audioEnabled = !off && g.hostInterfaceVersion >= tmInterfaceVersion4 && !HostIsAfterEffects();
+}
+
 void AcquireSuites(piSuitesPtr suites) {
     if (g.sp || !suites || !suites->utilFuncs || !suites->utilFuncs->getSPBasicSuite) return;
     g.sp = suites->utilFuncs->getSPBasicSuite();
@@ -100,6 +126,12 @@ void AcquireSuites(piSuitesPtr suites) {
         g.ppix = static_cast<PrSDKPPixSuite*>(const_cast<void*>(p));
     else
         Log("PPix suite unavailable");
+
+    p = nullptr;
+    if (g.sp->AcquireSuite(kPrSDKStringSuite, kPrSDKStringSuiteVersion, &p) == kSPNoError && p)
+        g.strings = static_cast<PrSDKStringSuite*>(const_cast<void*>(p));
+    else
+        Log("String suite unavailable (audio output names will be empty)");
 
     p = nullptr;
     if (g.sp->AcquireSuite(kPrSDKTimeSuite, kPrSDKTimeSuiteVersion, &p) == kSPNoError && p) {
@@ -113,7 +145,9 @@ void AcquireSuites(piSuitesPtr suites) {
 
 void ReleaseSuites() {
     if (g.sp && g.ppix) g.sp->ReleaseSuite(kPrSDKPPixSuite, kPrSDKPPixSuiteVersion);
+    if (g.sp && g.strings) g.sp->ReleaseSuite(kPrSDKStringSuite, kPrSDKStringSuiteVersion);
     g.ppix = nullptr;
+    g.strings = nullptr;
     g.sp = nullptr;
 }
 
@@ -186,9 +220,10 @@ tmResult Startup(tmStdParms* ioStdParms, tmPluginInfo* outInfo) {
         std::memset(outInfo->outIdentifier.mGUID, 0, sizeof(outInfo->outIdentifier.mGUID));
         std::strncpy(outInfo->outIdentifier.mGUID, kPluginGuid, sizeof(outInfo->outIdentifier.mGUID) - 1);
         outInfo->outPriority = 0;
-        outInfo->outAudioAvailable = kPrFalse;
-        outInfo->outAudioDefaultEnabled = kPrFalse;
-        outInfo->outClockAvailable = kPrFalse;  // video-only transmitter
+        ConfigureAudio();
+        outInfo->outAudioAvailable = (g.audioEnabled && g.audioAsDevice) ? kPrTrue : kPrFalse;
+        outInfo->outAudioDefaultEnabled = kPrFalse;  // the user opts in; speakers stay primary
+        outInfo->outClockAvailable = kPrFalse;  // never the clock: Premiere keeps the speakers as clock device
         outInfo->outVideoAvailable = kPrTrue;
         outInfo->outVideoDefaultEnabled = kPrTrue;
         std::memset(outInfo->outDisplayName, 0, sizeof(outInfo->outDisplayName));
@@ -199,7 +234,7 @@ tmResult Startup(tmStdParms* ioStdParms, tmPluginInfo* outInfo) {
         outInfo->outHasSetup = kPrFalse;
         outInfo->outInterfaceVersion = std::min<csSDK_int32>(g.hostInterfaceVersion, tmInterfaceVersion);
         if (outInfo->outInterfaceVersion >= tmInterfaceVersion4) {
-            outInfo->outPushAudioAvailable = kPrFalse;
+            outInfo->outPushAudioAvailable = g.audioEnabled ? kPrTrue : kPrFalse;
             outInfo->outHasStreaming = kPrFalse;
         }
 
@@ -209,8 +244,8 @@ tmResult Startup(tmStdParms* ioStdParms, tmPluginInfo* outInfo) {
             g.sender = new (std::nothrow) otx::FrameSender();
             if (g.sender) g.sender->Start();
         }
-        Log("plugin started (host ticks/s %lld%s)", static_cast<long long>(g.hostTicksPerSecond),
-            g.invertRows ? ", rows inverted by OPEN_TETHERY_FLIP" : "");
+        Log("plugin started (host ticks/s %lld%s, push audio %s)", static_cast<long long>(g.hostTicksPerSecond),
+            g.invertRows ? ", rows inverted by OPEN_TETHERY_FLIP" : "", g.audioEnabled ? "on" : "off");
         return tmResult_Success;
     } catch (...) {
         return tmResult_ErrorUnknown;
@@ -350,6 +385,67 @@ tmResult PushVideo(const tmStdParms*, const tmInstance* inInstance, const tmPush
     return tmResult_Success;
 }
 
+
+// --- Push audio ------------------------------------------------------------
+
+tmResult QueryAudioMode(const tmStdParms*, const tmInstance*, csSDK_int32 inQueryIterationIndex,
+                        tmAudioMode* outAudioMode) {
+    if (!outAudioMode) return tmResult_ErrorInvalidArgument;
+    if (!g.audioEnabled || inQueryIterationIndex != 0) return tmResult_ErrorUnsupported;
+    std::memset(outAudioMode, 0, sizeof(*outAudioMode));
+    outAudioMode->outAudioSampleRate = static_cast<float>(otx::kAudioRate);
+    outAudioMode->outMaxBufferSize = 8192;  // frames per PushAudio call we are prepared to receive
+    outAudioMode->outNumChannels = 2;
+    outAudioMode->outChannelLabels[0] = kPrAudioChannelLabel_FrontLeft;
+    outAudioMode->outChannelLabels[1] = kPrAudioChannelLabel_FrontRight;
+    outAudioMode->outLatency = 0;
+    if (g.strings && g.strings->AllocateFromUTF16) {
+        static const wchar_t* const names[2] = {L"Open Tethery L", L"Open Tethery R"};
+        for (int i = 0; i < 2; ++i) {
+            prUTF16Char buf[32] = {};
+            for (size_t k = 0; k + 1 < sizeof(buf) / sizeof(buf[0]) && names[i][k]; ++k)
+                buf[k] = static_cast<prUTF16Char>(names[i][k]);
+            g.strings->AllocateFromUTF16(buf, &outAudioMode->outAudioOutputNames[i]);  // host disposes
+        }
+    }
+    return tmResult_Success;
+}
+
+tmResult StartPushAudio(const tmStdParms*, const tmInstance* inInstance, PrTime, float, PrTime, PrTime, prBool,
+                        prBool, csSDK_uint32*) {
+    // outSamplesPerFrame is left at the host default: PushAudio handles any buffer size.
+    if (g.sender) g.sender->SetAudioActive(true);
+    const auto* inst = Inst(inInstance);
+    Log("push audio started (instance %d)", inst ? inst->id : -1);
+    return tmResult_Success;
+}
+
+// May run on an audio thread at the same time as the other calls: touches only
+// thread-local scratch memory and the sender's lock-protected queue, never the network.
+tmResult PushAudio(const tmStdParms*, const tmInstance*, const tmPushAudio* inPushAudio) {
+    if (!inPushAudio) return tmResult_ErrorInvalidArgument;
+    try {
+        otx::FrameSender* sender = g.sender;
+        const uint32_t ch = inPushAudio->inNumChannels;
+        const uint32_t n = inPushAudio->inNumSamples;
+        if (!sender || !inPushAudio->inBuffers || ch == 0 || ch > 16 || n == 0) return tmResult_Success;
+        for (uint32_t c = 0; c < ch; ++c)
+            if (!inPushAudio->inBuffers[c]) return tmResult_Success;
+        thread_local std::vector<int16_t> scratch;
+        scratch.clear();
+        otx::InterleaveStereoInt16(inPushAudio->inBuffers, ch, n, scratch);
+        sender->PushAudio(scratch.data(), n, ToProtocolTicks(inPushAudio->inTime));
+    } catch (...) {
+    }
+    return tmResult_Success;
+}
+
+tmResult StopPushAudio(const tmStdParms*, const tmInstance*) {
+    if (g.sender) g.sender->SetAudioActive(false);
+    Log("push audio stopped");
+    return tmResult_Success;
+}
+
 } // namespace
 
 // --- Exported entry point ----------------------------------------------------
@@ -361,6 +457,7 @@ extern "C" __declspec(dllexport) tmResult xTransmitEntry(csSDK_int32 inInterface
             if (!outModule) return tmResult_ErrorInvalidArgument;
             if (inInterfaceVersion < tmInterfaceVersion1) return tmResult_ErrorUnsupported;
             g.hostInterfaceVersion = inInterfaceVersion;
+            ConfigureAudio();
             AcquireSuites(piSuites);
 
             // Only write the members that exist in the host's interface version.
@@ -370,16 +467,16 @@ extern "C" __declspec(dllexport) tmResult xTransmitEntry(csSDK_int32 inInterface
             outModule->NeedsReset = NeedsReset;
             outModule->CreateInstance = CreateInstance;
             outModule->DisposeInstance = DisposeInstance;
-            outModule->QueryAudioMode = nullptr;
+            outModule->QueryAudioMode = QueryAudioMode;
             outModule->QueryVideoMode = QueryVideoMode;
             outModule->ActivateDeactivate = ActivateDeactivate;
             outModule->StartPlaybackClock = StartPlaybackClock;
             outModule->StopPlaybackClock = StopPlaybackClock;
             outModule->PushVideo = PushVideo;
             if (inInterfaceVersion >= tmInterfaceVersion4) {
-                outModule->StartPushAudio = nullptr;
-                outModule->PushAudio = nullptr;
-                outModule->StopPushAudio = nullptr;
+                outModule->StartPushAudio = StartPushAudio;
+                outModule->PushAudio = PushAudio;
+                outModule->StopPushAudio = StopPushAudio;
                 outModule->SetStreamingStateChangedCallback = nullptr;
                 outModule->EnableStreaming = nullptr;
                 outModule->IsStreamingEnabled = nullptr;
