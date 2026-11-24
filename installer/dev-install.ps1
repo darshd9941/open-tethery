@@ -167,8 +167,15 @@ if ($SkipPhotoshop) {
   }
   if (Test-Path $script:UpiaExe) {
     Invoke-Step "Install Photoshop plug-in via UnifiedPluginInstallerAgent: $ccx" {
-      & $script:UpiaExe /install $ccx
-      Write-Log "  UPIA exit code $LASTEXITCODE (restart Photoshop; Plugins > $($script:AppName))"
+      # UPIA returns status -506 ("already installed") if the same id/version exists, while still exiting 0.
+      & $script:UpiaExe /remove $script:PsPluginId 2>&1 | Out-Null
+      $out = & $script:UpiaExe /install $ccx 2>&1
+      $out | ForEach-Object { Write-Host $_ }
+      if ($out -match 'Failed to install') {
+        Write-Log "  WARNING: UPIA reported a failure above. Check Photoshop is closed and retry." 'Red'
+      } else {
+        Write-Log "  UPIA exit code $LASTEXITCODE (restart Photoshop; Plugins > $($script:AppName))"
+      }
     }
   } else {
     Write-Log "UnifiedPluginInstallerAgent not found. Double-click $ccx to install via Creative Cloud, or load" 'Yellow'
