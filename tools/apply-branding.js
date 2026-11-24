@@ -68,6 +68,8 @@ function targets() {
       [/(<Author>)[^<]*(<\/Author>)/, (m, a, b) => a + xml(P.vendor) + b],
       [/(<Extension Id=")[^"]*(")/g, (m, a, b) => a + xml(P.ids.cepExtension) + b],
       [/(<Menu>)[^<]*(<\/Menu>)/, (m, a, b) => a + xml(P.name) + b],
+      [/(ExtensionBundleVersion=")[^"]*(")/, (m, a, b) => a + xml(P.version) + b],
+      [/(<Extension Id="[^"]*" Version=")[^"]*(")/g, (m, a, b) => a + xml(P.version) + b],
     ])],
     ['panels/cep/.debug', (t, P) => apply('.debug', t, [
       [/(<Extension Id=")[^"]*(")/g, (m, a, b) => a + xml(P.ids.cepExtension) + b],
@@ -76,6 +78,8 @@ function targets() {
       [/("id": ")[^"]*(")/, (m, a, b) => a + json(P.ids.uxp) + b],
       [/("name": ")[^"]*(")/, (m, a, b) => a + json(P.name) + b],
       [/("default": ")[^"]*(")/, (m, a, b) => a + json(P.name) + b],
+      // Adobe's installer only replaces an installed plug-in when this version goes up.
+      [/("version": ")[^"]*(")/, (m, a, b) => a + json(P.version) + b],
     ])],
     ['installer/version.txt', (t, P) => P.version + '\n'],
     ['installer/package.json', (t, P) => apply('installer/package.json', t, [

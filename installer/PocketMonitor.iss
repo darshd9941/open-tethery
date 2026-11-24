@@ -110,6 +110,8 @@ Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Live Phone Preview (TCP 47823)"""; Flags: runhidden
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""{#RuleName}"" dir=in action=allow protocol=TCP localport={#Port} profile=private"; Flags: runhidden
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""{#RuleName} (video)"" dir=in action=allow protocol=UDP program=""{app}\{#HelperExe}"" profile=private"; Flags: runhidden
+; Remove first: Adobe's installer skips a plug-in whose version it already has.
+Filename: "{#UpiaExe}"; Parameters: "/remove {#PsPluginId}"; Flags: runhidden skipifdoesntexist; Components: photoshop
 Filename: "{#UpiaExe}"; Parameters: "/install ""{app}\{#InstallDirName}Photoshop.ccx"""; Flags: runhidden skipifdoesntexist; Components: photoshop; StatusMsg: "Installing Photoshop plug-in..."
 Filename: "{sys}\wscript.exe"; Parameters: """{app}\start-helper.vbs"""; Flags: nowait runasoriginaluser postinstall skipifsilent; Description: "Start the {#AppName} helper now"
 

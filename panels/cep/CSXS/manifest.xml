@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<ExtensionManifest Version="11.0" ExtensionBundleId="com.pocketmonitor.panel" ExtensionBundleVersion="0.2.0" ExtensionBundleName="Pocket Monitor"
+<ExtensionManifest Version="11.0" ExtensionBundleId="com.pocketmonitor.panel" ExtensionBundleVersion="0.3.2" ExtensionBundleName="Pocket Monitor"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <Author>Pocket Monitor</Author>
   <Contact mailto=""/>
   <Legal href=""/>
   <Abstract href=""/>
   <ExtensionList>
-    <Extension Id="com.pocketmonitor.panel.main" Version="0.2.0"/>
+    <Extension Id="com.pocketmonitor.panel.main" Version="0.3.2"/>
   </ExtensionList>
   <ExecutionEnvironment>
     <HostList>
