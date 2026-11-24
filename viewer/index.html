@@ -8,9 +8,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Tethery">
+  <meta name="apple-mobile-web-app-title" content="Pocket Monitor">
   <meta name="format-detection" content="telephone=no">
-  <title>Open Tethery</title>
+  <title data-brand="name">Pocket Monitor</title>
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/icon-192.png">
   <link rel="apple-touch-icon" href="/apple-touch-icon.png">
@@ -123,7 +123,7 @@
   <section id="entry" class="entry" hidden>
     <div class="entry-card">
       <img src="/icon-192.png" class="entry-logo" alt="" width="64" height="64">
-      <h1>Open Tethery</h1>
+      <h1 data-brand="name">Pocket Monitor</h1>
       <p class="entry-lead">Type the 4-character code shown on your PC.</p>
       <div id="codeBoxes" class="code-boxes" role="group" aria-label="Session code">
         <input class="code-box" inputmode="text" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" maxlength="4" aria-label="Character 1">
@@ -133,7 +133,7 @@
       </div>
       <p id="entryError" class="entry-error" role="alert" hidden></p>
       <button id="entryGo" class="primary" type="button" disabled>Connect</button>
-      <p class="entry-hint">You can also scan the QR code in the Open Tethery panel. Phone and PC must be on the same Wi-Fi.</p>
+      <p class="entry-hint" data-brand-text="You can also scan the QR code in the {name} panel. Phone and PC must be on the same Wi-Fi.">You can also scan the QR code in the Pocket Monitor panel. Phone and PC must be on the same Wi-Fi.</p>
     </div>
   </section>
 

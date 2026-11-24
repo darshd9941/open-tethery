@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-// Builds helper/ into one OpenTetheryHelper.exe using Node's Single Executable Applications (SEA).
+// Builds helper/ into one PocketMonitorHelper.exe using Node's Single Executable Applications (SEA).
 //
 //   node installer/build-helper-exe.js [--helper <dir>] [--viewer <dir>] [--out <dir>]
 //                                      [--exe-name <name>] [--bundle-only] [--no-esbuild]
@@ -150,9 +150,15 @@ function copyDir(src, dst) {
   fs.cpSync(src, dst, { recursive: true });
 }
 
+// Exe name and display data come from product.json at the repo root.
+function productFile() { return path.join(__dirname, '..', 'product.json'); }
+function productIds() {
+  try { return JSON.parse(fs.readFileSync(productFile(), 'utf8')).ids || {}; } catch { return { helperExe: 'PocketMonitorHelper.exe' }; }
+}
+
 function main(argv) {
   const opt = { helper: path.join(__dirname, '..', 'helper'), viewer: path.join(__dirname, '..', 'viewer'),
-    out: path.join(__dirname, 'dist', 'helper'), exeName: 'OpenTetheryHelper.exe', bundleOnly: false, noEsbuild: false };
+    out: path.join(__dirname, 'dist', 'helper'), exeName: productIds().helperExe, bundleOnly: false, noEsbuild: false };
   for (let i = 2; i < argv.length; i++) {
     const a = argv[i];
     if (a === '--helper') opt.helper = argv[++i];
@@ -182,6 +188,7 @@ function main(argv) {
   else console.warn('WARNING: viewer dir not found:', opt.viewer);
   const profiles = path.join(opt.helper, 'profiles');
   if (fs.existsSync(profiles)) copyDir(profiles, path.join(opt.out, 'profiles'));
+  if (fs.existsSync(productFile())) fs.copyFileSync(productFile(), path.join(opt.out, 'product.json'));
   console.log('Built', exePath);
   return { bundleFile, cfgFile, exePath };
 }

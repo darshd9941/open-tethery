@@ -274,3 +274,13 @@ test('stats fps and delay', () => {
   assert.equal(snap.decodeMs, 8);
   assert.equal(snap.delayMs, 58);
 });
+
+test('brand: loadBrand reads /product.json and keeps the fallback on failure', async () => {
+  const { brand, loadBrand } = await import('../js/brand.js');
+  assert.equal(brand.name, 'Pocket Monitor');
+  await loadBrand(async () => { throw new Error('offline'); });
+  assert.equal(brand.name, 'Pocket Monitor');
+  await loadBrand(async () => ({ ok: true, json: async () => ({ name: 'Zed Cam', shortName: 'Zed' }) }));
+  assert.equal(brand.name, 'Zed Cam');
+  assert.equal(brand.shortName, 'Zed');
+});

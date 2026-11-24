@@ -27,8 +27,8 @@ test('status and host labels', () => {
 });
 
 test('engine hint text per host', () => {
-  assert.equal(F.engineHint('premiere'), 'Edit > Preferences > Playback, tick Open Tethery under Video Device');
-  assert.match(F.engineHint('aftereffects'), /^Edit > Preferences > Video Preview, choose Open Tethery/);
+  assert.equal(F.engineHint('premiere'), 'Edit > Preferences > Playback, tick Pocket Monitor under Video Device');
+  assert.match(F.engineHint('aftereffects'), /^Edit > Preferences > Video Preview, choose Pocket Monitor/);
 });
 
 test('engine warning only when transmit is false', () => {
@@ -61,8 +61,8 @@ test('code validation', () => {
 });
 
 test('helper launcher: exe, installed node, vbs, then dev node script', () => {
-  const dir = 'C:\\Users\\a\\AppData\\Local\\OpenTethery\\';
-  const exe = dir + 'OpenTetheryHelper.exe';
+  const dir = 'C:\\Users\\a\\AppData\\Local\\PocketMonitor\\';
+  const exe = dir + 'PocketMonitorHelper.exe';
   const inode = dir + 'node.exe';
   const ijs = dir + 'helper\\bin\\open-tethery-helper.js';
   const vbs = dir + 'start-helper.vbs';

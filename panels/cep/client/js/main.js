@@ -2,6 +2,15 @@
 (function () {
   'use strict';
   var OT = window.OT;
+  var P = (typeof OT_PRODUCT !== 'undefined' && OT_PRODUCT) || { name: 'Pocket Monitor', shortName: 'Pocket Monitor' };
+  var PRODUCT = P.shortName;
+  // Static HTML carries a fallback; the generated product.js supplies the real name.
+  (function applyBrand() {
+    var i, n = document.querySelectorAll('[data-brand]');
+    for (i = 0; i < n.length; i++) n[i].textContent = P[n[i].getAttribute('data-brand')] || n[i].textContent;
+    n = document.querySelectorAll('[data-brand-text]');
+    for (i = 0; i < n.length; i++) n[i].textContent = n[i].getAttribute('data-brand-text').replace('{name}', P.name);
+  })();
   var F = OT.format;
   var C = OT.connections;
   var $ = function (id) { return document.getElementById(id); };
@@ -44,7 +53,7 @@
   var launchNote = '';
   function startHelper() {
     if (!cp || !nodeFs) {
-      launchNote = 'This panel cannot start programs (Node is off). Start Open Tethery from the Start menu.';
+      launchNote = 'This panel cannot start programs (Node is off). Start ' + PRODUCT + ' from the Start menu.';
       renderHelper();
       return false;
     }
@@ -84,7 +93,7 @@
     $('pairing').hidden = down;
     if (down) {
       $('helperText').textContent = launchNote ||
-        'Open Tethery needs its small helper program to talk to phones. Click Start, or wait a moment: the panel keeps trying.';
+        PRODUCT + ' needs its small helper program to talk to phones. Click Start, or wait a moment: the panel keeps trying.';
     }
   }
 

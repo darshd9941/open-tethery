@@ -164,7 +164,7 @@ class PsCapture {
           if (result.imageData && result.imageData.dispose) result.imageData.dispose();
         }
       },
-      { commandName: 'Open Tethery' }
+      { commandName: require('./product').name }
     );
 
     let jpeg;

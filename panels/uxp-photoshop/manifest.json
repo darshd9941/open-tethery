@@ -1,7 +1,7 @@
 {
   "manifestVersion": 5,
-  "id": "com.opentethery.photoshop",
-  "name": "Open Tethery",
+  "id": "com.pocketmonitor.photoshop",
+  "name": "Pocket Monitor",
   "version": "0.2.0",
   "main": "index.html",
   "host": {
@@ -21,7 +21,7 @@
       "type": "panel",
       "id": "openTetheryPanel",
       "label": {
-        "default": "Open Tethery"
+        "default": "Pocket Monitor"
       },
       "minimumSize": {
         "width": 250,

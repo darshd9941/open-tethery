@@ -2,7 +2,7 @@
   "name": "open-tethery-viewer",
   "private": true,
   "type": "module",
-  "description": "Phone web app for Open Tethery. No build step; devDependencies are for tests only.",
+  "description": "Phone web app for Pocket Monitor. No build step; devDependencies are for tests only.",
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "dev": "node test/fake-server.mjs"

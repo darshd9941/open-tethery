@@ -1,4 +1,4 @@
-# Open Tethery Helper
+# Pocket Monitor Helper
 
 One Node 22 process per PC (CommonJS, runtime dependency `ws`, optional dependency `werift` for WebRTC). It implements
 `docs/PROTOCOL.md` v1 including WebRTC H.264 video (M2, cloud part): it serves the phone viewer, takes
@@ -28,7 +28,7 @@ If the viewer files are missing the helper serves a small placeholder page.
 
 Order: defaults < config file < environment.
 
-- Config file: `%APPDATA%\OpenTethery\config.json` (Windows) or `~/.config/open-tethery/config.json`.
+- Config file: `%APPDATA%\PocketMonitor\config.json` (Windows) or `~/.config/open-tethery/config.json`.
   Keys: `port`, `ingestPort`, `lanIp`, `allowControl`, `viewerDir`. The panel's Connection choice is saved as `lanIp`.
 - `OPEN_TETHERY_PORT` (HTTP/WS port, default 47825), `OPEN_TETHERY_LAN_IP` (force the address in the QR URL).
 - `OT_VIEWER_DIR` viewer files (default `../viewer`); the installer also sets `OT_EXE_DIR`.
@@ -40,7 +40,7 @@ Order: defaults < config file < environment.
 - `lib/lan.js` `classifyInterface(name, ip)` sorts each IPv4 interface into wifi / ethernet / hotspot / usb / tailscale / vpn / other
   (names plus subnets; unit tests use Windows-style fixture tables). `/api/session` returns them as `connections`.
 - `POST /api/report` (loopback) writes `open-tethery-report-<date>.zip` (store-only zip, `lib/zip.js`) to
-  `%LOCALAPPDATA%\OpenTethery\reports` or `~/.config/open-tethery/reports`: log tail, config, session (code redacted),
+  `%LOCALAPPDATA%\PocketMonitor\reports` or `~/.config/open-tethery/reports`: log tail, config, session (code redacted),
   interfaces, versions, last 50 panel states, viewers with telemetry, firewall hint. Nothing is uploaded.
 
 ## Layout

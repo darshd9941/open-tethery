@@ -1,4 +1,4 @@
-// Open Tethery — native Transmit plugin
+// Pocket Monitor — native Transmit plugin
 // Annex B helpers: split NAL units, find SPS/PPS/IDR, and make sure every
 // keyframe access unit starts with SPS + PPS. Pure C++, unit-tested.
 #pragma once

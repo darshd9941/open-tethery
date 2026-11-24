@@ -1,4 +1,4 @@
-# Open Tethery
+# Pocket Monitor
 
 Live preview of what you are editing in Adobe apps, on any phone, tablet or
 laptop on the same Wi-Fi. The panel shows a QR code; scan it and the phone
@@ -56,3 +56,30 @@ on the same Wi-Fi via the PC LAN address. `panels/cep/client/index.html` also op
 `e2e/run.test.js` starts the real helper, a fake Transmit, the CEP panel (stubbed CSInterface) and an iPhone 13 viewer in
 Playwright Chromium, then checks pairing, picture, play control, "Allow control", the Photoshop source path and the
 wrong-code lockout. Screenshots land in `e2e/screenshots/`.
+
+## Renaming the product
+
+The name lives in one file, `product.json` at the repo root.
+
+1. Edit `name`, `shortName` and `vendor` in `product.json` (and `version` when you release).
+2. Run `node tools/apply-branding.js`. It rewrites the files that cannot read the name at run time:
+   the CEP `CSXS/manifest.xml` (bundle name, Window > Extensions menu entry), the Photoshop `manifest.json`,
+   `installer/version.txt`, `installer/PocketMonitor.iss`, `installer/common.ps1`,
+   `native/transmit/src/ProductName.h` (Premiere Preferences device name and the "L/R" audio output names) and
+   the panels' `js/product.js`. `node tools/apply-branding.js --check` fails if anything is out of sync
+   (it runs as part of `npm run test:all`).
+3. Rebuild and reinstall: build the Transmit plug-in (`native/transmit`), run `installer/build-helper-exe.ps1`,
+   then `installer/dev-install.ps1` or compile `installer/PocketMonitor.iss`.
+
+The helper and phone viewer read `product.json` at run time (`GET /product.json`), so they need no rebuild
+beyond restarting the helper.
+
+Only display text follows `name`. The `ids` block (CEP bundle id, Photoshop plug-in id, helper exe name,
+install folder, MediaCore folder, .prm file name) is what Adobe, Windows and the installer use to recognise an
+existing install. Changing an id breaks upgrades: the old version stays installed next to the new one. Change
+ids only deliberately, and add the old values to the "legacy" cleanup in `installer/common.ps1` and the `.iss`.
+Protocol ids stay as they are on purpose: `/health` still answers `"name": "open-tethery"` (new field
+`product` carries the display name), and the OTX1 magic and WebSocket message names are unchanged.
+
+Upgrading from the earlier "Open Tethery" build: the installers remove its CEP panel, `%LOCALAPPDATA%\OpenTethery`,
+`MediaCore\OpenTethery`, the old start-up entry, the "Open Tethery Helper" firewall rules and the old Photoshop plug-in.

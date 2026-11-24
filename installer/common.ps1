@@ -1,21 +1,30 @@
 # Shared constants and helpers for dev-install.ps1 / dev-uninstall.ps1 (dot-sourced).
-# Keep these values in sync with installer/OpenTethery.iss (checked by test/static.test.js).
+# Keep these values in sync with installer/PocketMonitor.iss (checked by test/static.test.js).
 
-$script:AppName      = 'Open Tethery'
+$script:AppName      = 'Pocket Monitor'
 $script:HelperPort   = 47825
-$script:HelperExe    = 'OpenTetheryHelper.exe'
-$script:RuleName     = 'Open Tethery Helper'
+$script:HelperExe    = 'PocketMonitorHelper.exe'
+$script:RuleName     = 'Pocket Monitor Helper'
 $script:RunKeyPath   = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'
-$script:RunValueName = 'OpenTetheryHelper'
-$script:CepId        = 'com.opentethery.panel'
+$script:RunValueName = 'PocketMonitorHelper'
+$script:CepId        = 'com.pocketmonitor.panel'
 $script:OldCepId     = 'com.screenlive.video'
-$script:PsPluginId   = 'com.opentethery.photoshop'
+# Earlier name of this product (Open Tethery). Removed on install so an upgrade leaves nothing behind.
+$script:LegacyCepIds       = @('com.opentethery.panel')
+$script:LegacyPsPluginId   = 'com.opentethery.photoshop'
+$script:LegacyInstallDir   = Join-Path $env:LOCALAPPDATA 'OpenTethery'
+$script:LegacyMediaCore    = 'OpenTethery'
+$script:LegacyRunValue     = 'OpenTetheryHelper'
+$script:LegacyHelperProc   = 'OpenTetheryHelper'
+$script:PsPluginId   = 'com.pocketmonitor.photoshop'
 $script:CsxsVersions = 9..13
-$script:OldRulePatterns = @('Live Video Preview*', 'Live Phone Preview*')
-$script:InstallDir   = Join-Path $env:LOCALAPPDATA 'OpenTethery'
+$script:OldRulePatterns = @('Live Video Preview*', 'Live Phone Preview*', 'Open Tethery Helper*')
+$script:InstallDir   = Join-Path $env:LOCALAPPDATA 'PocketMonitor'
 $script:LogFile      = Join-Path $script:InstallDir 'install.log'
 $script:CepRoot      = Join-Path $env:APPDATA 'Adobe\CEP\extensions'
-$script:MediaCoreName = 'OpenTethery'
+$script:MediaCoreName = 'PocketMonitor'
+$script:CcxName      = 'PocketMonitorPhotoshop.ccx'
+$script:PrmName      = 'PocketMonitorTransmit.prm'
 $script:UpiaExe      = 'C:\Program Files\Common Files\Adobe\Adobe Desktop Common\RemoteComponents\UPI\UnifiedPluginInstallerAgent\UnifiedPluginInstallerAgent.exe'
 $script:AdobeProcs   = @('Adobe Premiere Pro', 'AfterFX', 'Photoshop')
 
@@ -58,7 +67,7 @@ function Invoke-SelfElevate {
   exit $p.ExitCode
 }
 
-function Stop-OpenTetheryHelper {
+function Stop-PocketMonitorHelper {
   Get-Process -Name ([IO.Path]::GetFileNameWithoutExtension($script:HelperExe)) -ErrorAction SilentlyContinue |
     Stop-Process -Force -ErrorAction SilentlyContinue
   # Fallback layout: node.exe running helper\ from the install dir.
@@ -71,6 +80,22 @@ function Stop-OpenTetheryHelper {
     Where-Object { $_.ProcessName -in @('node', $([IO.Path]::GetFileNameWithoutExtension($script:HelperExe))) } |
     Stop-Process -Force -ErrorAction SilentlyContinue
   Start-Sleep -Milliseconds 500
+}
+
+# Removes everything the old "Open Tethery" install put on this PC (safe when nothing is there).
+function Remove-LegacyInstall {
+  Get-Process -Name $script:LegacyHelperProc -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+  Remove-ItemProperty -Path $script:RunKeyPath -Name $script:LegacyRunValue -ErrorAction SilentlyContinue
+  foreach ($id in $script:LegacyCepIds) {
+    Remove-Item (Join-Path $script:CepRoot $id) -Recurse -Force -ErrorAction SilentlyContinue
+  }
+  Remove-Item (Join-Path (Find-MediaCoreRoot) $script:LegacyMediaCore) -Recurse -Force -ErrorAction SilentlyContinue
+  if ((Test-Path $script:UpiaExe) -and $script:LegacyPsPluginId) {
+    & $script:UpiaExe /remove $script:LegacyPsPluginId 2>&1 | Out-Null
+  }
+  if ($script:LegacyInstallDir -ne $script:InstallDir) {
+    Remove-Item $script:LegacyInstallDir -Recurse -Force -ErrorAction SilentlyContinue
+  }
 }
 
 # First existing MediaCore plug-in root (newest version folder), else the default 7.0 path.

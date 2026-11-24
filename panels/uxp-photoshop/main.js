@@ -1,6 +1,6 @@
 'use strict';
 
-// Open Tethery - Photoshop UXP panel (role "source" on the helper).
+// Pocket Monitor - Photoshop UXP panel (role "source" on the helper).
 // Glue only: protocol in js/source-client.js, Photoshop calls in js/ps-capture.js.
 
 const { SourceClient } = require('./js/source-client');
@@ -13,6 +13,12 @@ const SESSION_POLL_MS = 5000; // code/URL only; phone count comes from `state`
 const LIVE_WINDOW_MS = 5000;
 
 const $ = (id) => document.getElementById(id);
+const PRODUCT = require('./js/product');
+{
+  const t = $('productTitle');
+  if (t) t.textContent = PRODUCT.name;
+  for (const n of document.querySelectorAll('.brand-name')) n.textContent = PRODUCT.name;
+}
 const el = {
   pill: $('statusPill'), dot: $('statusDot'), text: $('statusText'), note: $('note'),
   helperCard: $('helperCard'), qrWrap: $('qrWrap'), qr: $('qrCode'),

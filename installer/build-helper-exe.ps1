@@ -1,4 +1,4 @@
-# Builds installer\dist\helper\OpenTetheryHelper.exe (+ viewer\, profiles\) from helper\ and viewer\.
+# Builds installer\dist\helper\PocketMonitorHelper.exe (+ viewer\, profiles\) from helper\ and viewer\.
 # Needs Node 22+ on the PATH and internet once (npm install for esbuild/ws, npx postject).
 #   powershell -ExecutionPolicy Bypass -File installer\build-helper-exe.ps1
 param([switch]$BundleOnly)

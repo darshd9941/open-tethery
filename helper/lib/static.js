@@ -27,11 +27,16 @@ const MIME = {
   '.wasm': 'application/wasm',
 };
 
-const PLACEHOLDER = `<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>Open Tethery</title>
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+
+function placeholder(name = 'Pocket Monitor') {
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(name)}</title>
 <style>body{font:16px system-ui,sans-serif;background:#111;color:#eee;display:grid;place-items:center;min-height:100vh;margin:0;padding:16px;text-align:center}</style>
-</head><body><div><h1>Open Tethery</h1><p>The helper is running, but the viewer app files were not found.</p>
+</head><body><div><h1>${esc(name)}</h1><p>The helper is running, but the viewer app files were not found.</p>
 <p>Set <code>OT_VIEWER_DIR</code> to the viewer folder.</p></div></body></html>`;
+}
+const PLACEHOLDER = placeholder();
 
 // Finds the viewer dir: explicit option / env, then ../../viewer relative to lib/ (repo layout).
 function findViewerDir(explicit) {
@@ -64,16 +69,16 @@ function safeJoin(root, urlPath) {
   return full;
 }
 
-function sendIndex(res, root, head) {
+function sendIndex(res, root, head, name) {
   const headers = { 'Cache-Control': 'no-store', 'Content-Type': MIME['.html'] };
   if (!root) {
     res.writeHead(200, headers);
-    return res.end(head ? undefined : PLACEHOLDER);
+    return res.end(head ? undefined : placeholder(name));
   }
   fs.readFile(path.join(root, 'index.html'), (err, data) => {
     if (err) {
       res.writeHead(200, headers);
-      return res.end(head ? undefined : PLACEHOLDER);
+      return res.end(head ? undefined : placeholder(name));
     }
     res.writeHead(200, headers);
     res.end(head ? undefined : data);
@@ -81,14 +86,14 @@ function sendIndex(res, root, head) {
 }
 
 // Serves the viewer. `pathname` is the decoded-or-not URL path. Returns nothing; always responds.
-function serveViewer(root, pathname, req, res) {
+function serveViewer(root, pathname, req, res, name) {
   const head = req.method === 'HEAD';
   if (pathname === '/' || pathname === '/index.html' || /^\/c\/[^/]*$/.test(pathname) || !root) {
     if (!root && pathname !== '/' && !/^\/c\//.test(pathname) && pathname !== '/index.html') {
       res.writeHead(404, { 'Content-Type': 'text/plain' });
       return res.end('Not found');
     }
-    return sendIndex(res, root, head);
+    return sendIndex(res, root, head, name);
   }
   const file = safeJoin(root, pathname);
   if (!file) {
@@ -111,4 +116,4 @@ function serveViewer(root, pathname, req, res) {
   });
 }
 
-module.exports = { serveViewer, safeJoin, findViewerDir, MIME, PLACEHOLDER };
+module.exports = { placeholder, serveViewer, safeJoin, findViewerDir, MIME, PLACEHOLDER };

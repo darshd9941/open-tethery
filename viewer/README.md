@@ -1,4 +1,4 @@
-# Open Tethery viewer (phone web app)
+# Pocket Monitor viewer (phone web app)
 
 Static PWA served by the helper at `/` and `/c/CODE`. Plain ES modules, no build step, no CDN, no frameworks.
 It talks to the helper on the same origin: `ws(s)://<host>/ws`, protocol v1 (`docs/PROTOCOL.md`).

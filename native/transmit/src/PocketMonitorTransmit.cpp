@@ -1,4 +1,4 @@
-// Open Tethery — native Transmit plugin
+// Pocket Monitor — native Transmit plugin
 // Premiere Pro Mercury Transmit entry point. Receives Program Monitor frames,
 // copies the newest one into FrameSender's slot and returns immediately.
 // Video via PushVideo; audio via "push audio" (Transmit interface v4): the
@@ -12,6 +12,7 @@
 #endif
 #include <windows.h>
 
+#include "ProductName.h"
 #include "PrSDKTransmit.h"
 #include "PrSDKPPixSuite.h"
 #include "PrSDKTimeSuite.h"
@@ -35,7 +36,7 @@ namespace {
 using otx::Log;
 
 constexpr const char* kPluginGuid = "c761851a-d4cf-4c81-ac09-c3d9997172c7";
-constexpr const wchar_t* kDisplayName = L"Open Tethery (phone preview)";
+constexpr const wchar_t* kDisplayName = pm::kDisplayName;
 constexpr PrTime kProtocolTicksPerSecond = 254016000000LL;
 
 struct InstanceData {
@@ -400,7 +401,7 @@ tmResult QueryAudioMode(const tmStdParms*, const tmInstance*, csSDK_int32 inQuer
     outAudioMode->outChannelLabels[1] = kPrAudioChannelLabel_FrontRight;
     outAudioMode->outLatency = 0;
     if (g.strings && g.strings->AllocateFromUTF16) {
-        static const wchar_t* const names[2] = {L"Open Tethery L", L"Open Tethery R"};
+        static const wchar_t* const names[2] = {pm::kAudioNameL, pm::kAudioNameR};
         for (int i = 0; i < 2; ++i) {
             prUTF16Char buf[32] = {};
             for (size_t k = 0; k + 1 < sizeof(buf) / sizeof(buf[0]) && names[i][k]; ++k)

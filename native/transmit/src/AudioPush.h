@@ -1,4 +1,4 @@
-// Open Tethery — native Transmit plugin
+// Pocket Monitor — native Transmit plugin
 // Push-audio helpers: float planar -> int16 interleaved stereo, and a
 // lock-protected queue that decouples Premiere's PushAudio thread from the
 // sender thread. Pure C++ (no Windows headers) so it is unit-tested on Linux.

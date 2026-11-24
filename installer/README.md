@@ -1,16 +1,16 @@
 # installer/
 
-Everything that puts Open Tethery on a PC. Run all commands from the repo root in PowerShell.
+Everything that puts Pocket Monitor on a PC. Run all commands from the repo root in PowerShell.
 
 | File | What it does |
 |---|---|
 | `version.txt` | The one version number (read by the .iss; keep `package.json` equal, a test checks it). |
 | `common.ps1` | Shared constants (ids, port, rule name, paths) and helpers. Dot-sourced by the dev scripts. |
-| `build-helper-exe.ps1` / `.js` | Builds `helper/` into `installer\dist\helper\OpenTetheryHelper.exe` with Node SEA. |
+| `build-helper-exe.ps1` / `.js` | Builds `helper/` into `installer\dist\helper\PocketMonitorHelper.exe` with Node SEA. |
 | `dev-install.ps1` | The "dev install" (M0): installs everything below on this PC, one UAC prompt, idempotent. |
 | `dev-uninstall.ps1` | Removes all of it. Also `dev-install.ps1 -Uninstall`. |
 | `start-helper.vbs` | Starts the helper hidden (no console window); used by the Run entry. |
-| `OpenTethery.iss` | Inno Setup 6 script for the real `OpenTetherySetup.exe` (M8). |
+| `PocketMonitor.iss` | Inno Setup 6 script for the real `PocketMonitorSetup.exe` (M8). |
 | `check-update.md` | Design for the "update available" check (not built). |
 | `test/static.test.js` | Linux tests (`cd installer && npm install && npm test`). |
 
@@ -29,25 +29,25 @@ powershell -ExecutionPolicy Bypass -File installer\dev-install.ps1
 powershell -ExecutionPolicy Bypass -File installer\dev-uninstall.ps1
 
 # real installer (Inno Setup 6 installed; needs steps 1, the built .prm and a .ccx in installer\dist first)
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\OpenTethery.iss
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\PocketMonitor.iss
 ```
 
 ## What dev-install does
 
 1. Self-elevates once. Stops a running helper. Warns if Adobe apps are open.
-2. Copies `OpenTetheryHelper.exe`, `viewer\`, `profiles\` (from `installer\dist\helper`) to `%LOCALAPPDATA%\OpenTethery`.
+2. Copies `PocketMonitorHelper.exe`, `viewer\`, `profiles\` (from `installer\dist\helper`) to `%LOCALAPPDATA%\PocketMonitor`.
    If the exe is not built it falls back to `node.exe` + a copy of `helper\` (runs `npm install --omit=dev`).
-3. Copies `panels\cep` to `%APPDATA%\Adobe\CEP\extensions\com.opentethery.panel`; deletes `com.screenlive.video`;
+3. Copies `panels\cep` to `%APPDATA%\Adobe\CEP\extensions\com.pocketmonitor.panel`; deletes `com.screenlive.video`;
    sets `PlayerDebugMode=1` under `HKCU\Software\Adobe\CSXS.9` to `CSXS.13`.
-4. Copies `build\native\Release\OpenTetheryTransmit.prm` (and `.aex` if any) to
-   `C:\Program Files\Adobe\Common\Plug-ins\<newest>\MediaCore\OpenTethery` (default `7.0`).
-5. Zips `panels\uxp-photoshop` to `installer\dist\OpenTetheryPhotoshop.ccx` and installs it with
+4. Copies `build\native\Release\PocketMonitorTransmit.prm` (and `.aex` if any) to
+   `C:\Program Files\Adobe\Common\Plug-ins\<newest>\MediaCore\PocketMonitor` (default `7.0`).
+5. Zips `panels\uxp-photoshop` to `installer\dist\PocketMonitorPhotoshop.ccx` and installs it with
    `UnifiedPluginInstallerAgent.exe /install` if present, otherwise prints how to load it.
-6. Firewall: inbound TCP 47825, Private profile, rule "Open Tethery Helper"; removes old "Live Video Preview*" / "Live Phone Preview*" rules.
-7. `HKCU\...\Run\OpenTetheryHelper` = `wscript.exe "%LOCALAPPDATA%\OpenTethery\start-helper.vbs"`.
-8. Starts the helper and polls `http://127.0.0.1:47825/health`. Log: `%LOCALAPPDATA%\OpenTethery\install.log`.
+6. Firewall: inbound TCP 47825, Private profile, rule "Pocket Monitor Helper"; removes old "Live Video Preview*" / "Live Phone Preview*" rules.
+7. `HKCU\...\Run\PocketMonitorHelper` = `wscript.exe "%LOCALAPPDATA%\PocketMonitor\start-helper.vbs"`.
+8. Starts the helper and polls `http://127.0.0.1:47825/health`. Log: `%LOCALAPPDATA%\PocketMonitor\install.log`.
 
-Uninstall reverses each step and deletes `%LOCALAPPDATA%\OpenTethery` (incl. the log). `PlayerDebugMode` stays on
+Uninstall reverses each step and deletes `%LOCALAPPDATA%\PocketMonitor` (incl. the log). `PlayerDebugMode` stays on
 unless `-RemoveDebugMode` (other CEP panels may need it).
 
 ## Helper exe: how it is built
@@ -58,7 +58,7 @@ unless `-RemoveDebugMode` (other CEP panels may need it).
 2. Bundles to `installer\dist\build\helper.bundle.js` with esbuild (`installer/package.json` devDependency;
    `ws`'s optional `bufferutil`/`utf-8-validate` stay external). Without esbuild a small built-in CommonJS bundler is used.
 3. Writes `sea-config.json`, runs `node --experimental-sea-config` to make the blob.
-4. Copies `node.exe` to `OpenTetheryHelper.exe`, runs `signtool remove /s` if signtool is found, then `npx postject`
+4. Copies `node.exe` to `PocketMonitorHelper.exe`, runs `signtool remove /s` if signtool is found, then `npx postject`
    with the standard `NODE_SEA_FUSE_...` sentinel.
 5. Copies `viewer\` and `helper\profiles\` (if present) **next to the exe**; they are not inside it.
 
@@ -74,9 +74,9 @@ the viewer from `OT_VIEWER_DIR` first and must not rely on `__dirname` for data 
   Caveat: if another admin account approves the prompt, those per-user paths are that admin's.
 - Closes Adobe apps: `CloseApplications=yes` (Restart Manager) plus a `[Code]` check by process name for
   Adobe Premiere Pro.exe, AfterFX.exe, Photoshop.exe that blocks until they are closed.
-- Start menu "Uninstall Open Tethery"; version from `version.txt`; same `AppId` so a newer setup upgrades in place.
-- Needs before compiling: `installer\dist\helper\*` (build script), `panels\cep`, `build\native\Release\OpenTetheryTransmit.prm`,
-  `installer\dist\OpenTetheryPhotoshop.ccx` (created by dev-install, or zip `panels\uxp-photoshop` and rename).
+- Start menu "Uninstall Pocket Monitor"; version from `version.txt`; same `AppId` so a newer setup upgrades in place.
+- Needs before compiling: `installer\dist\helper\*` (build script), `panels\cep`, `build\native\Release\PocketMonitorTransmit.prm`,
+  `installer\dist\PocketMonitorPhotoshop.ccx` (created by dev-install, or zip `panels\uxp-photoshop` and rename).
 
 ## Needs PC test
 
@@ -85,7 +85,7 @@ the viewer from `OT_VIEWER_DIR` first and must not rely on `__dirname` for data 
 - [ ] No PowerShell was run on Linux (pwsh missing): all `.ps1` are only text-checked here. Expect small syntax or cmdlet slips.
 - [ ] Helper panel/Run start: `start-helper.vbs` launches hidden; after reboot the helper is up; Task Manager shows it.
 - [ ] CEP panel appears in Premiere and After Effects (CSXS 9 to 13 covers 2027?); old `com.screenlive.video` gone.
-- [ ] MediaCore path: confirm `...\Plug-ins\7.0\MediaCore\OpenTethery\OpenTetheryTransmit.prm`; Premiere lists the plug-in.
+- [ ] MediaCore path: confirm `...\Plug-ins\7.0\MediaCore\PocketMonitor\PocketMonitorTransmit.prm`; Premiere lists the plug-in.
 - [ ] Photoshop: UPIA `/install` of the .ccx works (flags unverified) and `/remove <id>` works; else UXP Developer Tool.
 - [ ] Firewall rule exists (Private only); phone on Wi-Fi reaches port 47825; old rules removed.
 - [ ] `dev-uninstall.ps1` leaves nothing: folder, Run value, rule, panel, MediaCore folder.

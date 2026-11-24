@@ -1,12 +1,13 @@
 // Playback control (milestone M5): message building + availability rules. No DOM.
 import { createSeekThrottle } from './throttle.js';
+import { brand } from './brand.js';
 
 // Can the transport bar be used right now? `note` explains why not.
 export function controlState({ control, state }) {
   const app = state?.host?.app;
   if (app === 'photoshop') return { enabled: false, note: 'Photoshop has no playback to control.' };
   if (control === false) {
-    return { enabled: false, note: 'Playback control is off. Turn on "Allow control from phones" in the Open Tethery panel on the PC.' };
+    return { enabled: false, note: `Playback control is off. Turn on "Allow control from phones" in the ${brand.shortName} panel on the PC.` };
   }
   if (!state || state.status !== 'live') return { enabled: false, note: 'Waiting for the editor to connect.' };
   return { enabled: true, note: '' };

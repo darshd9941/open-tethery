@@ -17,7 +17,7 @@ headers and documentation.
 
 | File | What it does |
 |---|---|
-| `src/OpenTetheryTransmit.cpp` | `xTransmitEntry` export and the `tmModule` callbacks. Copies the newest frame and returns at once. |
+| `src/PocketMonitorTransmit.cpp` | `xTransmitEntry` export and the `tmModule` callbacks. Copies the newest frame and returns at once. |
 | `src/FrameSender.cpp/.h` | "Latest frame" slot (newest wins) and the worker thread: downscale, JPEG, TCP send, reconnect, state + heartbeat. |
 | `src/Otx1.h` | OTX1 message builders and the helper-to-plugin reader (pure C++, unit-tested). |
 | `src/AudioPush.h` | Float planar to int16 stereo conversion/downmix and the lock-protected audio queue (pure C++, unit-tested). |
@@ -35,12 +35,12 @@ Needs Visual Studio 2022 (toolset v143, "Desktop development with C++").
 
 ```bat
 "C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\MSBuild.exe" ^
-  native\transmit\OpenTetheryTransmit.vcxproj /p:Configuration=Release /p:Platform=x64
+  native\transmit\PocketMonitorTransmit.vcxproj /p:Configuration=Release /p:Platform=x64
 ```
 
 Linked extra system libraries: `mfplat mf mfuuid strmiids wmcodecdspuuid` (Media Foundation; all ship with the Windows SDK).
 
-Output: `build\native\Release\OpenTetheryTransmit.prm` (intermediates in
+Output: `build\native\Release\PocketMonitorTransmit.prm` (intermediates in
 `build\native\obj\`; nothing is written inside `native\transmit\`).
 
 The SDK is found through the MSBuild property `PremiereSdk`, which must point
@@ -48,17 +48,17 @@ at the SDK's `Examples` folder (the one holding `Headers\`). Default:
 `sdk\Premiere Pro 27.0 C++ SDK\Examples` at the repo root. Override with the
 `PREMIERE_SDK` environment variable or `/p:PremiereSdk=...`.
 
-Check the export (VS Developer prompt): `dumpbin /exports OpenTetheryTransmit.prm`
+Check the export (VS Developer prompt): `dumpbin /exports PocketMonitorTransmit.prm`
 should list `xTransmitEntry`.
 
 ## Install
 
 1. Close Premiere Pro.
 2. `powershell -ExecutionPolicy Bypass -File native\transmit\install.ps1`
-   (copies to `C:\Program Files\Adobe\Common\Plug-ins\7.0\MediaCore\OpenTethery\`;
+   (copies to `C:\Program Files\Adobe\Common\Plug-ins\7.0\MediaCore\PocketMonitor\`;
    Windows asks for admin rights). `-Uninstall` removes it.
 3. Start Premiere, open **Preferences > Playback**, tick
-   **Open Tethery (phone preview)** under Video Device, and make sure
+   **Pocket Monitor (phone preview)** under Video Device, and make sure
    **Enable Mercury Transmit** is on.
 4. For sound, see "Audio" below (one extra tick; your speakers stay the main output).
 5. Start the relay. The plugin connects to `127.0.0.1:47826` and retries every
@@ -66,7 +66,7 @@ should list `xTransmitEntry`.
 
 ## Video in Premiere
 
-**Preferences > Playback > Video Device** (the "Mercury Transmit" list): tick **Open Tethery (phone preview)**
+**Preferences > Playback > Video Device** (the "Mercury Transmit" list): tick **Pocket Monitor (phone preview)**
 and make sure **Enable Mercury Transmit** is on. That is all for video; the plug-in picks H.264 by itself.
 
 ## H.264
@@ -94,15 +94,15 @@ and make sure **Enable Mercury Transmit** is on. That is all for video; the plug
 
 Premiere's Transmit interface treats a plug-in as an audio *clock device* only
 if it implements a playback clock. We do not: your normal speakers stay the
-clock ("primary") device and Open Tethery is an extra, mirrored ("secondary")
+clock ("primary") device and Pocket Monitor is an extra, mirrored ("secondary")
 output that Premiere *pushes* a copy of the mix to (`PushAudio`, Transmit
 interface version 4). So:
 
 1. **Preferences > Playback > Audio Device**: leave your normal output (speakers
-   or headphones) selected. Do not try to select Open Tethery as the main device.
+   or headphones) selected. Do not try to select Pocket Monitor as the main device.
 2. In the same Preferences > Playback page, in the Audio/Video device lists, tick
-   **Open Tethery (phone preview)** for **audio** as well as for video (it appears as
-   an additional output with channels "Open Tethery L" / "Open Tethery R"). Wording and
+   **Pocket Monitor (phone preview)** for **audio** as well as for video (it appears as
+   an additional output with channels "Pocket Monitor L" / "Pocket Monitor R"). Wording and
    position of the audio tick differ between Premiere versions, so see "Needs PC test".
 3. Press play. The phone must have audio turned on (speaker button in the viewer).
 
@@ -147,7 +147,7 @@ an audio entry that misbehaves).
   retried 2 s later. Premiere's thread never touches the socket. The worker
   also reads helper messages (type 64 keyframe request, 65 JPEG wanted) from the
   same socket without blocking; unknown types are skipped.
-- **Logs:** `[OpenTethery] ...` lines via `OutputDebugString` (view with
+- **Logs:** `[PocketMonitor] ...` lines via `OutputDebugString` (view with
   Sysinternals DebugView). No files are written.
 
 ## Tests (no Windows needed)
@@ -187,7 +187,7 @@ Linux; they are only syntax-checked (mingw-w64) and need the PC test below.
 - `outSamplesPerFrame` is left untouched (host default); `PushAudio` accepts any buffer length up to 16 channels.
 - `inTime` of `PushAudio` is the media time of the first sample in host ticks (converted to 254016000000/s).
 - `tmAudioMode::outMaxBufferSize = 8192` and `outLatency = 0` are acceptable.
-- PrSDKStringSuite version 1 is available through SPBasic to allocate the "Open Tethery L/R" output names.
+- PrSDKStringSuite version 1 is available through SPBasic to allocate the "Pocket Monitor L/R" output names.
 - After Effects is recognised by `AfterFX` in the host executable path.
 - Hardware H.264 MFTs accept system-memory NV12 (no D3D manager) and `MF_MT_MPEG2_PROFILE = ConstrainedBase`; if not, it
   retries with Base profile, then software.

@@ -2,7 +2,7 @@
   "name": "open-tethery-photoshop-panel",
   "version": "0.2.0",
   "private": true,
-  "description": "Open Tethery Photoshop UXP plugin (source role). Tests only; the plugin has no runtime dependencies.",
+  "description": "Pocket Monitor Photoshop UXP plugin (source role). Tests only; the plugin has no runtime dependencies.",
   "scripts": {
     "test": "node --test \"test/*.test.js\"",
     "pack": "node tools/pack-ccx.js"

@@ -3,19 +3,19 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Open Tethery</title>
+  <title data-brand="name">Pocket Monitor</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main class="panel">
     <header class="top">
-      <h1>Open Tethery</h1>
+      <h1 data-brand="name">Pocket Monitor</h1>
       <span id="pill" class="pill idle">IDLE</span>
     </header>
 
     <section id="helperCard" class="card warn" hidden>
       <h2>Helper not running</h2>
-      <p id="helperText">Open Tethery needs its small helper program to talk to phones.</p>
+      <p id="helperText" data-brand-text="{name} needs its small helper program to talk to phones.">Pocket Monitor needs its small helper program to talk to phones.</p>
       <button id="startHelperBtn" class="btn primary">Start helper</button>
     </section>
 
@@ -69,6 +69,7 @@
     <footer class="stats" id="stats">&nbsp;</footer>
   </main>
 
+  <script src="js/product.js"></script>
   <script src="lib/CSInterface.js"></script>
   <script src="js/state-format.js"></script>
   <script src="js/connections.js"></script>

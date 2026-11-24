@@ -9,17 +9,18 @@ const { createZip } = require('./zip');
 
 function reportsDir(env = process.env) {
   if (process.platform === 'win32') {
-    return path.join(env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'OpenTethery', 'reports');
+    return path.join(env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local'), 'PocketMonitor', 'reports');
   }
   return path.join(env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'), 'open-tethery', 'reports');
 }
 
-const FIREWALL_HINT = [
+const firewallHint = (name) => [
   'Phones cannot open the page? Windows Firewall may block inbound TCP 47825.',
-  'Allow "Open Tethery" on Private networks, or run in an admin PowerShell:',
-  '  netsh advfirewall firewall add rule name="Open Tethery" dir=in action=allow protocol=TCP localport=47825 profile=private',
+  `Allow "${name}" on Private networks, or run in an admin PowerShell:`,
+  `  netsh advfirewall firewall add rule name="${name}" dir=in action=allow protocol=TCP localport=47825 profile=private`,
   'Also check the PC network is set to Private, and that "client isolation" is off on the router / hotspot.',
 ].join('\n');
+const FIREWALL_HINT = firewallHint('Pocket Monitor');
 
 // Removes the session code (a join secret) from any text.
 function redact(text, code) {
@@ -54,7 +55,7 @@ function buildReport(o) {
       { name: 'system.json', data: json(system) },
       { name: 'state-messages.json', data: json(o.recentStates || []) },
       { name: 'viewers.json', data: json(o.viewers || []) },
-      { name: 'firewall-hint.txt', data: `${FIREWALL_HINT}\n` },
+      { name: 'firewall-hint.txt', data: `${o.productName ? firewallHint(o.productName) : FIREWALL_HINT}\n` },
     ],
     when,
   );
@@ -69,4 +70,4 @@ function writeReport(o) {
   return file;
 }
 
-module.exports = { reportsDir, buildReport, writeReport, redact, FIREWALL_HINT };
+module.exports = { firewallHint, reportsDir, buildReport, writeReport, redact, FIREWALL_HINT };

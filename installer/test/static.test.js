@@ -11,15 +11,15 @@ const read = (f) => fs.readFileSync(path.join(dir, f), 'utf8');
 const common = read('common.ps1');
 const install = read('dev-install.ps1');
 const uninstall = read('dev-uninstall.ps1');
-const iss = read('OpenTethery.iss');
+const iss = read('PocketMonitor.iss');
 
 test('shared ids, port, rule name and Run key are consistent across scripts', () => {
-  for (const [name, text] of [['common.ps1', common], ['OpenTethery.iss', iss]]) {
+  for (const [name, text] of [['common.ps1', common], ['PocketMonitor.iss', iss]]) {
     assert.match(text, /47825/, `${name} port`);
-    assert.match(text, /Open Tethery Helper/, `${name} rule name`);
-    assert.match(text, /com\.opentethery\.panel/, `${name} CEP id`);
-    assert.match(text, /com\.opentethery\.photoshop/, `${name} PS id`);
-    assert.match(text, /OpenTetheryHelper/, `${name} run value / exe`);
+    assert.match(text, /Pocket Monitor Helper/, `${name} rule name`);
+    assert.match(text, /com\.pocketmonitor\.panel/, `${name} CEP id`);
+    assert.match(text, /com\.pocketmonitor\.photoshop/, `${name} PS id`);
+    assert.match(text, /PocketMonitorHelper/, `${name} run value / exe`);
     assert.match(text, /Software.Microsoft.Windows.CurrentVersion.Run/, `${name} Run key`);
   }
   assert.match(common, /9\.\.13/);
@@ -34,7 +34,7 @@ test('dev-install covers every required action', () => {
   assert.match(install, /SupportsShouldProcess/);
   for (const p of ['Uninstall', 'SkipNative', 'SkipPhotoshop']) assert.match(install, new RegExp(`\\[switch\\]\\$${p}`));
   const all = install + common;
-  for (const s of ['Invoke-SelfElevate', 'panels\\cep', 'panels\\uxp-photoshop', 'OpenTetheryTransmit.prm',
+  for (const s of ['Invoke-SelfElevate', 'panels\\cep', 'panels\\uxp-photoshop', 'PocketMonitorTransmit.prm',
     'MediaCore', 'New-NetFirewallRule', '-Profile Private', 'PlayerDebugMode', 'UnifiedPluginInstallerAgent.exe',
     'RunKeyPath', '/health', 'install.log', 'LOCALAPPDATA', 'APPDATA', 'start-helper.ps1', 'Get-NetTCPConnection']) {
     assert.ok(all.includes(s), s);
@@ -54,11 +54,11 @@ test('installer .iss has required sections and settings', () => {
   assert.match(iss, /PrivilegesRequired=admin/);
   assert.match(iss, /CloseApplications=yes/);
   assert.match(iss, /CloseApplicationsFilter=.*Adobe Premiere Pro\.exe,AfterFX\.exe,Photoshop\.exe/);
-  assert.match(iss, /Uninstall Open Tethery/);
+  assert.match(iss, /Uninstall \{#AppName\}/);
   assert.match(iss, /version\.txt/);
   assert.match(iss, /localport=\{#Port\}/);
   assert.match(iss, /profile=private/);
-  assert.match(iss, /OutputBaseFilename=OpenTetherySetup/);
+  assert.match(iss, /OutputBaseFilename=\{#InstallDirName\}Setup/);
 });
 
 test('version.txt is a plain semver and package.json matches', () => {
@@ -68,7 +68,7 @@ test('version.txt is a plain semver and package.json matches', () => {
 });
 
 test('start-helper.vbs launches the helper exe', () => {
-  assert.match(read('start-helper.vbs'), /OpenTetheryHelper\.exe/);
+  assert.match(read('start-helper.vbs'), /PocketMonitorHelper\.exe/);
 });
 
 test('PowerShell files parse (only if pwsh is installed)', (t) => {
@@ -134,10 +134,10 @@ test('SEA smoke build (OT_TEST_SEA=1, not Windows)', { skip: !process.env.OT_TES
   fs.mkdirSync(path.join(root, 'viewer'));
   fs.writeFileSync(path.join(root, 'viewer', 'index.html'), 'x');
   const r = cp.spawnSync(process.execPath, [path.join(dir, 'build-helper-exe.js'), '--helper', path.join(root, 'helper'),
-    '--viewer', path.join(root, 'viewer'), '--out', path.join(root, 'dist', 'helper'), '--exe-name', 'OpenTetheryHelper'],
+    '--viewer', path.join(root, 'viewer'), '--out', path.join(root, 'dist', 'helper'), '--exe-name', 'PocketMonitorHelper'],
   { encoding: 'utf8' });
   assert.strictEqual(r.status, 0, r.stdout + r.stderr);
-  const exe = path.join(root, 'dist', 'helper', 'OpenTetheryHelper');
+  const exe = path.join(root, 'dist', 'helper', 'PocketMonitorHelper');
   const run = cp.spawnSync(exe, [], { encoding: 'utf8' });
   assert.strictEqual(run.status, 0, run.stderr);
   const o = JSON.parse(run.stdout);

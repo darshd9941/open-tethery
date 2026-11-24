@@ -1,4 +1,4 @@
-// Open Tethery host script (ExtendScript, ES3 only: no let/const/arrow/JSON/Array.map).
+// Pocket Monitor host script (ExtendScript, ES3 only: no let/const/arrow/JSON/Array.map).
 // Loaded by CEP via <ScriptPath>. The panel calls otGetHostState() and otControl().
 // Every entry point returns a JSON string and never throws.
 //

@@ -94,7 +94,7 @@ after(async () => {
 });
 
 test('helper serves health, session and viewer', async () => {
-  assert.deepEqual(await json('/health'), { ok: true, name: 'open-tethery', version: '0.2.0', protocol: 1 });
+  assert.deepEqual(await json('/health'), { ok: true, name: 'open-tethery', product: 'Pocket Monitor', version: '0.2.0', protocol: 1 });
   session = await json('/api/session');
   assert.match(session.code, /^[A-HJ-NP-Z2-9]{4}$/);
   const html = await (await fetch(`${base}/c/${session.code}`)).text();

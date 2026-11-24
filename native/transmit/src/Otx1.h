@@ -1,4 +1,4 @@
-// Open Tethery — native Transmit plugin
+// Pocket Monitor — native Transmit plugin
 // OTX1 wire format helpers (see docs/transmit-protocol.md). Pure C++, no
 // Windows headers, so the unit tests can build it with any compiler.
 #pragma once

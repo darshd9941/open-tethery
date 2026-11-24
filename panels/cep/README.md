@@ -1,12 +1,12 @@
-# Open Tethery CEP panel (Premiere Pro + After Effects)
+# Pocket Monitor CEP panel (Premiere Pro + After Effects)
 
-Window > Extensions > Open Tethery. Shows the pairing QR and code, the live
+Window > Extensions > Pocket Monitor. Shows the pairing QR and code, the live
 sequence, connected phones, and runs playback commands from phones. It talks
 to the helper on `127.0.0.1:47825` as role `panel` (docs/PROTOCOL.md section 8).
 
 ## Layout
 
-- `CSXS/manifest.xml`, `.debug`: bundle `com.opentethery.panel`, extension `com.opentethery.panel.main`, PPRO/AEFT `[24.0,99.9]`, CSXS 11, Node + mixed context.
+- `CSXS/manifest.xml`, `.debug`: bundle `com.pocketmonitor.panel`, extension `com.pocketmonitor.panel.main`, PPRO/AEFT `[24.0,99.9]`, CSXS 11, Node + mixed context.
 - `client/js/state-format.js`, `panel-client.js`, `control-bridge.js`, `helper-launcher.js`: pure UMD modules (tested in Node). `main.js` is the DOM wiring.
 - `client/lib/CSInterface.js`: Adobe's public CSInterface, carried over from `apps/premiere-ae`.
 - `client/config.json`: `devHelperPath` = absolute path to `helper/bin/open-tethery-helper.js` for dev; `helperHost`.
@@ -14,12 +14,12 @@ to the helper on `127.0.0.1:47825` as role `panel` (docs/PROTOCOL.md section 8).
 
 ## Install (Windows, dev)
 
-1. Copy this folder to `%APPDATA%\Adobe\CEP\extensions\com.opentethery.panel` (without `node_modules`/`test`).
+1. Copy this folder to `%APPDATA%\Adobe\CEP\extensions\com.pocketmonitor.panel` (without `node_modules`/`test`).
 2. Unsigned panels need debug mode, for each of `CSXS.11` and `CSXS.12` (add the others if your Adobe version needs it):
    `reg add HKCU\Software\Adobe\CSXS.11 /v PlayerDebugMode /t REG_SZ /d 1 /f`
 3. Restart Premiere/After Effects. Remote debugging: open `http://localhost:8099` (Premiere) or `:8100` (AE) in Chrome.
 
-Helper launch order when `/health` does not answer: `%LOCALAPPDATA%\OpenTethery\start-helper.vbs` (via wscript), then `OpenTetheryHelper.exe`, then `node <devHelperPath>`. The panel retries with backoff (0.5 s up to 5 s).
+Helper launch order when `/health` does not answer: `%LOCALAPPDATA%\PocketMonitor\start-helper.vbs` (via wscript), then `PocketMonitorHelper.exe`, then `node <devHelperPath>`. The panel retries with backoff (0.5 s up to 5 s).
 
 ## Tests
 
@@ -48,6 +48,6 @@ The Connection dropdown lists the helper's `connections` (Wi-Fi, Ethernet, Phone
 - AE menu command name for play/pause on the user's AE version and language (likely needs a different name or command id); comp.time seek.
 - host-state polling at 500 ms does not stall the Premiere UI; `app.project.activeSequence` is correct when the timeline is not focused.
 - evalScript reply for sequence names with non-ASCII characters.
-- Engine warning appears/disappears when toggling Open Tethery in Preferences, and "Check again" refreshes it.
+- Engine warning appears/disappears when toggling Pocket Monitor in Preferences, and "Check again" refreshes it.
 - Connection dropdown: picking Phone hotspot / USB / Tailscale re-renders the QR with that address and a phone can open it.
 - Send report: the `fetch` POST from the `file://` panel page is accepted (CORS), the zip is written, and "Open folder" opens Explorer with the file selected (`cep_node` child_process).

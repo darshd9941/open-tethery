@@ -17,7 +17,7 @@ test('pack-ccx makes a valid zip with manifest at the root and no dev files', ()
   for (const f of files) assert.ok(!/^(test|tools|node_modules)\/|package|README/.test(f), f);
 
   const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'manifest.json'), 'utf8'));
-  assert.equal(manifest.id, 'com.opentethery.photoshop');
+  assert.equal(manifest.id, 'com.pocketmonitor.photoshop');
   try {
     const listing = execFileSync('unzip', ['-t', out], { encoding: 'utf8' });
     assert.match(listing, /No errors detected/);
