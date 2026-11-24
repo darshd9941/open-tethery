@@ -145,9 +145,15 @@ function buildExe({ blob, cfgFile, exePath }) {
   run('npx', args);
 }
 
+// Plain recursive copy: fs.cpSync crashes some Node 22 builds on Windows (0xC0000409).
 function copyDir(src, dst) {
   fs.rmSync(dst, { recursive: true, force: true });
-  fs.cpSync(src, dst, { recursive: true });
+  fs.mkdirSync(dst, { recursive: true });
+  for (const e of fs.readdirSync(src, { withFileTypes: true })) {
+    const s = path.join(src, e.name); const d = path.join(dst, e.name);
+    if (e.isDirectory()) copyDir(s, d);
+    else if (e.isFile()) fs.copyFileSync(s, d);
+  }
 }
 
 // Exe name and display data come from product.json at the repo root.
