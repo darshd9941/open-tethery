@@ -61,8 +61,50 @@ Prerequisites (once):
 
 Steps the script runs: branding check, `npm ci`, helper exe (SEA), MSBuild Transmit plug-in, sign panel .zxp, pack Photoshop .ccx,
 compile .iss, optional Authenticode, SHA256. It stops with a plain-English message at the first problem.
-CI (`.github/workflows/release.yml`, on tags `v*`) only runs the tests and attaches the helper exe and .ccx: the final setup is built
-locally because the Adobe SDK is licensed and the signing certificates are private. `.github/workflows/ci.yml` runs `npm run test:all` on PRs.
+You normally do not run this yourself: see "Automatic releases" below. `build-release.ps1` also takes `-SdkPath`, `-ZxpSignCmd`,
+`-ExpectVersion <x>` and `-Ci` (used by the workflow). `.github/workflows/ci.yml` runs `npm run test:all` on PRs.
+
+## Automatic releases (no building on your PC)
+
+Push a tag and GitHub builds the installer and puts it on the Releases page. Users download it from there; the panel's
+"update available" check reads that same page.
+
+### One time: give GitHub the Adobe SDK
+
+The SDK is licensed, so it is not in git. It is kept as a private file on your private repo.
+
+1. On your PC, find the folder `Premiere Pro 27.0 C++ SDK` (the one that contains `Examples`).
+2. Right-click it > Send to > Compressed (zipped) folder. Rename the zip to exactly `premiere-sdk.zip`.
+3. On GitHub open the repo > Releases > Draft a new release.
+4. In "Choose a tag" type `sdk` and create it. Title: `sdk`.
+5. Tick "Set as a pre-release" (so it is never shown as the latest version).
+6. Drag `premiere-sdk.zip` into the box. Click Publish release.
+
+The repo is private, so only people with access can download it. Do this once; redo it only if you change SDK version.
+
+### Optional: secrets (Settings > Secrets and variables > Actions > New repository secret)
+
+Everything works without these. Without them the panel is signed with a temporary certificate and the setup is not code-signed
+(Windows shows a "protected your PC" box; click More info > Run anyway).
+
+| Secret | What |
+|---|---|
+| `PM_PANEL_CERT_P12` + `PM_PANEL_CERT_PASS` | Your panel certificate (`.p12`) as base64, and its password. Keeps the same certificate each release. |
+| `PM_SIGN_CERT_P12` + `PM_SIGN_CERT_PASS` | A code-signing certificate (`.pfx`) as base64, and its password. Signs the setup, helper exe and `.prm`. |
+
+Make base64 in PowerShell: `[Convert]::ToBase64String([IO.File]::ReadAllBytes("C:\path\cert.p12")) | Set-Clipboard`, then paste it as the secret value.
+
+### To make a release
+
+1. Change `version` in `product.json` (for example `0.3.1`).
+2. `node tools/apply-branding.js`
+3. Commit and push to main.
+4. `git tag v0.3.1` then `git push origin v0.3.1` (the tag must equal the version, or the build stops and says so).
+5. Wait about 10 to 15 minutes (Actions tab). Then Releases has `PocketMonitorSetup-0.3.1.exe` and its `.sha256`.
+
+Dry run: Actions > Release > Run workflow. It builds everything and keeps the setup as a download on that run, with no release.
+If the build says the SDK is missing, do the one-time step above. ZXPSignCmd is downloaded from Adobe's CEP-Resources repo; its
+address is `ZXPSIGNCMD_URL` at the top of `release.yml`.
 
 ## What dev-install does
 
@@ -130,4 +172,4 @@ the viewer from `OT_VIEWER_DIR` first and must not rely on `__dirname` for data 
 - [ ] The panel still works when installed from the unpacked .zxp (no `.debug`, no node_modules; helper launch from `start-helper.vbs`).
 - [ ] Setup: components page (Photoshop unticked skips the .ccx), license page, upgrade over an older build, uninstall removes legacy Open Tethery leftovers.
 - [ ] Authenticode signing with `PM_SIGN_CERT`/`PM_SIGN_PASS` and SmartScreen behaviour for the signed and unsigned setup.
-- [ ] GitHub release workflow on a test tag (windows-latest: helper exe + ccx artifacts).
+- [ ] GitHub release workflow: dry run (Run workflow), then a real tag on windows-latest (SDK download + unzip layout, choco Inno Setup, ZXPSignCmd -selfSignedCert, release created and marked latest).

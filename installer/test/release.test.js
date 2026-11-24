@@ -75,5 +75,30 @@ test('workflow YAML files parse and have the expected triggers', (t) => {
   const rel = fs.readFileSync(path.join(wfDir, 'release.yml'), 'utf8');
   assert.match(rel, /tags:\s*\['v\*'\]/);
   assert.match(rel, /windows-latest/);
+  assert.match(rel, /workflow_dispatch/);
   assert.match(fs.readFileSync(path.join(wfDir, 'ci.yml'), 'utf8'), /ubuntu-latest[\s\S]*npm run test:all/);
+});
+
+test('release workflow: SDK from a private release asset, never an artifact; secrets optional; release upload', () => {
+  const rel = fs.readFileSync(path.join(repo, '.github', 'workflows', 'release.yml'), 'utf8');
+  assert.match(rel, /gh release download sdk -p premiere-sdk\.zip/);
+  assert.match(rel, /PREMIERE_SDK=/);
+  assert.match(rel, /microsoft\/setup-msbuild/);
+  assert.match(rel, /choco install innosetup -y/);
+  assert.match(rel, /ZXPSIGNCMD_URL: https:\/\/raw\.githubusercontent\.com\/Adobe-CEP\/CEP-Resources\/[^\n]*ZXPSignCmd\.exe/);
+  assert.match(rel, /permissions:\s*\n\s*contents: write/);
+  const uploads = rel.split(/- name:|- uses:/).filter((b) => /upload-artifact/.test(b));
+  assert.ok(uploads.length >= 1);
+  for (const u of uploads) assert.doesNotMatch(u, /sdk/i);
+  for (const s of ['PM_PANEL_CERT_P12', 'PM_PANEL_CERT_PASS', 'PM_SIGN_CERT_P12', 'PM_SIGN_CERT_PASS']) assert.ok(rel.includes('secrets.' + s), s);
+  assert.match(rel, /if \(\$env:PM_PANEL_CERT_P12 -and/);
+  assert.match(rel, /if \(\$env:PM_SIGN_CERT_P12 -and/);
+  assert.match(rel, /-CreateCert/);
+  assert.match(rel, /uses: softprops\/action-gh-release@v\d+[\s\S]*make_latest: 'true'[\s\S]*\.sha256/);
+  assert.match(rel, /if: github\.ref_type == 'tag'/);
+  assert.match(rel, /-ExpectVersion/);
+});
+
+test('build-release.ps1 has the CI switches', () => {
+  for (const s of ['[string]$SdkPath', '[string]$ZxpSignCmd', '[string]$ExpectVersion', '[switch]$Ci']) assert.ok(build.includes(s), s);
 });

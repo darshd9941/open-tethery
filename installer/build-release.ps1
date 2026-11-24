@@ -4,6 +4,18 @@
 # Inno Setup 6, ZXPSignCmd + panel certificate (installer\sign-panel.ps1 -CreateCert once), Adobe Premiere SDK in sdk\.
 # Optional Authenticode signing of the setup and exe: set PM_SIGN_CERT (path to .pfx) and PM_SIGN_PASS.
 
+# CI switches (used by .github/workflows/release.yml, harmless locally):
+#   -SdkPath <dir>       Premiere SDK "Examples" folder (same as env PREMIERE_SDK)
+#   -ZxpSignCmd <exe>    path to ZXPSignCmd.exe (same as env PM_ZXPSIGNCMD)
+#   -ExpectVersion <x>   stop unless product.json version equals x (the release tag without the v)
+#   -Ci                  no prompts; MSBuild is taken from PATH when Visual Studio is not found with vswhere
+param(
+  [string]$SdkPath,
+  [string]$ZxpSignCmd,
+  [string]$ExpectVersion,
+  [switch]$Ci
+)
+
 $ErrorActionPreference = 'Stop'
 $repo = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $dist = Join-Path $PSScriptRoot 'dist'
@@ -22,6 +34,9 @@ $nodeMajor = [int]((& node --version) -replace '^v', '').Split('.')[0]
 if ($nodeMajor -lt 22) { Fail "Node 22 or newer is needed (found $nodeMajor). Update: winget install OpenJS.NodeJS.LTS" }
 $version = (Get-Content (Join-Path $repo 'product.json') -Raw | ConvertFrom-Json).version
 Write-Host "Version $version"
+if ($ExpectVersion -and $ExpectVersion -ne $version) { Fail "The release tag says $ExpectVersion but product.json says $version. Bump product.json, run node tools/apply-branding.js, commit, then tag again." }
+if ($ZxpSignCmd) { $env:PM_ZXPSIGNCMD = $ZxpSignCmd }
+if ($SdkPath) { $env:PREMIERE_SDK = $SdkPath }
 New-Item -ItemType Directory -Force $dist | Out-Null
 
 # Optional Authenticode signing
@@ -66,15 +81,21 @@ Step 'Building the Premiere Transmit plug-in (MSBuild)'
 $sdk = if ($env:PREMIERE_SDK) { $env:PREMIERE_SDK } else { Join-Path $repo 'sdk' }
 if (-not (Test-Path $sdk)) { Fail "The Adobe Premiere Pro C++ SDK is missing. It is licensed and not in git: download it from Adobe and unzip it into $sdk (or set PREMIERE_SDK to its Examples folder)." }
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio\Installer\vswhere.exe'
-if (-not (Test-Path $vswhere)) { Fail 'Visual Studio is not installed. Install Visual Studio 2022 (Community is free) with "Desktop development with C++".' }
-$msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+$msbuild = $null
+if (Test-Path $vswhere) {
+  $msbuild = & $vswhere -latest -products * -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+} elseif ($Ci -and (Get-Command msbuild.exe -ErrorAction SilentlyContinue)) {
+  $msbuild = (Get-Command msbuild.exe).Source
+} else { Fail 'Visual Studio is not installed. Install Visual Studio 2022 (Community is free) with "Desktop development with C++".' }
 if (-not $msbuild) { Fail 'MSBuild was not found. In the Visual Studio Installer add "Desktop development with C++".' }
+$env:PREMIERE_SDK = $sdk
 Run 'MSBuild' { & $msbuild (Join-Path $repo 'native\transmit\PocketMonitorTransmit.vcxproj') /p:Configuration=Release /p:Platform=x64 /m /nologo /v:minimal }
 $prm = Join-Path $repo 'build\native\Release\PocketMonitorTransmit.prm'
 if (-not (Test-Path $prm)) { Fail "MSBuild finished but $prm is missing." }
 Sign-File $prm
 
 Step 'Signing the Premiere / After Effects panel (.zxp)'
+if ($Ci -and -not $env:PM_PANEL_CERT_PASS) { Fail 'CI needs PM_PANEL_CERT_PASS (the workflow sets it).' }
 Run 'Panel signing' { & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'sign-panel.ps1') -OutDir $dist }
 
 Step 'Packing the Photoshop plug-in (.ccx)'

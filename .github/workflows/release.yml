@@ -1,34 +1,188 @@
-# CI part of a release. The final PocketMonitorSetup-<version>.exe is built LOCALLY with
-# installer\build-release.ps1: it needs the licensed Adobe Premiere SDK (not in git), the panel
-# signing certificate and (optionally) a code-signing certificate. See installer/README.md.
-name: Release artifacts
+# Pushing a tag like v0.3.0 builds PocketMonitorSetup-<version>.exe on a GitHub Windows machine and
+# attaches it (+ .sha256) to a GitHub Release. Nothing is built on the owner's PC.
+# One-time setup (SDK upload, optional secrets): installer/README.md, section "Automatic releases".
+# "Run workflow" (workflow_dispatch) is a dry run: it builds and keeps the setup as a download, no release.
+name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+env:
+  # Adobe's own repo; 4.1.1 is the newest ZXPSignCmd that has a win64 build there.
+  ZXPSIGNCMD_URL: https://raw.githubusercontent.com/Adobe-CEP/CEP-Resources/master/ZXPSignCMD/4.1.1/win64/ZXPSignCmd.exe
 jobs:
   build:
     runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm run install:all
-      - run: npm run test:all
-      - name: Build helper exe
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-helper-exe.ps1
-      - name: Pack Photoshop plug-in (.ccx)
-        shell: pwsh
+
+      - name: Check the tag matches product.json
         run: |
-          New-Item -ItemType Directory -Force installer/dist | Out-Null
-          robocopy panels/uxp-photoshop installer/dist/ps-stage /E /XD test tools node_modules /XF package.json package-lock.json *.md | Out-Null
-          Compress-Archive -Path installer/dist/ps-stage/* -DestinationPath installer/dist/PocketMonitorPhotoshop.zip -Force
-          Move-Item installer/dist/PocketMonitorPhotoshop.zip installer/dist/PocketMonitorPhotoshop.ccx -Force
-      - uses: actions/upload-artifact@v4
+          $version = (Get-Content product.json -Raw | ConvertFrom-Json).version
+          "PM_VERSION=$version" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          if ($env:GITHUB_REF_TYPE -eq 'tag') {
+            $tag = $env:GITHUB_REF_NAME -replace '^v', ''
+            if ($tag -ne $version) {
+              Write-Host "::error::The tag is $env:GITHUB_REF_NAME but product.json says version $version. Delete the tag, bump product.json, run node tools/apply-branding.js, commit, then tag again."
+              exit 1
+            }
+            "PM_EXPECT_VERSION=$tag" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+          } else {
+            Write-Host "Dry run (not a tag): building version $version, no release will be made."
+          }
+
+      - name: Run the tests
+        run: |
+          npm run install:all
+          npm run test:all
+
+      - name: Download the Adobe Premiere SDK (private release asset)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $zipDir = Join-Path $env:RUNNER_TEMP 'sdkzip'
+          $sdkDir = Join-Path $env:RUNNER_TEMP 'sdk'
+          New-Item -ItemType Directory -Force $zipDir, $sdkDir | Out-Null
+          gh release download sdk -p premiere-sdk.zip -D $zipDir --repo $env:GITHUB_REPOSITORY
+          $zip = Join-Path $zipDir 'premiere-sdk.zip'
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path $zip)) {
+            Write-Host "::error::The Adobe Premiere SDK is missing. One-time fix: zip your 'Premiere Pro 27.0 C++ SDK' folder as premiere-sdk.zip, then on GitHub open this repo > Releases > Draft a new release, tag 'sdk', tick 'Set as a pre-release', drag premiere-sdk.zip into the box, Publish. Then run this build again. (Details: installer/README.md, 'Automatic releases'.)"
+            exit 1
+          }
+          Expand-Archive -Path $zip -DestinationPath $sdkDir -Force
+          Remove-Item $zip -Force
+          # The folder that holds Headers (and Utils) is the SDK "Examples" folder.
+          $headers = Get-ChildItem $sdkDir -Recurse -Directory -Filter Headers | Sort-Object { $_.FullName.Length } | Select-Object -First 1
+          if (-not $headers) {
+            Write-Host "::error::premiere-sdk.zip has no 'Headers' folder inside. Zip the whole 'Premiere Pro 27.0 C++ SDK' folder (it contains Examples\Headers) and upload it again."
+            exit 1
+          }
+          $examples = $headers.Parent.FullName
+          Write-Host "PREMIERE_SDK = $examples"
+          "PREMIERE_SDK=$examples" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Make sure Inno Setup is installed
+        run: |
+          $paths = @("${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe", "$env:ProgramFiles\Inno Setup 6\ISCC.exe")
+          if (-not ($paths | Where-Object { Test-Path $_ })) {
+            choco install innosetup -y --no-progress
+            if ($LASTEXITCODE -ne 0) { Write-Host '::error::Could not install Inno Setup with Chocolatey.'; exit 1 }
+          }
+          $found = $paths | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $found) { Write-Host '::error::ISCC.exe not found after install.'; exit 1 }
+          Write-Host "Inno Setup: $found"
+
+      - name: Download ZXPSignCmd (Adobe)
+        run: |
+          $dir = Join-Path $env:RUNNER_TEMP 'zxp'
+          New-Item -ItemType Directory -Force $dir | Out-Null
+          $exe = Join-Path $dir 'ZXPSignCmd.exe'
+          try { Invoke-WebRequest -Uri $env:ZXPSIGNCMD_URL -OutFile $exe -UseBasicParsing }
+          catch { Write-Host "::error::Could not download ZXPSignCmd from $env:ZXPSIGNCMD_URL ($_). Adobe may have moved it: find ZXPSignCmd.exe (win64) at https://github.com/Adobe-CEP/CEP-Resources/tree/master/ZXPSignCMD and change ZXPSIGNCMD_URL at the top of .github/workflows/release.yml."; exit 1 }
+          if ((Get-Item $exe).Length -lt 100000) { Write-Host '::error::The ZXPSignCmd download is too small, the URL is wrong.'; exit 1 }
+          "PM_ZXPSIGNCMD=$exe" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+
+      - name: Panel signing certificate (secret, or a temporary self-signed one)
+        env:
+          PM_PANEL_CERT_P12: ${{ secrets.PM_PANEL_CERT_P12 }}
+          PM_PANEL_CERT_PASS_SECRET: ${{ secrets.PM_PANEL_CERT_PASS }}
+        run: |
+          $certDir = Join-Path $env:USERPROFILE '.pocketmonitor'
+          New-Item -ItemType Directory -Force $certDir | Out-Null
+          $cert = Join-Path $certDir 'panel-cert.p12'
+          if ($env:PM_PANEL_CERT_P12 -and $env:PM_PANEL_CERT_PASS_SECRET) {
+            [IO.File]::WriteAllBytes($cert, [Convert]::FromBase64String($env:PM_PANEL_CERT_P12))
+            "PM_PANEL_CERT_PASS=$env:PM_PANEL_CERT_PASS_SECRET" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+            Write-Host 'Using the panel certificate from the repository secrets.'
+          } else {
+            Write-Host '::notice::No PM_PANEL_CERT_P12 / PM_PANEL_CERT_PASS secrets: using a temporary self-signed panel certificate (Adobe accepts it). Add the secrets to keep the same certificate every release.'
+            $pass = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 24 | ForEach-Object { [char]$_ })
+            Write-Host "::add-mask::$pass"
+            $env:PM_PANEL_CERT_PASS = $pass
+            "PM_PANEL_CERT_PASS=$pass" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+            & powershell -NoProfile -ExecutionPolicy Bypass -File installer/sign-panel.ps1 -CreateCert
+            if ($LASTEXITCODE -ne 0) { exit 1 }
+          }
+
+      - name: Optional Authenticode certificate
+        env:
+          PM_SIGN_CERT_P12: ${{ secrets.PM_SIGN_CERT_P12 }}
+          PM_SIGN_CERT_PASS: ${{ secrets.PM_SIGN_CERT_PASS }}
+        run: |
+          if ($env:PM_SIGN_CERT_P12 -and $env:PM_SIGN_CERT_PASS) {
+            $pfx = Join-Path $env:RUNNER_TEMP 'codesign.pfx'
+            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:PM_SIGN_CERT_P12))
+            "PM_SIGN_CERT=$pfx" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+            "PM_SIGN_PASS=$env:PM_SIGN_CERT_PASS" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
+            Write-Host 'Authenticode signing is ON (signs the helper exe, .prm and setup).'
+          } else {
+            Write-Host '::notice::No PM_SIGN_CERT_P12 / PM_SIGN_CERT_PASS secrets: the setup will NOT be code-signed, so Windows SmartScreen will warn users.'
+          }
+
+      - name: Build the installer
+        run: |
+          $psArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'installer/build-release.ps1', '-Ci', '-SdkPath', $env:PREMIERE_SDK, '-ZxpSignCmd', $env:PM_ZXPSIGNCMD)
+          if ($env:PM_EXPECT_VERSION) { $psArgs += @('-ExpectVersion', $env:PM_EXPECT_VERSION) }
+          & powershell @args
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Write the release notes
+        run: |
+          $setup = "PocketMonitorSetup-$env:PM_VERSION.exe"
+          $hash = ((Get-Content "installer/dist/$setup.sha256" -Raw).Trim() -split '\s+')[0]
+          $signed = [bool]$env:PM_SIGN_CERT
+          $signNote = if ($signed) { 'The installer is code-signed.' } else { 'The installer is not code-signed yet, so Windows may show a blue "Windows protected your PC" box: click More info, then Run anyway.' }
+          @"
+          ## Pocket Monitor $env:PM_VERSION
+
+          ### Install
+          1. Download **$setup** below.
+          2. Close Premiere Pro and After Effects, then double-click the file and click Yes.
+          3. Open Premiere Pro or After Effects: Window > Extensions > Pocket Monitor.
+          4. Premiere only: Edit > Preferences > Playback, tick Pocket Monitor under Video Device.
+
+          $signNote
+          Running a newer setup upgrades in place. Uninstall from the Start menu or Windows Settings > Apps.
+
+          ### Check the download (optional)
+          SHA256 of $setup :
+          ``$hash``
+          "@ | Set-Content -Path release-notes.md -Encoding utf8
+
+      - name: Keep the setup as a download (dry run only)
+        if: github.ref_type != 'tag'
+        uses: actions/upload-artifact@v4
         with:
-          name: helper-exe
-          path: installer/dist/helper/
-      - uses: actions/upload-artifact@v4
+          name: pocket-monitor-setup-dry-run
+          path: |
+            installer/dist/PocketMonitorSetup-*.exe
+            installer/dist/PocketMonitorSetup-*.exe.sha256
+          if-no-files-found: error
+
+      - name: Publish the GitHub Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
         with:
-          name: photoshop-ccx
-          path: installer/dist/PocketMonitorPhotoshop.ccx
+          name: Pocket Monitor ${{ env.PM_VERSION }}
+          body_path: release-notes.md
+          make_latest: 'true'
+          prerelease: false
+          fail_on_unmatched_files: true
+          files: |
+            installer/dist/PocketMonitorSetup-*.exe
+            installer/dist/PocketMonitorSetup-*.exe.sha256
