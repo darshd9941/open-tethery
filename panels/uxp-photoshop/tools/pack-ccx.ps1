@@ -1,4 +1,4 @@
-# Packs panels\uxp-photoshop into build\photoshop\com.opentethery.photoshop.ccx
+# Packs panels\uxp-photoshop into build\photoshop\com.pocketmonitor.photoshop.ccx
 # (a .ccx is a zip with manifest.json at the root). Overwrites any old file.
 # Not shipped: test, tools, node_modules, package*.json, README.md, dotfiles.
 #
@@ -11,7 +11,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 $pluginDir = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
 $outDir = Join-Path $repoRoot 'build\photoshop'
-$outFile = Join-Path $outDir 'com.opentethery.photoshop.ccx'
+$outFile = Join-Path $outDir 'com.pocketmonitor.photoshop.ccx'
 $excludeTop = @('test', 'tools', 'node_modules', 'package.json', 'package-lock.json', 'README.md')
 
 if (-not (Test-Path (Join-Path $pluginDir 'manifest.json'))) {

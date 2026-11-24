@@ -90,7 +90,7 @@
       try { sock = new WS(wsUrl); } catch (e) { onError(e); scheduleRetry(); return; }
       ws = sock;
       sock.onopen = function () {
-        send({ t: 'hello', role: 'panel', protocol: 1, name: opts.name || 'Open Tethery panel' });
+        send({ t: 'hello', role: 'panel', protocol: 1, name: opts.name || ((typeof OT_PRODUCT !== 'undefined' ? OT_PRODUCT.shortName : 'Pocket Monitor') + ' panel') });
       };
       sock.onmessage = function (ev) {
         var msg;

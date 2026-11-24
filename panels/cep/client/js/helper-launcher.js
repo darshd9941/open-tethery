@@ -1,4 +1,4 @@
-// Finds and starts the Open Tethery helper from inside CEP (Node enabled).
+// Finds and starts the Pocket Monitor helper from inside CEP (Node enabled).
 // Injected deps keep this testable: fs, spawn, env, execPath, platform.
 (function (root, factory) {
   var api = factory();
@@ -14,12 +14,14 @@
   // Candidates in priority order: installed exe, installed node.exe + helper source (dev install),
   // installer's start-helper.vbs, then dev "node <repo>/helper/bin/...". The process is spawned
   // directly with windowsHide, because antivirus may delete .vbs launchers.
+  var IDS = (typeof OT_PRODUCT !== 'undefined' && OT_PRODUCT.ids) || { installDir: 'PocketMonitor', helperExe: 'PocketMonitorHelper.exe' };
+
   function candidates(deps, config) {
     var env = deps.env || {};
     var list = [];
     if (env.LOCALAPPDATA) {
-      var dir = join(env.LOCALAPPDATA, 'OpenTethery', '\\');
-      list.push({ kind: 'exe', file: join(dir, 'OpenTetheryHelper.exe', '\\') });
+      var dir = join(env.LOCALAPPDATA, IDS.installDir, '\\');
+      list.push({ kind: 'exe', file: join(dir, IDS.helperExe, '\\') });
       list.push({ kind: 'node', file: join(dir, 'helper\\bin\\open-tethery-helper.js', '\\'),
         node: join(dir, 'node.exe', '\\') });
       list.push({ kind: 'vbs', file: join(dir, 'start-helper.vbs', '\\') });
@@ -44,7 +46,7 @@
   function start(deps, config) {
     var found = find(deps, config);
     if (!found) {
-      return { ok: false, reason: 'Could not find the helper in %LOCALAPPDATA%\\OpenTethery (run installer\\dev-install.ps1), and no devHelperPath is set in client/config.json.' };
+      return { ok: false, reason: 'Could not find the helper in %LOCALAPPDATA%\\' + IDS.installDir + ' (run installer\\dev-install.ps1), and no devHelperPath is set in client/config.json.' };
     }
     try {
       var child;

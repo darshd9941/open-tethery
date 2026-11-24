@@ -2,6 +2,7 @@
 
 // Wires everything together: HTTP + WebSocket on one port, OTX1 ingest on loopback.
 
+const fs = require('fs');
 const http = require('http');
 const os = require('os');
 const path = require('path');
@@ -15,7 +16,8 @@ const { Hub, originAllowed } = require('./hub');
 const { startIngest } = require('./ingest');
 const { createRtc } = require('./webrtc');
 const { toSvg } = require('./qr');
-const { serveViewer, findViewerDir } = require('./static');
+const { serveViewer, findViewerDir, placeholder } = require('./static');
+const { loadProduct, publicProduct } = require('./product');
 const { isLoopbackAddress, normalizeIp } = require('./session');
 
 // opts override config: rtc (a createRtc() result, for tests), port, ingestPort, lanIp, allowControl, viewerDir, logFile, echo,
@@ -25,6 +27,7 @@ function createHelper(opts = {}) {
   for (const k of ['port', 'ingestPort', 'lanIp', 'allowControl', 'viewerDir']) if (opts[k] !== undefined) cfg[k] = opts[k];
   const log = createLogger({ file: opts.logFile === undefined ? path.join(cfg.dir, 'helper.log') : opts.logFile, echo: opts.echo !== false });
   const viewerDir = findViewerDir(cfg.viewerDir);
+  const product = opts.product || loadProduct();
   // OT_RTC_HOST_ADDRESSES (comma separated) adds extra ICE host addresses, e.g. 127.0.0.1 for tests.
   const extraHosts = String((opts.env || process.env).OT_RTC_HOST_ADDRESSES || '').split(',').map((x) => x.trim()).filter(Boolean);
   const rtc = opts.rtc || createRtc({ log, ...(extraHosts.length ? { hostAddresses: extraHosts } : {}) });
@@ -59,7 +62,23 @@ function createHelper(opts = {}) {
     if (p === '/health') {
       // Public and harmless; the CEP panel (file:// origin) fetches it, so allow cross-origin reads.
       res.setHeader('Access-Control-Allow-Origin', '*');
-      return sendJson(res, 200, { ok: true, name: 'open-tethery', version: pkg.version, protocol: 1 });
+      return sendJson(res, 200, { ok: true, name: 'open-tethery', product: product.name, version: pkg.version, protocol: 1 });
+    }
+    if (p === '/product.json') {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      return sendJson(res, 200, publicProduct(product));
+    }
+    if (p === '/manifest.webmanifest' && viewerDir && (req.method === 'GET' || req.method === 'HEAD')) {
+      // PWA manifest with the product name filled in at serve time.
+      return fs.readFile(path.join(viewerDir, 'manifest.webmanifest'), 'utf8', (err, text) => {
+        let m;
+        try { m = JSON.parse(text); } catch { m = null; }
+        if (err || !m) return serveViewer(viewerDir, p, req, res, product.name);
+        m.name = product.name;
+        m.short_name = product.shortName;
+        res.writeHead(200, { 'Content-Type': 'application/manifest+json; charset=utf-8', 'Cache-Control': 'no-cache' });
+        res.end(req.method === 'HEAD' ? undefined : JSON.stringify(m));
+      });
     }
     if (p === '/api/session' && req.method === 'GET') return local ? sendJson(res, 200, hub.sessionInfo()) : deny();
     if (p === '/api/session/new') {
@@ -95,6 +114,7 @@ function createHelper(opts = {}) {
           recentStates: hub.recentStates.map((m) => JSON.parse(m)),
           viewers: hub.viewerReport(),
           version: pkg.version,
+          productName: product.name,
         });
         log(`report written: ${file}`);
         return sendJson(res, 200, { path: file, dir });
@@ -113,7 +133,7 @@ function createHelper(opts = {}) {
       res.writeHead(405, { 'Content-Type': 'text/plain' });
       return res.end('Method not allowed');
     }
-    return serveViewer(viewerDir, p, req, res);
+    return serveViewer(viewerDir, p, req, res, product.name);
   });
 
   const wss = new WebSocketServer({ noServer: true, maxPayload: 33 * 1024 * 1024 });
@@ -147,7 +167,7 @@ function createHelper(opts = {}) {
           resolve();
         });
       });
-      log(`open-tethery helper ${pkg.version} listening on port ${boundPort}; session code ${hub.code}`);
+      log(`${product.name} helper ${pkg.version} listening on port ${boundPort}; session code ${hub.code}`);
       log(viewerDir ? `viewer files: ${viewerDir}` : 'viewer files not found; serving placeholder page');
       ingest = await startIngest({
         port: cfg.ingestPort,

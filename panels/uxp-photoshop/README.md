@@ -1,6 +1,6 @@
-# Open Tethery - Photoshop UXP plugin
+# Pocket Monitor - Photoshop UXP plugin
 
-Plugins > **Open Tethery**. It is a "source" for the Open Tethery helper
+Plugins > **Pocket Monitor**. It is a "source" for the Pocket Monitor helper
 (`ws://127.0.0.1:47825/ws`, role `source`, see `docs/PROTOCOL.md` sections 3, 5, 9).
 It sends the open document as JPEG frames; the helper serves phones.
 
@@ -48,7 +48,7 @@ npm test           # node --test "test/*.test.js"
   `panels/uxp-photoshop/manifest.json` > Load.
 - Package: `node panels/uxp-photoshop/tools/pack-ccx.js` (any OS) or
   `powershell -ExecutionPolicy Bypass -File panels\uxp-photoshop\tools\pack-ccx.ps1`
-  creates `build/photoshop/com.opentethery.photoshop.ccx`; double-click it to install.
+  creates `build/photoshop/com.pocketmonitor.photoshop.ccx`; double-click it to install.
 
 The packers leave out: `test/`, `tools/`, `node_modules/`, `package.json`,
 `package-lock.json`, `README.md` and dotfiles.

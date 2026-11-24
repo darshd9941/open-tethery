@@ -40,6 +40,13 @@ export async function startFakeServer(opts = {}) {
   const received = [];
   const server = http.createServer((req, res) => {
     let p = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+    if (p === '/product.json') {
+      // The real helper serves this from the repo's product.json.
+      const prod = JSON.parse(fs.readFileSync(path.join(root, '..', 'product.json'), 'utf8'));
+      res.writeHead(200, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ name: prod.name, shortName: prod.shortName }));
+      return;
+    }
     if (p === '/' || /^\/c\/[A-Za-z0-9]{4}\/?$/.test(p)) p = '/index.html';
     const file = path.join(root, p);
     if (!file.startsWith(root) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {

@@ -1,4 +1,4 @@
-// Open Tethery — native Transmit plugin
+// Pocket Monitor — native Transmit plugin
 // Debug logging via OutputDebugString only (view with DebugView or a debugger).
 #pragma once
 
@@ -18,7 +18,7 @@ namespace otx {
 
 inline void Log(const char* fmt, ...) {
     char buf[512];
-    int n = std::snprintf(buf, sizeof(buf), "[OpenTethery] ");
+    int n = std::snprintf(buf, sizeof(buf), "[PocketMonitor] ");
     va_list args;
     va_start(args, fmt);
     std::vsnprintf(buf + n, sizeof(buf) - n - 2, fmt, args);

@@ -19,9 +19,10 @@ if (-not $WhatIfPreference -and -not (Test-Admin)) {
   Invoke-SelfElevate -ScriptPath $PSCommandPath -Bound $PSBoundParameters
 }
 
-Write-Log '=== Open Tethery uninstall ==='
+Write-Log "=== $($script:AppName) uninstall ==="
 
-Invoke-Step 'Stop running helper' { Stop-OpenTetheryHelper }
+Invoke-Step 'Stop running helper' { Stop-PocketMonitorHelper }
+Invoke-Step 'Remove old Open Tethery install (if present)' { Remove-LegacyInstall }
 Invoke-Step "Remove Run entry $($script:RunValueName)" {
   Remove-ItemProperty -Path $script:RunKeyPath -Name $script:RunValueName -ErrorAction SilentlyContinue
 }

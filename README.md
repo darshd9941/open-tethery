@@ -1,6 +1,6 @@
 <div align="center">
 
-# Open Tethery
+# Pocket Monitor
 
 **See your Premiere Pro, After Effects or Photoshop edit live on your phone.**
 Scan a QR code, press play, and the phone plays the Program Monitor in real time, with sound,
@@ -13,7 +13,7 @@ social-app frames, scopes and playback controls. Nothing to install on the phone
 ![Photoshop](https://img.shields.io/badge/Photoshop-2023%2B-31A8FF)
 ![Phones](https://img.shields.io/badge/phone-iPhone%20%7C%20Android%20%7C%20any%20browser-lightgrey)
 
-<img src="docs/images/panel.jpg" alt="The Open Tethery panel in Premiere with a QR code and two connected phones" height="420">
+<img src="docs/images/panel.jpg" alt="The Pocket Monitor panel in Premiere with a QR code and two connected phones" height="420">
 &nbsp;&nbsp;
 <img src="docs/images/reels.jpg" alt="Phone showing the edit inside an Instagram Reels style frame" height="420">
 &nbsp;&nbsp;
@@ -27,7 +27,7 @@ social-app frames, scopes and playback controls. Nothing to install on the phone
 
 ## What it does
 
-Most video is watched on a phone. Most video is edited on a big monitor. Open Tethery turns any phone,
+Most video is watched on a phone. Most video is edited on a big monitor. Pocket Monitor turns any phone,
 tablet or laptop on your network into a second Program Monitor, so you can check framing, captions and
 colour on the screen your audience will actually use, without exporting anything.
 
@@ -47,9 +47,9 @@ colour on the screen your audience will actually use, without exporting anything
 
 | App | Version | How it appears | Live playback | Sound |
 |---|---|---|---|---|
-| Premiere Pro | 2024 or newer | Window › Extensions › **Open Tethery** | Yes | Yes |
-| After Effects | 2024 or newer | Window › Extensions › **Open Tethery** | Yes | No (Adobe limit) |
-| Photoshop | 2023 (24.0) or newer | Plugins › **Open Tethery** | Live canvas | n/a |
+| Premiere Pro | 2024 or newer | Window › Extensions › **Pocket Monitor** | Yes | Yes |
+| After Effects | 2024 or newer | Window › Extensions › **Pocket Monitor** | Yes | No (Adobe limit) |
+| Photoshop | 2023 (24.0) or newer | Plugins › **Pocket Monitor** | Live canvas | n/a |
 
 - **Computer:** Windows 10 or 11, 64-bit. macOS is planned.
 - **Phone / tablet:** any modern browser. Tested with iPhone Safari and Android Chrome.
@@ -62,12 +62,12 @@ colour on the screen your audience will actually use, without exporting anything
 
 ### Option A: installer (recommended, coming with the first release)
 
-1. Download `OpenTetherySetup.exe` from the [Releases](../../releases) page.
+1. Download `PocketMonitorSetup.exe` from the [Releases](../../releases) page.
 2. Close Premiere Pro, After Effects and Photoshop.
 3. Double-click the installer and click **Yes** when Windows asks for permission.
 
 That's it. The installer adds the panel, the Premiere/After Effects plug-in, the Photoshop plug-in, the
-background helper, a firewall rule for your private network, and an **Uninstall Open Tethery** entry.
+background helper, a firewall rule for your private network, and an **Uninstall Pocket Monitor** entry.
 
 ### Option B: install from this repository (works today)
 
@@ -97,8 +97,8 @@ Adobe only sends video to plug-ins you switch on. Do this once per app, after in
 
 | App | Where | What to tick |
 |---|---|---|
-| Premiere Pro | Edit › Preferences › **Playback** › Video Device | **Open Tethery** |
-| After Effects | Edit › Preferences › **Video Preview** | **Open Tethery** |
+| Premiere Pro | Edit › Preferences › **Playback** › Video Device | **Pocket Monitor** |
+| After Effects | Edit › Preferences › **Video Preview** | **Pocket Monitor** |
 
 The panel checks this for you. If it's off, the panel says so and shows these exact clicks.
 
@@ -106,7 +106,7 @@ The panel checks this for you. If it's off, the panel says so and shows these ex
 
 ### Uninstall
 
-Use **Settings › Apps › Open Tethery › Uninstall**, or for a repository install:
+Use **Settings › Apps › Pocket Monitor › Uninstall**, or for a repository install:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File installer\dev-uninstall.ps1
@@ -114,7 +114,7 @@ powershell -ExecutionPolicy Bypass -File installer\dev-uninstall.ps1
 
 ## Use it
 
-1. **Open the panel.** Premiere / After Effects: **Window › Extensions › Open Tethery**. Photoshop: **Plugins › Open Tethery**.
+1. **Open the panel.** Premiere / After Effects: **Window › Extensions › Pocket Monitor**. Photoshop: **Plugins › Pocket Monitor**.
 2. **Scan the QR code** with your phone's camera. Or open the address under the QR and type the
    **four-letter code** (for example `CL7G`).
 3. **Press play** in Premiere. The phone plays along. Tap **Sound** on the phone to hear the timeline
@@ -141,8 +141,8 @@ Tip: on iPhone use **Share › Add to Home Screen** and the viewer opens full sc
 - Make sure the phone and PC are on the **same network**. Guest Wi-Fi and many office networks block
   devices from seeing each other. Use a phone hotspot or USB cable instead (pick it in the panel's
   **Connection** menu, the QR updates).
-- Windows Firewall must allow **TCP port 47825** on **Private** networks. The installer adds the rule
-  "Open Tethery Helper". If your Wi-Fi is set to *Public* in Windows, switch it to *Private*.
+- Windows Firewall must allow **TCP port 47825** on **Private** networks. The installer adds the rules
+  "Pocket Monitor Helper" and "Pocket Monitor Helper (video)". If your Wi-Fi is set to *Public* in Windows, switch it to *Private*.
 - VPN on the PC or phone? Turn it off or use the **Tailscale** option in the Connection menu.
 </details>
 
@@ -157,13 +157,13 @@ Premiere/After Effects panel starts it if it isn't running. Otherwise sign out a
 <details>
 <summary><b>The phone connects but shows "waiting for picture"</b></summary>
 
-- Premiere / AE: switch on **Open Tethery** in Preferences (see [One-time switch](#one-time-switch-in-premiere-and-after-effects)) and restart the app.
+- Premiere / AE: switch on **Pocket Monitor** in Preferences (see [One-time switch](#one-time-switch-in-premiere-and-after-effects)) and restart the app.
 - Play or scrub the timeline once. A picture is sent when the Program Monitor draws a frame.
 - Photoshop: open a document.
 </details>
 
 <details>
-<summary><b>"Open Tethery" is missing from Window › Extensions</b></summary>
+<summary><b>"Pocket Monitor" is missing from Window › Extensions</b></summary>
 
 Restart the Adobe app after installing. For a repository install, unsigned panels need Adobe's debug flag;
 `dev-install.ps1` sets it for you (`PlayerDebugMode` under `HKCU\Software\Adobe\CSXS.9` to `CSXS.13`).
@@ -229,7 +229,7 @@ Wire formats: [docs/PROTOCOL.md](docs/PROTOCOL.md) (helper ↔ panels ↔ phones
 | Premiere playback on the phone (JPEG) | ✅ working on a real PC |
 | H.264 over WebRTC, sound, phone controls, pairing code, connections | 🧪 built and tested automatically, real-PC check in progress |
 | Social frames, guides, scopes, exposure, save frame | 🧪 built and tested in a phone-size browser |
-| One-click installer (`OpenTetherySetup.exe`) | 🛠 script written, first build pending |
+| One-click installer (`PocketMonitorSetup.exe`) | ✅ built automatically on each release |
 | macOS, viewing over the internet | 🔜 later |
 
 ## For developers
@@ -272,10 +272,10 @@ sdk/Premiere Pro 27.0 C++ SDK/Examples/Headers
 or set `PREMIERE_SDK` to the SDK's `Examples` folder. Then build with Visual Studio 2022:
 
 ```bat
-MSBuild native\transmit\OpenTetheryTransmit.vcxproj /p:Configuration=Release /p:Platform=x64
+MSBuild native\transmit\PocketMonitorTransmit.vcxproj /p:Configuration=Release /p:Platform=x64
 ```
 
-Output: `build\native\Release\OpenTetheryTransmit.prm`. Details and the PC test checklist:
+Output: `build\native\Release\PocketMonitorTransmit.prm`. Details and the PC test checklist:
 [native/transmit/README.md](native/transmit/README.md).
 
 ### Contributing
@@ -283,8 +283,39 @@ Output: `build\native\Release\OpenTetheryTransmit.prm`. Details and the PC test 
 Issues and pull requests are welcome. Each folder's README has a **Needs PC test** list; those are the
 most useful things to try on a real machine.
 
+## Renaming the product
+
+The name lives in one file, `product.json` at the repo root.
+
+1. Edit `name`, `shortName` and `vendor` in `product.json` (and `version` when you release).
+2. Run `node tools/apply-branding.js`. It rewrites the files that cannot read the name at run time:
+   the CEP `CSXS/manifest.xml` (bundle name, Window > Extensions menu entry), the Photoshop `manifest.json`,
+   `installer/version.txt`, `installer/PocketMonitor.iss`, `installer/common.ps1`,
+   `native/transmit/src/ProductName.h` (Premiere Preferences device name and the "L/R" audio output names) and
+   the panels' `js/product.js`. `node tools/apply-branding.js --check` fails if anything is out of sync
+   (it runs as part of `npm run test:all`).
+3. Rebuild and reinstall: build the Transmit plug-in (`native/transmit`), run `installer/build-helper-exe.ps1`,
+   then `installer/dev-install.ps1` or compile `installer/PocketMonitor.iss`.
+
+The helper and phone viewer read `product.json` at run time (`GET /product.json`), so they need no rebuild
+beyond restarting the helper.
+
+Only display text follows `name`. The `ids` block (CEP bundle id, Photoshop plug-in id, helper exe name,
+install folder, MediaCore folder, .prm file name) is what Adobe, Windows and the installer use to recognise an
+existing install. Changing an id breaks upgrades: the old version stays installed next to the new one. Change
+ids only deliberately, and add the old values to the "legacy" cleanup in `installer/common.ps1` and the `.iss`.
+Protocol ids stay as they are on purpose: `/health` still answers `"name": "open-tethery"` (new field
+`product` carries the display name), and the OTX1 magic and WebSocket message names are unchanged.
+
+Upgrading from the earlier "Open Tethery" build: the installers remove its CEP panel, `%LOCALAPPDATA%\OpenTethery`,
+`MediaCore\OpenTethery`, the old start-up entry, the "Open Tethery Helper" firewall rules and the old Photoshop plug-in.
+
+## Releasing
+
+One command on a Windows PC builds the user-facing installer: `powershell -ExecutionPolicy Bypass -File installer\build-release.ps1`. Prerequisites and details: `installer/README.md` ("Make a release").
+
 ---
 
-<sub>Open Tethery is an independent project, not affiliated with or endorsed by Adobe. Premiere Pro,
+<sub>Pocket Monitor is an independent project, not affiliated with or endorsed by Adobe. Premiere Pro,
 After Effects and Photoshop are trademarks of Adobe. Social platform frames are original outline drawings,
 not those apps' artwork.</sub>

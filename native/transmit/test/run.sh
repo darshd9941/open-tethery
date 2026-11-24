@@ -22,7 +22,7 @@ node "$here/check_golden.js" "$out/golden.bin"
 [ -x "$out/test_h264" ] && "$out/test_h264"
 
 if [ -n "${SDK_HEADERS:-}" ] && command -v x86_64-w64-mingw32-g++ >/dev/null; then
-  for f in OpenTetheryTransmit FrameSender JpegEncoder H264Encoder; do
+  for f in PocketMonitorTransmit FrameSender JpegEncoder H264Encoder; do
     [ -f "$here/../src/$f.cpp" ] || continue
     x86_64-w64-mingw32-g++ -std=c++17 -w -fsyntax-only -DPRWIN_ENV -DWIN32 -D_WINDOWS \
       -I"$SDK_HEADERS" "$here/../src/$f.cpp"

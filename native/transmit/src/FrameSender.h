@@ -1,4 +1,4 @@
-// Open Tethery — native Transmit plugin
+// Pocket Monitor — native Transmit plugin
 // FrameSender: owns the "latest frame" slot and the worker thread that
 // downscales, JPEG-encodes and sends frames to the local relay (OTX1 protocol,
 // see docs/transmit-protocol.md).

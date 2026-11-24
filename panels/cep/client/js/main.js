@@ -2,6 +2,15 @@
 (function () {
   'use strict';
   var OT = window.OT;
+  var P = (typeof OT_PRODUCT !== 'undefined' && OT_PRODUCT) || { name: 'Pocket Monitor', shortName: 'Pocket Monitor' };
+  var PRODUCT = P.shortName;
+  // Static HTML carries a fallback; the generated product.js supplies the real name.
+  (function applyBrand() {
+    var i, n = document.querySelectorAll('[data-brand]');
+    for (i = 0; i < n.length; i++) n[i].textContent = P[n[i].getAttribute('data-brand')] || n[i].textContent;
+    n = document.querySelectorAll('[data-brand-text]');
+    for (i = 0; i < n.length; i++) n[i].textContent = n[i].getAttribute('data-brand-text').replace('{name}', P.name);
+  })();
   var F = OT.format;
   var C = OT.connections;
   var $ = function (id) { return document.getElementById(id); };
@@ -44,7 +53,7 @@
   var launchNote = '';
   function startHelper() {
     if (!cp || !nodeFs) {
-      launchNote = 'This panel cannot start programs (Node is off). Start Open Tethery from the Start menu.';
+      launchNote = 'This panel cannot start programs (Node is off). Start ' + PRODUCT + ' from the Start menu.';
       renderHelper();
       return false;
     }
@@ -84,7 +93,7 @@
     $('pairing').hidden = down;
     if (down) {
       $('helperText').textContent = launchNote ||
-        'Open Tethery needs its small helper program to talk to phones. Click Start, or wait a moment: the panel keeps trying.';
+        PRODUCT + ' needs its small helper program to talk to phones. Click Start, or wait a moment: the panel keeps trying.';
     }
   }
 
@@ -183,6 +192,7 @@
       li.appendChild(kick);
       ul.appendChild(li);
     });
+    renderGuide();
   }
 
   // ---- buttons
@@ -243,6 +253,69 @@
 
   allow.addEventListener('change', function () {
     client.setAllowControl(allow.checked);
+  });
+
+  // ---- first-run guide
+  var store = null;
+  try { store = window.localStorage; } catch (e) {}
+  var guide = OT.onboarding.create(store);
+
+  function renderGuide() {
+    var box = $('guide');
+    box.hidden = !guide.open;
+    if (!guide.open) return;
+    var app = state && state.host && state.host.app;
+    var st = OT.onboarding.steps(app, PRODUCT)[guide.step];
+    var tickOk = OT.onboarding.ticks(status === 'connected' ? state : null)[guide.step];
+    $('guideTitle').textContent = (guide.step + 1) + '. ' + st.title;
+    var lines = $('guideLines');
+    lines.textContent = '';
+    st.lines.forEach(function (t) {
+      var p = document.createElement('p');
+      p.textContent = t;
+      lines.appendChild(p);
+    });
+    var tk = $('guideTick');
+    tk.hidden = !st.tick;
+    tk.className = 'guide-tick' + (tickOk ? ' ok' : '');
+    $('guideTickText').textContent = st.tick ? (tickOk ? st.tick : 'Waiting: ' + st.tick.toLowerCase()) : '';
+    var dots = $('guideDots');
+    dots.textContent = '';
+    for (var i = 0; i < OT.onboarding.COUNT; i++) {
+      var d = document.createElement('i');
+      d.className = i <= guide.step ? 'on' : '';
+      dots.appendChild(d);
+    }
+    $('guideBack').hidden = guide.step === 0;
+    $('guideSkip').hidden = guide.isLast();
+    $('guideNext').textContent = guide.isLast() ? 'Done' : 'Next';
+  }
+  $('guideNext').addEventListener('click', function () { guide.next(); renderGuide(); });
+  $('guideBack').addEventListener('click', function () { guide.back(); renderGuide(); });
+  $('guideSkip').addEventListener('click', function () { guide.skip(); renderGuide(); });
+  $('menuBtn').addEventListener('click', function (e) {
+    e.stopPropagation();
+    var m = $('menu');
+    m.hidden = !m.hidden;
+    $('menuBtn').setAttribute('aria-expanded', String(!m.hidden));
+  });
+  document.addEventListener('click', function () { $('menu').hidden = true; $('menuBtn').setAttribute('aria-expanded', 'false'); });
+  $('guideBtn').addEventListener('click', function () { guide.reset(); renderGuide(); });
+
+  // ---- update check (silent when offline)
+  function openUrl(u) { if (cs && u) cs.openURLInDefaultBrowser(u); }
+  OT.updateCheck.check({
+    storage: store,
+    updateUrl: P.updateUrl,
+    current: P.version,
+    fetchImpl: function (u) { return window.fetch(u, { headers: { Accept: 'application/vnd.github+json' } }); }
+  }).then(function (b) {
+    if (!b) return;
+    var rel = b.url || 'https://github.com/darshd9941/open-tethery/releases/latest';
+    $('updateText').textContent = PRODUCT + ' ' + b.version + ' is available';
+    $('updateBanner').hidden = false;
+    $('updateBtn').onclick = function () { openUrl(rel); };
+    $('updateClose').onclick = function () { OT.updateCheck.dismiss(store, b.version); $('updateBanner').hidden = true; };
   });
 
   renderHelper();

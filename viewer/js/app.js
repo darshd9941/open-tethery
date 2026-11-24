@@ -1,4 +1,4 @@
-// Open Tethery phone viewer: wires the UI to the helper (docs/PROTOCOL.md v1).
+// Pocket Monitor phone viewer: wires the UI to the helper (docs/PROTOCOL.md v1).
 import { bus } from './bus.js';
 import { setStage, publishFrame, publishLayout, getStage } from './frame-bus.js';
 import { parseOTV1 } from './otv1.js';
@@ -14,16 +14,17 @@ import { createGestures } from './gestures.js';
 import { saveFrame, shareLink } from './share.js';
 import { guessDeviceName } from './device.js';
 import { store } from './storage.js';
+import { brand, loadBrand } from './brand.js';
 
 const $ = (id) => document.getElementById(id);
 const KEY_CODE = 'ot.lastCode';
 const KEY_SYNC = 'ot.syncMs';
 const KEY_VOL = 'ot.volume';
 const APP_NAMES = { premiere: 'Premiere Pro', aftereffects: 'After Effects', photoshop: 'Photoshop' };
-const ENGINE_HINTS = {
-  premiere: 'In Premiere Pro: Edit > Preferences > Playback, tick Open Tethery under Video Device.',
-  aftereffects: 'In After Effects: Edit > Preferences > Video Preview, choose Open Tethery.',
-};
+const engineHint = (app) => ({
+  premiere: `In Premiere Pro: Edit > Preferences > Playback, tick ${brand.shortName} under Video Device.`,
+  aftereffects: `In After Effects: Edit > Preferences > Video Preview, choose ${brand.shortName}.`,
+})[app];
 
 const app = $('app');
 const stage = $('stage');
@@ -117,9 +118,9 @@ function updateCover() {
   if (hasFrame) { $('cover').hidden = true; return; }
   if (!conn?.welcomed) return;
   const lines = [];
-  const hint = ENGINE_HINTS[hostApp()];
+  const hint = engineHint(hostApp());
   if (state?.engine && state.engine.transmit === false) {
-    lines.push(hint || 'Open Premiere Pro or After Effects and turn on Open Tethery in its preferences.');
+    lines.push(hint || `Open Premiere Pro or After Effects and turn on ${brand.shortName} in its preferences.`);
   } else if (state?.status === 'live') {
     lines.push('The picture will appear in a moment.');
   } else {
@@ -546,7 +547,7 @@ function showEntry({ prefill, error, retryInSec } = {}) {
   if (error === 'bad-code') {
     if (store.get(KEY_CODE) === code) store.remove(KEY_CODE);
     chars = Array(CODE_LENGTH).fill('');
-    setEntryError("That code isn't right. Check the 4 characters in the Open Tethery panel on your PC.");
+    setEntryError(`That code isn't right. Check the 4 characters in the ${brand.shortName} panel on your PC.`);
   } else if (error === 'locked') {
     lockedUntil = Date.now() + (retryInSec || 60) * 1000;
     const tick = () => {
@@ -700,7 +701,7 @@ $('btnSave').addEventListener('click', () => doSave());
 
 $('btnShare').addEventListener('click', async () => {
   if (!code) return;
-  const r = await shareLink(`${location.origin}/c/${code}`, 'Open Tethery stream');
+  const r = await shareLink(`${location.origin}/c/${code}`, `${brand.shortName} stream`);
   if (r === 'copied') toast('Link copied.');
   else if (r === 'failed') toast(`Link: ${location.origin}/c/${code}`, 8000);
 });
@@ -759,6 +760,7 @@ window.addEventListener('pageshow', () => conn?.nudge());
 
 // ---------------------------------------------------------------- boot
 
+loadBrand(); // name comes from the helper's /product.json; HTML holds a fallback
 updateSound();
 updateTransport();
 requestWakeLock();

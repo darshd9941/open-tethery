@@ -246,3 +246,21 @@ test('state model: heartbeats keep Transmit live; a source stays live while conn
   m.clearHost('source', 's1');
   assert.strictEqual(m.snapshot().status, 'idle');
 });
+
+test('product: loadProduct reads product.json override; placeholder uses the name', () => {
+  const fs = require('fs'); const os = require('os'); const path = require('path');
+  const f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'prod-')), 'product.json');
+  fs.writeFileSync(f, JSON.stringify({ name: 'Zed <Cam>', shortName: 'Zed' }));
+  const old = process.env.OT_PRODUCT_FILE;
+  process.env.OT_PRODUCT_FILE = f;
+  try {
+    const { loadProduct, publicProduct } = require('../lib/product');
+    const p = loadProduct();
+    assert.strictEqual(p.name, 'Zed <Cam>');
+    assert.strictEqual(publicProduct(p).shortName, 'Zed');
+    const html = require('../lib/static').placeholder(p.name);
+    assert.match(html, /<h1>Zed &lt;Cam&gt;<\/h1>/);
+  } finally {
+    if (old === undefined) delete process.env.OT_PRODUCT_FILE; else process.env.OT_PRODUCT_FILE = old;
+  }
+});

@@ -1,6 +1,6 @@
 {
-  "name": "Open Tethery",
-  "short_name": "Tethery",
+  "name": "Pocket Monitor",
+  "short_name": "Pocket Monitor",
   "description": "Live preview and playback control for your editing PC, on your phone.",
   "start_url": "/",
   "scope": "/",

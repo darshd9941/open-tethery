@@ -23,7 +23,7 @@ function fakeQr() {
 
 async function main() {
   fs.mkdirSync(OUT, { recursive: true });
-  const live = { engine: true };
+  const live = { engine: true, viewers: 2 };
   const server = http.createServer((req, res) => {
     res.setHeader('access-control-allow-origin', '*');
     if (req.url.startsWith('/health')) return res.end(JSON.stringify({ ok: true, name: 'open-tethery', version: '0.2.0', protocol: 1 }));
@@ -33,8 +33,7 @@ async function main() {
   const wss = new WebSocketServer({ server, path: '/ws' });
   wss.on('connection', (ws) => {
     ws.on('message', (d) => {
-      if (JSON.parse(d).t !== 'hello') return;
-      ws.send(JSON.stringify({ t: 'welcome', id: 'p1', role: 'panel', protocol: 1 }));
+      if (JSON.parse(d).t === 'hello') ws.send(JSON.stringify({ t: 'welcome', id: 'p1', role: 'panel', protocol: 1 }));
       ws.send(JSON.stringify({
         t: 'state', status: live.engine ? 'live' : 'idle', code: 'CL7G',
         primaryUrl: 'http://192.168.1.20:47825/c/CL7G',
@@ -45,7 +44,7 @@ async function main() {
           { kind: 'hotspot', label: 'Phone hotspot', name: 'Local Area Connection* 10', ip: '192.168.137.1', url: 'http://192.168.137.1:47825/c/CL7G', recommended: false },
           { kind: 'tailscale', label: 'Tailscale', name: 'Tailscale', ip: '100.101.102.103', url: 'http://100.101.102.103:47825/c/CL7G', recommended: false }
         ],
-        allowControl: true, engine: { transmit: live.engine, sending: live.engine }, viewers: 2,
+        allowControl: true, engine: { transmit: live.engine, sending: live.engine }, viewers: live.viewers,
         viewerList: [{ id: 'v1', name: 'Pixel 8', ip: '192.168.1.31', delayMs: 140 }, { id: 'v2', name: 'iPhone 15', ip: '192.168.1.44', delayMs: 95 }]
       }));
       ws.send(JSON.stringify({ t: 'stats', fps: 23.9, kbps: 8400 }));
@@ -62,6 +61,7 @@ async function main() {
     await page.addInitScript((h) => {
       window.__OT_CONFIG = { helperHost: h, devHelperPath: '' };
       window.CSInterface = function () { this.evalScript = (s, cb) => cb('{"ok":true}'); };
+      try { localStorage.setItem('ot.guide.seen', '1'); } catch (e) {}
     }, host);
     await page.goto(INDEX);
     await page.waitForFunction(() => document.getElementById('code').textContent === 'CL7G');
@@ -81,10 +81,47 @@ async function main() {
   await page.addInitScript(() => {
     window.__OT_CONFIG = { helperHost: '127.0.0.1:1', devHelperPath: '' };
     window.CSInterface = function () { this.evalScript = (s, cb) => cb('{"ok":true}'); };
+    try { localStorage.setItem('ot.guide.seen', '1'); } catch (e) {}
   });
   await page.goto(INDEX);
   await page.waitForSelector('#helperCard:not([hidden])');
   await page.screenshot({ path: path.join(OUT, 'panel-helper-down.png') });
+  await page.close();
+
+  // First-run guide, each step. Engine off + no phones first, so the ticks start grey and turn green.
+  const g = await browser.newPage({ viewport: { width: 320, height: 560 } });
+  await g.addInitScript((h) => {
+    window.__OT_CONFIG = { helperHost: h, devHelperPath: '' };
+    window.CSInterface = function () { this.evalScript = (s, cb) => cb('{"ok":true}'); this.openURLInDefaultBrowser = () => {}; };
+    const f = window.fetch.bind(window);
+    window.fetch = (u, o) => String(u).includes('api.github.com')
+      ? Promise.resolve({ ok: true, json: () => Promise.resolve({ tag_name: 'v9.0.0', html_url: 'https://github.com/darshd9941/open-tethery/releases/tag/v9.0.0' }) })
+      : f(u, o);
+  }, host);
+  live.engine = false; live.viewers = 0;
+  await g.goto(INDEX);
+  await g.waitForSelector('#guide:not([hidden])');
+  await g.waitForFunction(() => document.getElementById('code').textContent === 'CL7G');
+  await g.waitForSelector('#updateBanner:not([hidden])');
+  await g.screenshot({ path: path.join(OUT, 'guide-1-waiting.png') });
+  live.engine = true;
+  await g.evaluate(() => window.__otClient.getState());
+  await g.waitForSelector('#guideTick.ok');
+  await g.screenshot({ path: path.join(OUT, 'guide-1-done.png') });
+  await g.click('#guideNext');
+  await g.screenshot({ path: path.join(OUT, 'guide-2-waiting.png') });
+  live.viewers = 2;
+  await g.evaluate(() => window.__otClient.getState());
+  await g.waitForSelector('#guideTick.ok');
+  await g.screenshot({ path: path.join(OUT, 'guide-2-scan.png') });
+  await g.click('#guideNext');
+  await g.screenshot({ path: path.join(OUT, 'guide-3-tap.png') });
+  await g.click('#guideNext');
+  await g.waitForSelector('#guide', { state: 'hidden' });
+  await g.click('#menuBtn');
+  await g.screenshot({ path: path.join(OUT, 'panel-menu.png') });
+  await g.click('#guideBtn');
+  await g.waitForSelector('#guide:not([hidden])');
   await browser.close();
   wss.clients.forEach((c) => c.terminate());
   server.close();

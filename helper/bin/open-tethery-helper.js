@@ -4,7 +4,7 @@
 const http = require('http');
 const { createHelper } = require('../lib/index');
 
-// Is an Open Tethery helper already answering on this port?
+// Is an Pocket Monitor helper already answering on this port?
 function probeExisting(port) {
   return new Promise((resolve) => {
     const req = http.get({ host: '127.0.0.1', port, path: '/health', timeout: 1500 }, (res) => {

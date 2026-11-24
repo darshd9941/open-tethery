@@ -1,6 +1,6 @@
 'use strict';
 
-// Packs the plugin into build/photoshop/com.opentethery.photoshop.ccx (a zip
+// Packs the plugin into build/photoshop/com.pocketmonitor.photoshop.ccx (a zip
 // with manifest.json at the root). No dependencies: writes the zip itself.
 //
 //   node panels/uxp-photoshop/tools/pack-ccx.js [outFile]
@@ -106,7 +106,7 @@ function pack(outFile) {
 }
 
 if (require.main === module) {
-  const out = path.resolve(process.argv[2] || path.join(PLUGIN_DIR, '..', '..', 'build', 'photoshop', 'com.opentethery.photoshop.ccx'));
+  const out = path.resolve(process.argv[2] || path.join(PLUGIN_DIR, '..', '..', 'build', 'photoshop', 'com.pocketmonitor.photoshop.ccx'));
   const files = pack(out);
   console.log('Created ' + out + ' (' + files.length + ' files)');
 }

@@ -54,7 +54,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 test('HTTP: health, session, viewer pages, static files, qr, log', async () => {
   await withHelper(async ({ port, code, track }) => {
     const health = JSON.parse((await get(port, '/health')).body);
-    assert.deepStrictEqual(health, { ok: true, name: 'open-tethery', version: '0.2.0', protocol: 1 });
+    assert.deepStrictEqual(health, { ok: true, name: 'open-tethery', product: 'Pocket Monitor', version: '0.2.0', protocol: 1 });
+
+    const prod = JSON.parse((await get(port, '/product.json')).body);
+    assert.strictEqual(prod.name, require('../../product.json').name);
+    assert.ok(!('ids' in prod));
 
     for (const p of ['/', `/c/${code}`]) {
       const r = await get(port, p);

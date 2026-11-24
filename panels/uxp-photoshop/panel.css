@@ -1,4 +1,4 @@
-/* Open Tethery panel. Plain flexbox only (no grid, no :has, no backdrop-filter). */
+/* Pocket Monitor panel. Plain flexbox only (no grid, no :has, no backdrop-filter). */
 :root {
   --ok: #45d483;
   --warn: #f0b429;

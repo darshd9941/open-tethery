@@ -1,4 +1,4 @@
-// Open Tethery — native Transmit plugin
+// Pocket Monitor — native Transmit plugin
 // Media Foundation H.264 encoder wrapper. See H264Encoder.h.
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN

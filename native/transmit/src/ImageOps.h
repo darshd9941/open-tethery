@@ -1,4 +1,4 @@
-// Open Tethery — native Transmit plugin
+// Pocket Monitor — native Transmit plugin
 // Pixel helpers for the H.264 path: size fitting, box downscale and the
 // BGRA -> NV12 converter (BT.709, limited range). Pure C++, unit-tested.
 #pragma once

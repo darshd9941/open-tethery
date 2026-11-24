@@ -5,6 +5,7 @@
   root.OT.format = api;
   if (typeof module === 'object' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis, function () {
+  var PRODUCT = (typeof OT_PRODUCT !== 'undefined' && OT_PRODUCT.shortName) || 'Pocket Monitor';
   var APP_NAMES = { premiere: 'Premiere Pro', aftereffects: 'After Effects', photoshop: 'Photoshop' };
 
   function fpsValue(seq) {
@@ -47,9 +48,9 @@
   // Exact clicks for turning the Transmit engine on.
   function engineHint(app) {
     if (app === 'aftereffects') {
-      return 'Edit > Preferences > Video Preview, choose Open Tethery as the output device';
+      return 'Edit > Preferences > Video Preview, choose ' + PRODUCT + ' as the output device';
     }
-    return 'Edit > Preferences > Playback, tick Open Tethery under Video Device';
+    return 'Edit > Preferences > Playback, tick ' + PRODUCT + ' under Video Device';
   }
 
   // Returns null when fine, else {title, body, steps}.
@@ -58,7 +59,7 @@
     var app = state.host && state.host.app === 'aftereffects' ? 'aftereffects' : 'premiere';
     var appName = app === 'aftereffects' ? 'After Effects' : 'Premiere Pro';
     return {
-      title: 'Open Tethery is switched off in ' + appName,
+      title: PRODUCT + ' is switched off in ' + appName,
       body: 'Phones cannot see your picture until you turn it on.',
       steps: engineHint(app)
     };

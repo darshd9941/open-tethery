@@ -1,7 +1,7 @@
 'use strict';
 
 // Helper configuration: defaults < config file < environment.
-//   Windows: %APPDATA%\OpenTethery\config.json
+//   Windows: %APPDATA%\PocketMonitor\config.json
 //   others : $XDG_CONFIG_HOME or ~/.config, then open-tethery/config.json
 // File keys: port, ingestPort, lanIp, allowControl, viewerDir.
 
@@ -13,7 +13,7 @@ const DEFAULTS = { port: 47825, ingestPort: 47826, lanIp: null, allowControl: tr
 
 function configDir(env = process.env) {
   if (process.platform === 'win32') {
-    return path.join(env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'OpenTethery');
+    return path.join(env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'PocketMonitor');
   }
   return path.join(env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'), 'open-tethery');
 }

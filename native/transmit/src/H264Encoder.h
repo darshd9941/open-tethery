@@ -1,4 +1,4 @@
-// Open Tethery — native Transmit plugin
+// Pocket Monitor — native Transmit plugin
 // H.264 encoding through a Media Foundation encoder MFT (hardware if there is
 // one, otherwise Microsoft's software encoder). Constrained baseline, no
 // B-frames, low latency, CBR. Input NV12, output Annex B access units with

@@ -16,7 +16,7 @@ class SourceClient {
     this.url = opts.url;
     this.WS = opts.WebSocketImpl;
     this.host = opts.host;
-    this.name = opts.name || 'Open Tethery (Photoshop)';
+    this.name = opts.name || (require('./product').shortName + ' (Photoshop)');
     this.reconnectMs = opts.reconnectMs === undefined ? 2000 : opts.reconnectMs;
     this.maxBuffered = opts.maxBuffered || 8 * 1024 * 1024;
     this.onStatus = opts.onStatus || (() => {});

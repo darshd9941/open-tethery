@@ -66,7 +66,7 @@ test('hello, source-state and binary frame', async () => {
   client.start();
   await until(() => client.connected);
 
-  assert.deepEqual(h.hellos[0], { t: 'hello', role: 'source', protocol: 1, name: 'Open Tethery (Photoshop)' });
+  assert.deepEqual(h.hellos[0], { t: 'hello', role: 'source', protocol: 1, name: 'Pocket Monitor (Photoshop)' });
   await until(() => h.texts.length === 1);
   assert.deepEqual(h.texts[0], { t: 'source-state', host: HOST, sequence: SEQ });
   assert.equal(events.states[0].viewers, 2);

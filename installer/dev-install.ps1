@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  Open Tethery dev install (M0). One UAC prompt, idempotent, logs to %LOCALAPPDATA%\OpenTethery\install.log.
+  Pocket Monitor dev install (M0). One UAC prompt, idempotent, logs to %LOCALAPPDATA%\PocketMonitor\install.log.
 
 .DESCRIPTION
   Installs helper + viewer, CEP panel, Transmit plug-in, Photoshop plug-in, firewall rule and the
@@ -38,7 +38,7 @@ if (-not $WhatIfPreference -and -not (Test-Admin)) {
 }
 
 $version = (Get-Content (Join-Path $PSScriptRoot 'version.txt') -Raw).Trim()
-Write-Log "=== Open Tethery dev install $version ($(Get-Date -Format s)) ==="
+Write-Log "=== $($script:AppName) dev install $version ($(Get-Date -Format s)) ==="
 
 # ---- 0. Adobe apps should be closed (panels and the Transmit plug-in load at start-up) ----
 $running = @(Get-AdobeRunning)
@@ -48,7 +48,8 @@ if ($running.Count -gt 0) {
 }
 
 # ---- 1. Helper + viewer ----
-Invoke-Step 'Stop running helper' { Stop-OpenTetheryHelper }
+Invoke-Step 'Stop running helper' { Stop-PocketMonitorHelper }
+Invoke-Step 'Remove old Open Tethery install (if present)' { Remove-LegacyInstall }
 
 $distHelper = Join-Path $PSScriptRoot 'dist\helper'
 $exeSrc = Join-Path $distHelper $script:HelperExe
@@ -81,6 +82,7 @@ if ($useExe) {
       Push-Location $h; try { & npm install --omit=dev --no-audit --no-fund } finally { Pop-Location }
     }
     Copy-Item $nodeExe (Join-Path $script:InstallDir 'node.exe') -Force
+    Copy-Item (Join-Path $repo 'product.json') (Join-Path $script:InstallDir 'product.json') -Force
   }
   $launchTarget = '"' + (Join-Path $script:InstallDir 'node.exe') + '" "' +
     (Join-Path $script:InstallDir ('helper\' + $helperMain)) + '"'
@@ -129,7 +131,7 @@ foreach ($v in $script:CsxsVersions) {
 if ($SkipNative) {
   Write-Log 'Skipping Transmit plug-in (-SkipNative).'
 } else {
-  $prm = if ($PrmPath) { $PrmPath } else { Join-Path $repo 'build\native\Release\OpenTetheryTransmit.prm' }
+  $prm = if ($PrmPath) { $PrmPath } else { Join-Path $repo ('build\native\Release\' + $script:PrmName) }
   $mcDest = Join-Path (Find-MediaCoreRoot) $script:MediaCoreName
   if (Test-Path $prm) {
     if (Get-Process -Name 'Adobe Premiere Pro' -ErrorAction SilentlyContinue) {
@@ -143,7 +145,7 @@ if ($SkipNative) {
     }
   } else {
     Write-Log "Transmit plug-in not built ($prm). Build it (native\transmit\README.md) or pass -PrmPath; continuing." 'Yellow'
-    if ($WhatIfPreference) { Write-Host "WHATIF: would copy OpenTetheryTransmit.prm to $mcDest" -ForegroundColor Cyan }
+    if ($WhatIfPreference) { Write-Host "WHATIF: would copy $($script:PrmName) to $mcDest" -ForegroundColor Cyan }
   }
 }
 
@@ -152,7 +154,7 @@ if ($SkipPhotoshop) {
   Write-Log 'Skipping Photoshop plug-in (-SkipPhotoshop).'
 } else {
   $psSrc = Join-Path $repo 'panels\uxp-photoshop'
-  $ccx = if ($CcxPath) { $CcxPath } else { Join-Path $PSScriptRoot 'dist\OpenTetheryPhotoshop.ccx' }
+  $ccx = if ($CcxPath) { $CcxPath } else { Join-Path $PSScriptRoot ('dist\' + $script:CcxName) }
   if (-not $CcxPath) {
     Invoke-Step "Build $ccx from $psSrc (zip, id $($script:PsPluginId))" {
       if (-not (Test-Path $psSrc)) { throw "Photoshop plug-in source not found: $psSrc" }
@@ -166,11 +168,11 @@ if ($SkipPhotoshop) {
   if (Test-Path $script:UpiaExe) {
     Invoke-Step "Install Photoshop plug-in via UnifiedPluginInstallerAgent: $ccx" {
       & $script:UpiaExe /install $ccx
-      Write-Log "  UPIA exit code $LASTEXITCODE (restart Photoshop; Plugins > Open Tethery)"
+      Write-Log "  UPIA exit code $LASTEXITCODE (restart Photoshop; Plugins > $($script:AppName))"
     }
   } else {
     Write-Log "UnifiedPluginInstallerAgent not found. Double-click $ccx to install via Creative Cloud, or load" 'Yellow'
-    Write-Log "  panels\uxp-photoshop\manifest.json in UXP Developer Tool (Add Plugin, then Load). Then Plugins > Open Tethery." 'Yellow'
+    Write-Log "  panels\uxp-photoshop\manifest.json in UXP Developer Tool (Add Plugin, then Load). Then Plugins > $($script:AppName)." 'Yellow'
     if ($WhatIfPreference) { Write-Host "WHATIF: would run UPIA /install $ccx (if present) else print manual steps" -ForegroundColor Cyan }
   }
 }
@@ -180,13 +182,13 @@ Invoke-Step "Firewall rule '$($script:RuleName)' inbound TCP $($script:HelperPor
   Remove-NetFirewallRule -DisplayName $script:RuleName -ErrorAction SilentlyContinue
   New-NetFirewallRule -DisplayName $script:RuleName -Direction Inbound -Action Allow -Protocol TCP `
     -LocalPort $script:HelperPort -Profile Private `
-    -Description 'Lets phones on your private Wi-Fi open the Open Tethery preview.' | Out-Null
+    -Description "Lets phones on your private Wi-Fi open the $($script:AppName) preview." | Out-Null
 }
 Invoke-Step "Firewall rule '$($script:RuleName) (video)' inbound UDP for the helper program, Private" {
   Remove-NetFirewallRule -DisplayName "$($script:RuleName) (video)" -ErrorAction SilentlyContinue
   New-NetFirewallRule -DisplayName "$($script:RuleName) (video)" -Direction Inbound -Action Allow -Protocol UDP `
     -Program $launchExe -Profile Private `
-    -Description 'Lets phones receive the low-delay WebRTC video from the Open Tethery helper.' | Out-Null
+    -Description "Lets phones receive the low-delay WebRTC video from the $($script:AppName) helper." | Out-Null
 }
 foreach ($p in $script:OldRulePatterns) {
   Invoke-Step "Remove old firewall rules '$p'" {
@@ -223,4 +225,4 @@ if ($NoStart) {
   }
 }
 
-Write-Log 'Done. Restart Premiere Pro / After Effects / Photoshop, then Window > Extensions > Open Tethery.' 'Green'
+Write-Log "Done. Restart Premiere Pro / After Effects / Photoshop, then Window > Extensions > $($script:AppName)." 'Green'
