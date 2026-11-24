@@ -1,0 +1,27 @@
+{
+  "name": "open-tethery-helper",
+  "version": "0.2.0",
+  "description": "Pocket Monitor Helper: one local process that bridges Premiere / After Effects / Photoshop to phones on the LAN",
+  "private": true,
+  "license": "UNLICENSED",
+  "main": "bin/open-tethery-helper.js",
+  "bin": {
+    "open-tethery-helper": "bin/open-tethery-helper.js"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node bin/open-tethery-helper.js",
+    "test": "node --test \"test/*.test.js\""
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "jsqr": "^1.4.0"
+  },
+  "optionalDependencies": {
+    "werift": "^0.22.2"
+  }
+}

@@ -1,4 +1,4 @@
-// Open Tethery — native Transmit plugin
+// Pocket Monitor — native Transmit plugin
 // FrameSender: owns the "latest frame" slot and the worker thread that
 // downscales, JPEG-encodes and sends frames to the local relay (OTX1 protocol,
 // see docs/transmit-protocol.md).
@@ -15,6 +15,8 @@
 #include <mutex>
 #include <thread>
 #include <vector>
+
+#include "AudioPush.h"
 
 namespace otx {
 
@@ -56,10 +58,19 @@ public:
 
     void SetPlaying(bool playing);
 
+    // Push audio (Premiere's audio thread, possibly concurrent with the calls
+    // above): int16 interleaved stereo @ 48 kHz. Copies into a queue and
+    // returns; the worker sends it. ticks = protocol ticks of the first sample
+    // or -1. Ignored unless SetAudioActive(true).
+    void SetAudioActive(bool active);
+    void PushAudio(const int16_t* stereo, size_t frames, int64_t ticks);
+
     // --- Tuning ------------------------------------------------------------
-    static constexpr int kMaxFps = 15;
+    static constexpr int kMaxFps = 15;       // capture cap while playing, JPEG-only mode
+    static constexpr int kMaxFpsH264 = 30;   // capture cap while playing, H.264 active
     static constexpr int kMaxEdge = 1280;
     static constexpr float kJpegQuality = 0.8f;
+    static constexpr size_t kAudioChunkFrames = 960;  // 20 ms @ 48 kHz
 
 private:
     using Clock = std::chrono::steady_clock;
@@ -67,6 +78,10 @@ private:
     void Run();
 
     std::thread worker_;
+    AudioQueue audioQueue_{kAudioRate};  // 1 s; oldest dropped on overflow
+    std::atomic<int> captureFps_{kMaxFps};
+    std::atomic<bool> audioActive_{false};
+    std::atomic<int64_t> lastAudioPushNs_{0};
     std::atomic<bool> running_{false};
 
     // Staging buffer: owned by the producer (Premiere thread) between

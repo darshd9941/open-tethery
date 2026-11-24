@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title data-brand="name">Pocket Monitor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="panel">
+    <header class="top">
+      <h1 data-brand="name">Pocket Monitor</h1>
+      <span class="top-right">
+        <span id="pill" class="pill idle">IDLE</span>
+        <button id="menuBtn" class="icon-btn" aria-label="Settings" aria-haspopup="true" aria-expanded="false" title="Settings">&#8943;</button>
+      </span>
+      <div id="menu" class="menu" hidden>
+        <button id="guideBtn" class="menu-item">Show guide again</button>
+      </div>
+    </header>
+
+    <section id="updateBanner" class="banner" hidden>
+      <span id="updateText"></span>
+      <button id="updateBtn" class="btn small primary">Download</button>
+      <button id="updateClose" class="icon-btn" aria-label="Dismiss">&times;</button>
+    </section>
+
+    <section id="helperCard" class="card warn" hidden>
+      <h2>Helper not running</h2>
+      <p id="helperText" data-brand-text="{name} needs its small helper program to talk to phones.">Pocket Monitor needs its small helper program to talk to phones.</p>
+      <button id="startHelperBtn" class="btn primary">Start helper</button>
+    </section>
+
+    <section id="engineCard" class="card warn" hidden>
+      <h2 id="engineTitle"></h2>
+      <p id="engineBody"></p>
+      <p class="steps" id="engineSteps"></p>
+      <button id="recheckBtn" class="btn">Check again</button>
+    </section>
+
+    <section id="pairing" class="pairing">
+      <div class="qr"><img id="qr" alt="QR code to open the live preview on your phone" width="180" height="180"></div>
+      <div id="code" class="code" aria-label="Session code">----</div>
+      <div class="url-row">
+        <span id="url" class="url" title=""></span>
+        <button id="copyBtn" class="btn small">Copy</button>
+        <button id="newCodeBtn" class="btn small ghost">New code</button>
+      </div>
+    </section>
+
+    <section class="conn" id="connSection">
+      <label class="conn-row" for="connection">
+        <span>Connection</span>
+        <select id="connection" aria-describedby="connHelp"></select>
+      </label>
+      <ul id="connHelp" class="conn-help"></ul>
+    </section>
+
+    <section class="seq">
+      <div id="seqName" class="seq-name">No sequence</div>
+      <div id="seqInfo" class="seq-info"></div>
+      <div id="hostApp" class="seq-host"></div>
+    </section>
+
+    <section class="phones">
+      <h2>Phones connected: <span id="phoneCount">0</span></h2>
+      <ul id="phoneList" class="phone-list"></ul>
+      <label class="switch-row">
+        <span>Allow control from phones</span>
+        <input type="checkbox" id="allowControl" checked>
+        <span class="switch" aria-hidden="true"></span>
+      </label>
+    </section>
+
+    <section class="report">
+      <button id="reportBtn" class="btn small">Send report</button>
+      <span id="reportMsg" class="report-msg"></span>
+      <button id="openFolderBtn" class="btn small ghost" hidden>Open folder</button>
+    </section>
+
+    <footer class="stats" id="stats">&nbsp;</footer>
+  </main>
+
+  <div id="guide" class="guide" role="dialog" aria-modal="true" aria-labelledby="guideTitle" hidden>
+    <div class="guide-box">
+      <div class="guide-dots" id="guideDots"></div>
+      <h2 id="guideTitle"></h2>
+      <div id="guideLines" class="guide-lines"></div>
+      <div id="guideTick" class="guide-tick" hidden><span class="dot"></span><span id="guideTickText"></span></div>
+      <div class="guide-actions">
+        <button id="guideSkip" class="btn small ghost">Skip</button>
+        <span class="spacer"></span>
+        <button id="guideBack" class="btn small ghost">Back</button>
+        <button id="guideNext" class="btn primary">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/product.js"></script>
+  <script src="lib/CSInterface.js"></script>
+  <script src="js/state-format.js"></script>
+  <script src="js/connections.js"></script>
+  <script src="js/control-bridge.js"></script>
+  <script src="js/panel-client.js"></script>
+  <script src="js/helper-launcher.js"></script>
+  <script src="js/onboarding.js"></script>
+  <script src="js/update-check.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

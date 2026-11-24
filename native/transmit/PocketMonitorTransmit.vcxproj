@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Open Tethery — native Transmit plugin (Premiere Pro, Windows x64) -->
+<!-- Pocket Monitor — native Transmit plugin (Premiere Pro, Windows x64) -->
 <Project DefaultTargets="Build" ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|x64">
@@ -16,7 +16,7 @@
     <VCProjectVersion>17.0</VCProjectVersion>
     <ProjectGuid>{6E1B2F4A-9C3D-4E7B-8A51-2D0F3C7B9E14}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>OpenTetheryTransmit</RootNamespace>
+    <RootNamespace>PocketMonitorTransmit</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
 
@@ -46,7 +46,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
 
   <PropertyGroup>
-    <TargetName>OpenTetheryTransmit</TargetName>
+    <TargetName>PocketMonitorTransmit</TargetName>
     <TargetExt>.prm</TargetExt>
     <OutDir>$(OtxBuildRoot)$(Configuration)\</OutDir>
     <IntDir>$(OtxBuildRoot)obj\$(Configuration)\</IntDir>
@@ -65,7 +65,7 @@
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>ws2_32.lib;windowscodecs.lib;ole32.lib;oleaut32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>ws2_32.lib;windowscodecs.lib;ole32.lib;oleaut32.lib;mfplat.lib;mf.lib;mfuuid.lib;strmiids.lib;wmcodecdspuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
   </ItemDefinitionGroup>
@@ -92,14 +92,21 @@
   </ItemDefinitionGroup>
 
   <ItemGroup>
-    <ClCompile Include="src\OpenTetheryTransmit.cpp" />
+    <ClCompile Include="src\PocketMonitorTransmit.cpp" />
     <ClCompile Include="src\FrameSender.cpp" />
     <ClCompile Include="src\JpegEncoder.cpp" />
+    <ClCompile Include="src\H264Encoder.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="src\AnnexB.h" />
+    <ClInclude Include="src\AudioPush.h" />
     <ClInclude Include="src\FrameSender.h" />
+    <ClInclude Include="src\H264Encoder.h" />
+    <ClInclude Include="src\ImageOps.h" />
+    <ClInclude Include="src\Otx1.h" />
     <ClInclude Include="src\JpegEncoder.h" />
     <ClInclude Include="src\Log.h" />
+    <ClInclude Include="src\ProductName.h" />
   </ItemGroup>
 
   <Target Name="OtxCheckSdk" BeforeTargets="ClCompile">

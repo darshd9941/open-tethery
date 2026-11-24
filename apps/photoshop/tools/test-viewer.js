@@ -9,11 +9,16 @@
 
 const fs = require('fs');
 const path = require('path');
-const WebSocket = require('../relay/node_modules/ws');
+let WebSocket;
+try {
+  WebSocket = require('../relay/node_modules/ws');
+} catch {
+  WebSocket = require('ws'); // e.g. via NODE_PATH
+}
 
 const ROOT = path.resolve(__dirname, '..');
 const config = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
-const port = config.port || 47823;
+const port = Number(process.env.OPEN_TETHERY_PORT) || config.port || 47823;
 
 const args = process.argv.slice(2);
 const bad = args.includes('--bad');

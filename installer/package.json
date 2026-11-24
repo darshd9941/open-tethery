@@ -1,0 +1,13 @@
+{
+  "name": "open-tethery-installer",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Build scripts for the Pocket Monitor helper exe and installer",
+  "scripts": {
+    "build:helper": "node build-helper-exe.js",
+    "test": "node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  }
+}

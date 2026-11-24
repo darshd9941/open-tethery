@@ -1,15 +1,15 @@
-# Open Tethery: copy a built .prm into Adobe's shared MediaCore plug-in folder.
+# Pocket Monitor: copy a built .prm into Adobe's shared MediaCore plug-in folder.
 # Asks for admin rights (Windows will show a prompt). Close Premiere first.
 #
 #   powershell -ExecutionPolicy Bypass -File native\transmit\install.ps1            # our plugin (Release)
 #   powershell -ExecutionPolicy Bypass -File native\transmit\install.ps1 -Path X.prm
 #   powershell -ExecutionPolicy Bypass -File native\transmit\install.ps1 -Uninstall
 param(
-  [string]$Path = (Join-Path $PSScriptRoot "..\..\build\native\Release\OpenTetheryTransmit.prm"),
+  [string]$Path = (Join-Path $PSScriptRoot "..\..\build\native\Release\PocketMonitorTransmit.prm"),
   [switch]$Uninstall
 )
 
-$dest = "C:\Program Files\Adobe\Common\Plug-ins\7.0\MediaCore\OpenTethery"
+$dest = "C:\Program Files\Adobe\Common\Plug-ins\7.0\MediaCore\PocketMonitor"
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole(
   [Security.Principal.WindowsBuiltInRole]::Administrator)

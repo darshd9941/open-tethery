@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="panel.css">
+</head>
+<body>
+  <h1 class="title" id="productTitle">Pocket Monitor</h1>
+
+  <div id="statusPill" class="pill">
+    <span id="statusDot" class="dot"></span>
+    <span id="statusText">IDLE</span>
+  </div>
+  <div id="note" class="note"></div>
+
+  <div id="helperCard" class="helper-card">
+    <div class="helper-title">Helper not running</div>
+    <div class="helper-text">
+      <span class="brand-name">Pocket Monitor</span> Helper starts with Windows when it was set up by the installer.
+      If it is not running, double-click <strong>Start Live Preview</strong> (desktop or Start menu).
+      This panel connects by itself as soon as it is up.
+    </div>
+  </div>
+
+  <div id="qrWrap" class="qr-wrap">
+    <div id="qrCode"></div>
+  </div>
+
+  <div id="codeBlock" class="code-block">
+    <div class="code-label">Or type this code on the phone:</div>
+    <div id="sessionCode"></div>
+    <div id="pairUrl"></div>
+  </div>
+
+  <div id="docLine"></div>
+  <div id="phones"></div>
+
+  <div class="row">
+    <sp-button id="newCode" variant="secondary">New code</sp-button>
+  </div>
+
+  <div class="settings">
+    <button id="settingsBtn" class="settings-btn" type="button">Settings &#9656;</button>
+    <div id="settingsBody" class="settings-body" style="display: none">
+      <div class="field-row">
+        <div class="field">
+          <label id="sizeLabel" for="size">Picture size</label>
+          <sp-picker id="size">
+            <sp-menu slot="options">
+              <sp-menu-item value="1200">1200</sp-menu-item>
+              <sp-menu-item value="1600" selected>1600</sp-menu-item>
+              <sp-menu-item value="2000">2000</sp-menu-item>
+              <sp-menu-item value="2400">2400</sp-menu-item>
+              <sp-menu-item value="3200">3200</sp-menu-item>
+              <sp-menu-item value="4000">4000</sp-menu-item>
+            </sp-menu>
+          </sp-picker>
+        </div>
+        <div class="field">
+          <label id="profileLabel" for="profile">Colours</label>
+          <sp-picker id="profile">
+            <sp-menu slot="options">
+              <sp-menu-item value="sRGB IEC61966-2.1" selected>sRGB</sp-menu-item>
+            </sp-menu>
+          </sp-picker>
+        </div>
+      </div>
+
+      <div class="notice">
+        <strong>Phone screen is not a print proof.</strong> It is better than an uncalibrated monitor, but fabric and printer still affect the final colour.
+      </div>
+      <div class="notice" id="profileNotice" style="display: none"></div>
+    </div>
+  </div>
+
+  <script src="lib/qrcode.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

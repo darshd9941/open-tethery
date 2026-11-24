@@ -1,0 +1,129 @@
+{
+ "id": "youtube",
+ "name": "YouTube (16:9 player)",
+ "ref": {
+  "w": 16,
+  "h": 9
+ },
+ "safe": [
+  0.05,
+  0.18,
+  0.9,
+  0.58
+ ],
+ "zones": [
+  {
+   "id": "top",
+   "kind": "topbar",
+   "label": "Title bar",
+   "rect": [
+    0,
+    0,
+    1,
+    0.14
+   ],
+   "unsafe": true,
+   "labelAt": "bc",
+   "icons": [
+    {
+     "shape": "back",
+     "x": 0.03,
+     "y": 0.07,
+     "size": 0.025
+    },
+    {
+     "shape": "sliders",
+     "x": 0.93,
+     "y": 0.07,
+     "size": 0.025
+    },
+    {
+     "shape": "more",
+     "x": 0.97,
+     "y": 0.07,
+     "size": 0.025
+    }
+   ]
+  },
+  {
+   "id": "centre",
+   "kind": "buttons",
+   "label": "Play button (hides while playing)",
+   "rect": [
+    0.44,
+    0.38,
+    0.12,
+    0.27
+   ],
+   "unsafe": false,
+   "icons": [
+    {
+     "shape": "play",
+     "x": 0.5,
+     "y": 0.5,
+     "size": 0.06
+    }
+   ]
+  },
+  {
+   "id": "controls",
+   "kind": "bottombar",
+   "label": "Controls",
+   "rect": [
+    0,
+    0.82,
+    1,
+    0.18
+   ],
+   "unsafe": true,
+   "labelAt": "bc",
+   "icons": [
+    {
+     "shape": "play",
+     "x": 0.03,
+     "y": 0.93,
+     "size": 0.022
+    },
+    {
+     "shape": "fullscreen",
+     "x": 0.97,
+     "y": 0.93,
+     "size": 0.025
+    },
+    {
+     "shape": "mute",
+     "x": 0.09,
+     "y": 0.93,
+     "size": 0.025
+    }
+   ],
+   "lines": [
+    {
+     "x": 0.02,
+     "y": 0.86,
+     "w": 0.96
+    }
+   ]
+  },
+  {
+   "id": "watermark",
+   "kind": "badge",
+   "label": "Channel watermark",
+   "rect": [
+    0.88,
+    0.62,
+    0.1,
+    0.16
+   ],
+   "unsafe": false,
+   "icons": [
+    {
+     "shape": "dot",
+     "x": 0.93,
+     "y": 0.7,
+     "size": 0.04
+    }
+   ]
+  }
+ ]
+}

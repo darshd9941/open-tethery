@@ -1,0 +1,9 @@
+{
+  "name": "open-tethery",
+  "private": true,
+  "scripts": {
+    "install:all": "npm --prefix helper install && npm --prefix viewer install && npm --prefix panels/cep install && npm --prefix panels/uxp-photoshop install && npm --prefix installer install && npm --prefix e2e install",
+    "brand": "node tools/apply-branding.js",
+    "test:all": "node --test tools/apply-branding.test.js && node tools/apply-branding.js --check && npm --prefix helper test && npm --prefix viewer test && npm --prefix panels/cep test && npm --prefix panels/uxp-photoshop test && npm --prefix installer test && npm --prefix e2e test"
+  }
+}

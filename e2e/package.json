@@ -1,0 +1,8 @@
+{
+  "name": "open-tethery-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "End-to-end test: real helper + fake Transmit + CEP panel and viewer in Chromium + Photoshop source client",
+  "scripts": { "test": "node --test --test-timeout=120000 run.test.js webrtc.test.js" },
+  "devDependencies": { "ws": "^8.18.0" }
+}

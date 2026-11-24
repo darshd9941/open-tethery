@@ -1,0 +1,19 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run install:all
+      # Browser tests (viewer, e2e) need Playwright + Chromium; installed globally
+      # so no package pins it, matching the local dev setup.
+      - run: npm install -g playwright@1.63.0 && npx -y playwright@1.63.0 install --with-deps chromium
+      - run: echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
+      - run: npm run test:all

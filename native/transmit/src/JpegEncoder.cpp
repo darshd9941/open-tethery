@@ -1,4 +1,4 @@
-// Open Tethery — native Transmit plugin
+// Pocket Monitor — native Transmit plugin
 // JPEG encoding through Windows Imaging Component (WIC).
 #include "JpegEncoder.h"
 

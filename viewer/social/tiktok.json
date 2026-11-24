@@ -1,0 +1,182 @@
+{
+ "id": "tiktok",
+ "name": "TikTok",
+ "ref": {
+  "w": 9,
+  "h": 16
+ },
+ "safe": [
+  0.04,
+  0.12,
+  0.76,
+  0.56
+ ],
+ "zones": [
+  {
+   "id": "top",
+   "kind": "topbar",
+   "label": "Top tabs",
+   "rect": [
+    0,
+    0,
+    1,
+    0.1
+   ],
+   "unsafe": true,
+   "lines": [
+    {
+     "x": 0.3,
+     "y": 0.05,
+     "w": 0.14
+    },
+    {
+     "x": 0.56,
+     "y": 0.05,
+     "w": 0.14
+    }
+   ],
+   "icons": [
+    {
+     "shape": "search",
+     "x": 0.93,
+     "y": 0.05,
+     "size": 0.055
+    }
+   ]
+  },
+  {
+   "id": "actions",
+   "kind": "buttons",
+   "label": "Buttons",
+   "rect": [
+    0.84,
+    0.42,
+    0.16,
+    0.39
+   ],
+   "unsafe": true,
+   "icons": [
+    {
+     "shape": "user",
+     "x": 0.92,
+     "y": 0.46,
+     "size": 0.065
+    },
+    {
+     "shape": "heart",
+     "x": 0.92,
+     "y": 0.54,
+     "size": 0.06
+    },
+    {
+     "shape": "comment",
+     "x": 0.92,
+     "y": 0.615,
+     "size": 0.06
+    },
+    {
+     "shape": "bookmark",
+     "x": 0.92,
+     "y": 0.69,
+     "size": 0.06
+    },
+    {
+     "shape": "share",
+     "x": 0.92,
+     "y": 0.765,
+     "size": 0.06
+    }
+   ]
+  },
+  {
+   "id": "profile",
+   "kind": "profile",
+   "label": "Account",
+   "rect": [
+    0,
+    0.74,
+    0.82,
+    0.05
+   ],
+   "unsafe": true,
+   "handle": {
+    "x": 0.04,
+    "y": 0.765,
+    "size": 0.034
+   }
+  },
+  {
+   "id": "caption",
+   "kind": "caption",
+   "label": "Description",
+   "rect": [
+    0,
+    0.79,
+    0.82,
+    0.15
+   ],
+   "unsafe": true,
+   "lines": [
+    {
+     "x": 0.04,
+     "y": 0.81,
+     "w": 0.74
+    },
+    {
+     "x": 0.04,
+     "y": 0.84,
+     "w": 0.5
+    },
+    {
+     "x": 0.04,
+     "y": 0.87,
+     "w": 0.3
+    }
+   ]
+  },
+  {
+   "id": "nav",
+   "kind": "bottombar",
+   "label": "Bottom bar",
+   "rect": [
+    0,
+    0.94,
+    1,
+    0.06
+   ],
+   "unsafe": true,
+   "icons": [
+    {
+     "shape": "home",
+     "x": 0.1,
+     "y": 0.975,
+     "size": 0.045
+    },
+    {
+     "shape": "search",
+     "x": 0.3,
+     "y": 0.975,
+     "size": 0.045
+    },
+    {
+     "shape": "plus",
+     "x": 0.5,
+     "y": 0.975,
+     "size": 0.045
+    },
+    {
+     "shape": "comment",
+     "x": 0.7,
+     "y": 0.975,
+     "size": 0.045
+    },
+    {
+     "shape": "user",
+     "x": 0.9,
+     "y": 0.975,
+     "size": 0.045
+    }
+   ]
+  }
+ ]
+}

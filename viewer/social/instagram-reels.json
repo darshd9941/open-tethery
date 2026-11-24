@@ -1,0 +1,182 @@
+{
+ "id": "instagram-reels",
+ "name": "Instagram Reels",
+ "ref": {
+  "w": 9,
+  "h": 16
+ },
+ "safe": [
+  0.05,
+  0.12,
+  0.76,
+  0.58
+ ],
+ "zones": [
+  {
+   "id": "top",
+   "kind": "topbar",
+   "label": "Top bar",
+   "rect": [
+    0,
+    0,
+    1,
+    0.1
+   ],
+   "unsafe": true,
+   "icons": [
+    {
+     "shape": "back",
+     "x": 0.06,
+     "y": 0.05,
+     "size": 0.05
+    },
+    {
+     "shape": "camera",
+     "x": 0.93,
+     "y": 0.05,
+     "size": 0.06
+    }
+   ]
+  },
+  {
+   "id": "actions",
+   "kind": "buttons",
+   "label": "Buttons",
+   "rect": [
+    0.84,
+    0.48,
+    0.16,
+    0.35
+   ],
+   "unsafe": true,
+   "icons": [
+    {
+     "shape": "heart",
+     "x": 0.92,
+     "y": 0.53,
+     "size": 0.06
+    },
+    {
+     "shape": "comment",
+     "x": 0.92,
+     "y": 0.6,
+     "size": 0.06
+    },
+    {
+     "shape": "share",
+     "x": 0.92,
+     "y": 0.67,
+     "size": 0.06
+    },
+    {
+     "shape": "more",
+     "x": 0.92,
+     "y": 0.74,
+     "size": 0.06
+    }
+   ]
+  },
+  {
+   "id": "profile",
+   "kind": "profile",
+   "label": "Profile",
+   "rect": [
+    0,
+    0.73,
+    0.82,
+    0.07
+   ],
+   "unsafe": true,
+   "avatar": {
+    "x": 0.08,
+    "y": 0.765,
+    "r": 0.035
+   },
+   "handle": {
+    "x": 0.15,
+    "y": 0.765,
+    "size": 0.032
+   },
+   "pill": {
+    "x": 0.52,
+    "y": 0.745,
+    "w": 0.2,
+    "h": 0.04,
+    "text": "Follow"
+   }
+  },
+  {
+   "id": "caption",
+   "kind": "caption",
+   "label": "Caption",
+   "rect": [
+    0,
+    0.81,
+    0.82,
+    0.12
+   ],
+   "unsafe": true,
+   "lines": [
+    {
+     "x": 0.04,
+     "y": 0.83,
+     "w": 0.7
+    },
+    {
+     "x": 0.04,
+     "y": 0.86,
+     "w": 0.58
+    },
+    {
+     "x": 0.04,
+     "y": 0.89,
+     "w": 0.34
+    }
+   ]
+  },
+  {
+   "id": "nav",
+   "kind": "bottombar",
+   "label": "Bottom bar",
+   "rect": [
+    0,
+    0.93,
+    1,
+    0.07
+   ],
+   "unsafe": true,
+   "icons": [
+    {
+     "shape": "home",
+     "x": 0.1,
+     "y": 0.972,
+     "size": 0.05
+    },
+    {
+     "shape": "search",
+     "x": 0.3,
+     "y": 0.972,
+     "size": 0.05
+    },
+    {
+     "shape": "plus",
+     "x": 0.5,
+     "y": 0.972,
+     "size": 0.05
+    },
+    {
+     "shape": "play",
+     "x": 0.7,
+     "y": 0.972,
+     "size": 0.05
+    },
+    {
+     "shape": "user",
+     "x": 0.9,
+     "y": 0.972,
+     "size": 0.05
+    }
+   ]
+  }
+ ]
+}

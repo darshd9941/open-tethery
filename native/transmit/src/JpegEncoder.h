@@ -1,4 +1,4 @@
-// Open Tethery — native Transmit plugin
+// Pocket Monitor — native Transmit plugin
 // JPEG encoding through Windows Imaging Component (WIC). One encoder per
 // thread: WIC objects are created on the worker thread that uses them.
 #pragma once

@@ -1,0 +1,14 @@
+/* Scope widgets float in #dock, which covers the whole stage. They sit in the empty space around the picture
+   when there is room (see dockLayout in js/scope-math.js) and can be dragged anywhere. */
+.sc-widget {
+  position: absolute; border-radius: 10px; overflow: hidden;
+  background: rgba(0, 0, 0, 0.55);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+.sc-head { display: flex; align-items: center; gap: 2px; padding: 0 2px 0 8px; height: 24px; touch-action: none; cursor: grab; }
+.sc-title { flex: 1; font-size: 11px; font-weight: 650; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sc-btn { min-width: 30px; height: 22px; border: 0; border-radius: 6px; background: rgba(255, 255, 255, 0.14); color: var(--text); font-size: 12px; font-weight: 650; padding: 0 4px; line-height: 1; }
+.sc-canvas { display: block; }
+.sc-widget.narrow .sc-title { display: none; }
+.sc-widget.narrow .sc-head { justify-content: flex-end; }

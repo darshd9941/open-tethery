@@ -1,0 +1,18 @@
+{
+  "name": "Pocket Monitor",
+  "shortName": "Pocket Monitor",
+  "vendor": "Pocket Monitor",
+  "website": "",
+  "version": "0.3.0",
+  "supportUrl": "",
+  "updateUrl": "https://api.github.com/repos/darshd9941/open-tethery/releases/latest",
+  "ids": {
+    "cepBundle": "com.pocketmonitor.panel",
+    "cepExtension": "com.pocketmonitor.panel.main",
+    "uxp": "com.pocketmonitor.photoshop",
+    "helperExe": "PocketMonitorHelper.exe",
+    "installDir": "PocketMonitor",
+    "mediaCoreFolder": "PocketMonitor",
+    "transmitPrm": "PocketMonitorTransmit.prm"
+  }
+}
