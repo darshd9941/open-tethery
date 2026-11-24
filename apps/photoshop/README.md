@@ -1,10 +1,13 @@
-# Live Phone Preview
+# Open Tethery (Photoshop)
 
 Mirror the open Photoshop canvas to any phone or tablet on your own Wi-Fi, with
 the colour profile attached so the phone shows it as faithfully as it can.
 
-Open a PSD, press **Start** in the Photoshop panel, scan the QR code once, and
-the phone browser shows the canvas update as you edit. No app to install on the
+Open a PSD, then choose **Plugins > Open Tethery** in Photoshop. The panel starts
+streaming by itself and shows a big QR code and a 4-letter code (for example
+`CL7G`). Scan the QR code with the phone, **or** open the address shown under the
+code in the phone browser and type the 4 letters. The phone then shows the canvas
+as you edit. No app to install on the
 phone, no cloud, no accounts, no AI.
 
 > A phone screen is a much better colour reference than an uncalibrated monitor,
@@ -12,6 +15,18 @@ phone, no cloud, no accounts, no AI.
 > colour. Keep this in mind for every approval.
 
 ---
+
+## Joining from the phone
+
+- Scan the QR code in the panel, or
+- open the short address shown in the panel (for example `http://192.168.1.20:47823`)
+  and type the 4-letter code. After 5 wrong codes in a minute the phone has to wait
+  a minute before trying again.
+
+## Packaging
+
+`powershell -ExecutionPolicy Bypass -File apps\photoshop\tools\pack-ccx.ps1`
+creates `build\photoshop\com.opentethery.photoshop.ccx` (double-click it to install).
 
 ## What is in this folder
 

@@ -1,6 +1,6 @@
 'use strict';
 
-// Live Phone Preview relay.
+// Open Tethery relay.
 //
 // - Serves the viewer page to phones on the local network.
 // - Accepts one Photoshop UXP plugin connection (the plugin connects out to us).
@@ -13,6 +13,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const crypto = require('crypto');
 const { WebSocketServer } = require('ws');
 const { resolveProfile, injectProfile } = require('./icc');
 
@@ -32,17 +33,22 @@ const MAX_FRAME_META_NAME = 300;
 // Settings and LAN address detection
 // ---------------------------------------------------------------------------
 
+function envPort() {
+  const n = Number(process.env.OPEN_TETHERY_PORT);
+  return Number.isInteger(n) && n > 0 && n < 65536 ? n : null;
+}
+
 function loadConfig() {
   const defaults = { port: DEFAULT_PORT, lanIp: null };
   try {
     const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
     const parsed = JSON.parse(raw);
     return {
-      port: Number.isInteger(parsed.port) ? parsed.port : defaults.port,
+      port: envPort() || (Number.isInteger(parsed.port) ? parsed.port : defaults.port),
       lanIp: typeof parsed.lanIp === 'string' && parsed.lanIp.trim() ? parsed.lanIp.trim() : null,
     };
   } catch {
-    return defaults;
+    return { ...defaults, port: envPort() || defaults.port };
   }
 }
 
@@ -176,7 +182,23 @@ const LAN_IP = pickLanIp(config.lanIp);
 const BASE_URL = `http://${LAN_IP}:${PORT}/`;
 const STARTED_AT = Date.now();
 
+const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const JOIN_MAX_WRONG = 5;
+const JOIN_WINDOW_MS = 60 * 1000;
+const joinFailures = new Map(); // remote ip -> [timestamps of wrong tries]
+
+function makeCode() {
+  let out = '';
+  for (let i = 0; i < 4; i += 1) out += CODE_ALPHABET[crypto.randomInt(CODE_ALPHABET.length)];
+  return out;
+}
+
+function isLoopback(addr) {
+  return addr === '127.0.0.1' || addr === '::1' || addr === '::ffff:127.0.0.1';
+}
+
 let sessionToken = null;
+let sessionCode = null;
 let pluginSocket = null;
 let pluginInfo = null;
 let lastFrame = null; // { base64, meta, receivedAt }
@@ -224,8 +246,13 @@ function broadcastStatus() {
   broadcast(statusPayload());
 }
 
+function sendViewerCount() {
+  if (pluginSocket) send(pluginSocket, { type: 'status', viewers: viewers.size });
+}
+
 function clearSession(reason) {
   sessionToken = null;
+  sessionCode = null;
   lastFrame = null;
   if (sessionGraceTimer) {
     clearTimeout(sessionGraceTimer);
@@ -298,12 +325,35 @@ const server = http.createServer((req, res) => {
       pluginOnline: Boolean(pluginSocket),
       plugin: pluginInfo,
       hasSession: Boolean(sessionToken),
+      ...(isLoopback(req.socket.remoteAddress) ? { code: sessionCode } : {}),
       viewers: viewers.size,
       hasFrame: Boolean(lastFrame),
       frame: frameMeta(),
       serverTime: Date.now(),
       startedAt: STARTED_AT,
     });
+    return;
+  }
+
+  if (pathname === '/api/join') {
+    const ip = req.socket.remoteAddress || 'unknown';
+    const now = Date.now();
+    const recent = (joinFailures.get(ip) || []).filter((t) => now - t < JOIN_WINDOW_MS);
+    joinFailures.set(ip, recent);
+    if (recent.length >= JOIN_MAX_WRONG) {
+      const retryAfterSec = Math.max(1, Math.ceil((recent[0] + JOIN_WINDOW_MS - now) / 1000));
+      res.setHeader('Retry-After', String(retryAfterSec));
+      sendJson(res, 429, { error: 'locked', retryAfterSec });
+      return;
+    }
+    const given = String(url.searchParams.get('code') || '').trim().toUpperCase();
+    if (sessionToken && sessionCode && given.length === sessionCode.length && given === sessionCode) {
+      joinFailures.delete(ip);
+      sendJson(res, 200, { token: sessionToken });
+      return;
+    }
+    recent.push(now);
+    sendJson(res, 404, { error: 'wrong-code' });
     return;
   }
 
@@ -372,6 +422,7 @@ function attachPlugin(ws, token, info) {
     }
     viewers.clear();
   }
+  if (!isSameSession || !sessionCode) sessionCode = makeCode();
   sessionToken = token;
   pluginSocket = ws;
   pluginInfo = info;
@@ -386,6 +437,7 @@ function attachPlugin(ws, token, info) {
     url: `${BASE_URL}#pair=${token}`,
     ip: LAN_IP,
     port: PORT,
+    code: sessionCode,
     serverTime: Date.now(),
   });
 
@@ -398,6 +450,7 @@ function attachPlugin(ws, token, info) {
   }
 
   broadcastStatus();
+  sendViewerCount();
   log(`plugin registered${isSameSession ? ' (session resumed)' : ' (new session)'} from ${ws._socket ? ws._socket.remoteAddress : 'unknown'}`);
 }
 
@@ -422,6 +475,7 @@ function attachViewer(ws, token) {
       receivedAt: lastFrame.receivedAt,
     });
   }
+  sendViewerCount();
   log(`viewer connected (${ws._socket ? ws._socket.remoteAddress : 'unknown'}); ${viewers.size} viewer(s)`);
 }
 
@@ -579,6 +633,7 @@ wss.on('connection', (ws) => {
     clearTimeout(authTimer);
     if (ws.role === 'viewer') {
       viewers.delete(ws);
+      sendViewerCount();
       log(`viewer disconnected; ${viewers.size} viewer(s) left`);
       return;
     }
@@ -642,10 +697,10 @@ server.on('error', (error) => {
 
 server.listen(PORT, '0.0.0.0', () => {
   log('------------------------------------------------------------');
-  log('  Live Phone Preview relay is running');
+  log('  Open Tethery relay is running');
   log(`  This PC:  ${BASE_URL}`);
   log(`  Port:     ${PORT} (change in config.json and the plugin panel)`);
-  log('  Waiting for Photoshop... open the plugin panel and press Start.');
+  log('  Waiting for Photoshop... open Plugins > Open Tethery.');
   log('  Keep this window open. Press Ctrl+C to stop.');
   log('------------------------------------------------------------');
   console.log('');

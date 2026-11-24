@@ -2,246 +2,74 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <style>
-    :root {
-      --ok: #45d483;
-      --warn: #f0b429;
-      --err: #ff6b6b;
-    }
-
-    html,
-    body {
-      margin: 0;
-      padding: 10px;
-      color: var(--uxp-host-text-color);
-      font-size: 12px;
-      background: transparent;
-    }
-
-    body {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      overflow-y: auto;
-    }
-
-    .status-row {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      min-height: 20px;
-      line-height: 1.35;
-    }
-
-    .dot {
-      flex: 0 0 auto;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #777;
-    }
-
-    .dot.on { background: var(--ok); }
-    .dot.warn { background: var(--warn); }
-    .dot.err { background: var(--err); }
-
-    #statusText {
-      overflow-wrap: anywhere;
-    }
-
-    .qr-wrap {
-      display: none;
-      padding: 12px;
-      border-radius: 10px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .qr-wrap.visible {
-      display: block;
-    }
-
-    #qrCode {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: max-content;
-      margin: 0 auto;
-      padding: 9px;
-      background: #ffffff;
-      border-radius: 6px;
-      line-height: 0;
-    }
-
-    .qr-row {
-      display: flex;
-      flex-direction: row;
-    }
-
-    .qr-cell {
-      background: #ffffff;
-      flex: 0 0 auto;
-    }
-
-    .qr-cell.dark {
-      background: #000000;
-    }
-
-    #pairUrl {
-      margin-top: 9px;
-      color: var(--uxp-host-text-color-secondary);
-      font-size: 10px;
-      line-height: 1.4;
-      text-align: center;
-      overflow-wrap: anywhere;
-    }
-
-    .row {
-      display: flex;
-      gap: 8px;
-    }
-
-    .row sp-button {
-      flex: 1;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 4px;
-      color: var(--uxp-host-text-color-secondary);
-    }
-
-    sp-picker,
-    sp-textfield {
-      width: 100%;
-    }
-
-    .field {
-      display: block;
-      min-width: 0;
-    }
-
-    .field-row {
-      display: flex;
-      gap: 8px;
-    }
-
-    .field-row .field {
-      flex: 1;
-    }
-
-    .field-inline {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .field-inline label {
-      margin: 0;
-      flex: 0 0 auto;
-    }
-
-    .field-inline sp-textfield {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .link-btn {
-      align-self: flex-start;
-      margin: 0;
-      padding: 2px 0;
-      border: 0;
-      background: transparent;
-      color: #8ab8ff;
-      font: inherit;
-      cursor: pointer;
-      text-align: left;
-    }
-
-    .link-btn:active {
-      opacity: 0.7;
-    }
-
-    .notice {
-      margin-top: 2px;
-      padding: 9px 10px;
-      border-radius: 8px;
-      background: rgba(255, 255, 255, 0.05);
-      color: var(--uxp-host-text-color-secondary);
-      font-size: 10.5px;
-      line-height: 1.45;
-    }
-
-    .notice strong {
-      color: var(--uxp-host-text-color);
-      font-weight: 600;
-    }
-
-    .hint {
-      color: var(--uxp-host-text-color-secondary);
-      font-size: 10.5px;
-      line-height: 1.4;
-      overflow-wrap: anywhere;
-    }
-  </style>
+  <link rel="stylesheet" href="panel.css">
 </head>
 <body>
-  <div class="status-row">
+  <h1 class="title">Open Tethery</h1>
+
+  <div id="statusPill" class="pill">
     <span id="statusDot" class="dot"></span>
-    <span id="statusText">Stopped</span>
+    <span id="statusText">Starting…</span>
   </div>
+  <div id="note" class="note"></div>
 
   <div id="qrWrap" class="qr-wrap">
     <div id="qrCode"></div>
+  </div>
+
+  <div id="codeBlock" class="code-block">
+    <div class="code-label">Or type this code on the phone:</div>
+    <div id="sessionCode"></div>
     <div id="pairUrl"></div>
   </div>
 
+  <div id="docLine"></div>
+
   <div class="row">
-    <sp-button id="toggle" variant="cta">Start</sp-button>
+    <sp-button id="toggle" variant="cta">Stop</sp-button>
     <sp-button id="once" variant="secondary">Send now</sp-button>
   </div>
 
   <button id="openBtn" class="link-btn" type="button">Open the viewer on this PC</button>
 
-  <div class="field-row">
-    <div class="field">
-      <label id="sizeLabel" for="size">Size</label>
-      <sp-picker id="size">
-        <sp-menu slot="options">
-          <sp-menu-item value="1200">1200</sp-menu-item>
-          <sp-menu-item value="1600" selected>1600</sp-menu-item>
-          <sp-menu-item value="2000">2000</sp-menu-item>
-          <sp-menu-item value="2400">2400</sp-menu-item>
-          <sp-menu-item value="3200">3200</sp-menu-item>
-          <sp-menu-item value="4000">4000</sp-menu-item>
-        </sp-menu>
-      </sp-picker>
+  <div class="settings">
+    <button id="settingsBtn" class="settings-btn" type="button">Settings ▸</button>
+    <div id="settingsBody" class="settings-body" style="display: none">
+      <div class="field-row">
+        <div class="field">
+          <label id="sizeLabel" for="size">Picture size</label>
+          <sp-picker id="size">
+            <sp-menu slot="options">
+              <sp-menu-item value="1200">1200</sp-menu-item>
+              <sp-menu-item value="1600" selected>1600</sp-menu-item>
+              <sp-menu-item value="2000">2000</sp-menu-item>
+              <sp-menu-item value="2400">2400</sp-menu-item>
+              <sp-menu-item value="3200">3200</sp-menu-item>
+              <sp-menu-item value="4000">4000</sp-menu-item>
+            </sp-menu>
+          </sp-picker>
+        </div>
+        <div class="field">
+          <label id="profileLabel" for="profile">Colours</label>
+          <sp-picker id="profile">
+            <sp-menu slot="options">
+              <sp-menu-item value="sRGB IEC61966-2.1" selected>sRGB</sp-menu-item>
+            </sp-menu>
+          </sp-picker>
+        </div>
+      </div>
+
+      <div class="field">
+        <label id="portLabel" for="port">Helper port</label>
+        <sp-textfield id="port" value="47823" placeholder="47823"></sp-textfield>
+      </div>
+
+      <div class="notice">
+        <strong>Phone screen is not a print proof.</strong> It is better than an uncalibrated monitor, but fabric and printer still affect the final colour.
+      </div>
+      <div class="notice" id="profileNotice" style="display: none"></div>
     </div>
-
-    <div class="field">
-      <label id="profileLabel" for="profile">Profile</label>
-      <sp-picker id="profile">
-        <sp-menu slot="options">
-          <sp-menu-item value="sRGB IEC61966-2.1" selected>sRGB</sp-menu-item>
-        </sp-menu>
-      </sp-picker>
-    </div>
   </div>
-
-  <div class="field-inline">
-    <label id="portLabel" for="port">Relay port</label>
-    <sp-textfield id="port" value="47823" placeholder="47823"></sp-textfield>
-  </div>
-
-  <div class="hint" id="hint">
-    Start <strong>Start Live Preview.bat</strong> first. The QR opens on any phone on the same Wi-Fi.
-  </div>
-
-  <div class="notice">
-    <strong>Phone screen ≠ print proof.</strong> Better than an uncalibrated monitor; fabric and printer still affect the final result.
-  </div>
-
-  <div class="notice" id="profileNotice" style="display: none"></div>
 
   <script src="lib/qrcode.js"></script>
   <script src="main.js"></script>

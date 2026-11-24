@@ -1,6 +1,6 @@
 'use strict';
 
-// Live Phone Preview - Photoshop UXP panel.
+// Open Tethery - Photoshop UXP panel.
 //
 // The plugin never captures the monitor. It asks Photoshop's imaging API for
 // the document pixels at a reduced size, converted to the chosen profile, and
@@ -10,21 +10,26 @@
 const { app, core, imaging } = require('photoshop');
 const uxp = require('uxp');
 
-const SETTINGS_KEY = 'lpp.settings.v1';
+const SETTINGS_KEY = 'lpp.settings.v1'; // old key kept so saved settings still load
 const DEFAULT_PORT = 47823;
 const POLL_MS = 300;
 const DEBOUNCE_MS = 350;
 const MAX_PIXELS = 12000000;
 const RELAY_HOST = '127.0.0.1';
-const VERSION = '1.0.0';
+const VERSION = '0.2.0';
 
 const $ = (id) => document.getElementById(id);
 
 const statusDot = $('statusDot');
 const statusText = $('statusText');
+const statusPill = $('statusPill');
 const qrWrap = $('qrWrap');
 const qrCode = $('qrCode');
 const pairUrlEl = $('pairUrl');
+const codeEl = $('sessionCode');
+const codeBlock = $('codeBlock');
+const docLine = $('docLine');
+const noteEl = $('note');
 const toggleBtn = $('toggle');
 const onceBtn = $('once');
 const openBtn = $('openBtn');
@@ -48,14 +53,60 @@ let capturing = false;
 let queued = false;
 let selectedProfile = 'sRGB IEC61966-2.1';
 let availableProfiles = [];
+let sessionCode = '';
+let viewerCount = 0;
+let relayFailed = false;
+let note = null; // { text, kind } - a problem line under the status pill
+let docText = '';
+let lastQrUrl = '';
+let shortUrl = '';
 
 // ---------------------------------------------------------------------------
 // UI helpers
 // ---------------------------------------------------------------------------
 
-function setStatus(text, kind) {
+// The pill always shows the overall state. Problems and hints from capture
+// (setStatus with 'warn'/'err') appear in a small line under it.
+function updatePill() {
+  let text;
+  let kind = '';
+  if (!running) {
+    text = 'Stopped';
+  } else if (registered) {
+    kind = 'on';
+    if (viewerCount > 0) {
+      text = 'Live \u00b7 ' + viewerCount + (viewerCount === 1 ? ' phone watching' : ' phones watching');
+    } else {
+      text = 'Live \u00b7 waiting for a phone';
+    }
+  } else if (relayFailed) {
+    kind = 'warn';
+    text = 'Waiting for the Open Tethery helper \u2014 is it running?';
+  } else {
+    text = 'Starting\u2026';
+  }
   statusText.textContent = text;
   statusDot.className = 'dot' + (kind ? ' ' + kind : '');
+  statusPill.className = 'pill' + (kind ? ' ' + kind : '');
+  if (note && note.text) {
+    noteEl.textContent = note.text;
+    noteEl.className = 'note ' + (note.kind || '');
+    noteEl.style.display = 'block';
+  } else {
+    noteEl.textContent = '';
+    noteEl.style.display = 'none';
+  }
+}
+
+function setStatus(text, kind) {
+  // 'on' / '' messages are covered by the pill; only problems become notes.
+  note = kind === 'warn' || kind === 'err' ? { text, kind } : null;
+  updatePill();
+}
+
+function clearNote() {
+  note = null;
+  updatePill();
 }
 
 function errorText(error) {
@@ -198,8 +249,8 @@ function connect() {
 
   const port = readPort();
   if (!port) {
-    setStatus('Enter a valid relay port (1–65535).', 'err');
     stop();
+    setStatus('Enter a valid port (1–65535) under Settings.', 'err');
     return;
   }
   currentPort = port;
@@ -208,7 +259,8 @@ function connect() {
   try {
     socket = new WebSocket(`ws://${RELAY_HOST}:${port}/ws`);
   } catch (error) {
-    setStatus('Could not open the relay connection: ' + errorText(error), 'err');
+    relayFailed = true;
+    updatePill();
     scheduleReconnect();
     return;
   }
@@ -221,11 +273,10 @@ function connect() {
         JSON.stringify({
           type: 'register',
           token,
-          name: 'Live Phone Preview',
+          name: 'Open Tethery',
           version: VERSION,
         })
       );
-      setStatus('Registering with the relay…', 'warn');
     } catch (error) {
       setStatus('Could not register: ' + errorText(error), 'err');
     }
@@ -246,15 +297,29 @@ function connect() {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
       pairUrl = String(message.url || '');
+      sessionCode = String(message.code || '').toUpperCase();
+      shortUrl = message.ip && message.port ? 'http://' + message.ip + ':' + message.port : '';
+      relayFailed = false;
+      viewerCount = 0;
+      codeEl.textContent = sessionCode;
       renderQr(pairUrl);
       qrWrap.classList.add('visible');
+      codeBlock.classList.add('visible');
       lastSignature = null;
       pendingSignature = null;
-      setStatus('Live · waiting for an open document', 'on');
+      clearNote();
       // Send the current document as soon as possible.
       setTimeout(() => {
         if (running && registered) captureAndSend();
       }, 80);
+      return;
+    }
+
+    if (message.type === 'status') {
+      if (typeof message.viewers === 'number') {
+        viewerCount = message.viewers;
+        updatePill();
+      }
       return;
     }
 
@@ -278,7 +343,9 @@ function connect() {
     if (ws === socket) ws = null;
     registered = false;
     if (!running) return;
-    setStatus('Relay not reachable — retrying. Is the preview window open?', 'err');
+    relayFailed = true;
+    viewerCount = 0;
+    updatePill();
     scheduleReconnect();
   };
 }
@@ -322,14 +389,20 @@ function qrFactory() {
   return null;
 }
 
+function availableWidth() {
+  const w = (document.body && document.body.clientWidth) || window.innerWidth || 300;
+  return Math.max(160, w - 24); // body padding
+}
+
 function renderQr(url) {
+  lastQrUrl = url;
   qrCode.textContent = '';
-  pairUrlEl.textContent = url;
+  pairUrlEl.textContent = shortUrl || url;
 
   const factory = qrFactory();
   if (!factory) {
     pairUrlEl.textContent =
-      url + '\n(QR library did not load — open the link above on the phone.)';
+      (shortUrl || url) + ' (QR picture unavailable - type the code on the phone.)';
     return;
   }
 
@@ -339,14 +412,15 @@ function renderQr(url) {
     qr.addData(url);
     qr.make();
   } catch (error) {
-    pairUrlEl.textContent = url + '\n(Could not draw the QR code.)';
+    pairUrlEl.textContent = (shortUrl || url) + ' (QR picture unavailable - type the code on the phone.)';
     return;
   }
 
   const count = qr.getModuleCount();
   // Leave a four-module quiet zone (required for reliable scanning) inside the
   // white card, and keep the whole code within the narrowest panel width.
-  const cell = Math.max(3, Math.floor(180 / (count + 8)));
+  const avail = Math.max(160, Math.min(520, availableWidth() - 8));
+  const cell = Math.max(2, Math.floor(avail / (count + 8)));
   qrCode.style.padding = cell * 4 + 'px';
 
   for (let row = 0; row < count; row++) {
@@ -402,6 +476,11 @@ function scheduleCapture(sig) {
   }, DEBOUNCE_MS);
 }
 
+function setDocText(name, w, h) {
+  docText = name ? name + ' \u00b7 ' + w + ' \u00d7 ' + h : 'Open a document in Photoshop to see it on the phone.';
+  docLine.textContent = docText;
+}
+
 function activeDocument() {
   try {
     if (app.documents && app.documents.length === 0) return null;
@@ -415,7 +494,7 @@ function tick() {
   if (!running || capturing) return;
   const doc = activeDocument();
   if (!doc) {
-    if (registered) setStatus('Live · no open document', 'warn');
+    if (registered) setDocText(null);
     lastSignature = null;
     return;
   }
@@ -469,7 +548,7 @@ async function captureDoc(doc, maxSide, profile) {
         if (result && result.imageData) result.imageData.dispose();
       }
     },
-    { commandName: 'Live Phone Preview' }
+    { commandName: 'Open Tethery' }
   );
 
   if (typeof base64 !== 'string' || !base64) {
@@ -496,13 +575,13 @@ async function captureAndSend(manual) {
     return;
   }
   if (!registered || !ws) {
-    if (manual) setStatus('Not connected to the relay yet.', 'err');
+    if (manual) setStatus('Not connected yet. Please wait a moment.', 'warn');
     return;
   }
 
   const doc = activeDocument();
   if (!doc) {
-    setStatus('Open a document in Photoshop first.', 'warn');
+    setDocText(null);
     return;
   }
 
@@ -522,11 +601,8 @@ async function captureAndSend(manual) {
     ws.send(payload);
     lastSignature = sig;
 
-    const kb = Math.round((frame.base64.length * 3) / 4 / 1024);
-    setStatus(
-      `Live · ${frame.meta.name} · ${frame.meta.width}×${frame.meta.height} · ${kb} KB`,
-      'on'
-    );
+    setDocText(frame.meta.name, frame.meta.sourceWidth, frame.meta.sourceHeight);
+    clearNote();
 
     const after = activeDocument();
     if (after) {
@@ -561,7 +637,7 @@ async function captureAndSend(manual) {
 function start() {
   const port = readPort();
   if (!port) {
-    setStatus('Enter a valid relay port (1–65535).', 'err');
+    setStatus('Enter a valid port (1–65535) under Settings.', 'err');
     return;
   }
   currentPort = port;
@@ -573,14 +649,19 @@ function start() {
   lastSignature = null;
   pendingSignature = null;
   pairUrl = '';
+  sessionCode = '';
+  viewerCount = 0;
+  relayFailed = false;
+  note = null;
 
   toggleBtn.textContent = 'Stop';
-  toggleBtn.setAttribute('variant', 'warning');
+  toggleBtn.setAttribute('variant', 'secondary');
   qrWrap.classList.remove('visible');
+  codeBlock.classList.remove('visible');
   qrCode.textContent = '';
   pairUrlEl.textContent = '';
-
-  setStatus('Connecting to the relay…', 'warn');
+  codeEl.textContent = '';
+  updatePill();
   connect();
 
   clearInterval(pollTimer);
@@ -602,14 +683,20 @@ function stop() {
   disconnect();
 
   qrWrap.classList.remove('visible');
+  codeBlock.classList.remove('visible');
   qrCode.textContent = '';
   pairUrlEl.textContent = '';
   pairUrl = '';
   token = null;
+  sessionCode = '';
+  viewerCount = 0;
+  relayFailed = false;
+  note = null;
+  codeEl.textContent = '';
 
   toggleBtn.textContent = 'Start';
   toggleBtn.setAttribute('variant', 'cta');
-  setStatus('Stopped', '');
+  updatePill();
 }
 
 toggleBtn.addEventListener('click', () => {
@@ -650,7 +737,7 @@ profileEl.addEventListener('change', () => {
 portEl.addEventListener('change', () => {
   saveSettings();
   if (running) {
-    setStatus('Port saved. Press Stop and Start to use it.', 'warn');
+    setStatus('Port saved. Press Stop, then Start to use it.', 'warn');
   }
 });
 
@@ -658,8 +745,29 @@ portEl.addEventListener('change', () => {
 // Init
 // ---------------------------------------------------------------------------
 
+const settingsBtn = $('settingsBtn');
+const settingsBody = $('settingsBody');
+settingsBtn.addEventListener('click', () => {
+  const open = settingsBody.style.display === 'none';
+  settingsBody.style.display = open ? 'flex' : 'none';
+  settingsBtn.textContent = open ? 'Settings ▾' : 'Settings ▸';
+});
+
 loadSettings();
-setStatus('Stopped', '');
+updatePill();
+docLine.textContent = '';
+
+// Re-draw the QR code when the panel is resized so it always fills the width.
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    if (lastQrUrl && registered) renderQr(lastQrUrl);
+  }, 120);
+});
+
+// Start streaming as soon as the panel opens - no button press needed.
+start();
 // Ask the host for profiles only after the panel itself has finished loading.
 // This keeps plugin startup independent of the colour-profile lookup.
 function initProfiles() {
