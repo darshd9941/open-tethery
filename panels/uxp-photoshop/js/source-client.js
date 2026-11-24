@@ -120,6 +120,7 @@ class SourceClient {
     try {
       ws = new this.WS(this.url);
     } catch (error) {
+      this.onError('WebSocket: ' + String((error && error.message) || error));
       this._lost();
       return;
     }

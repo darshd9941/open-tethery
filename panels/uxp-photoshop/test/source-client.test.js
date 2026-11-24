@@ -135,3 +135,22 @@ test('keeps retrying while the helper is down', async () => {
   client.stop();
   wss.close();
 });
+
+test('surfaces WebSocket constructor errors via onError', () => {
+  const errors = [];
+  class ThrowingWS {
+    constructor() { throw new Error('Manifest entry not found for ws://127.0.0.1:47825/ws'); }
+  }
+  const client = new SourceClient({
+    url: 'ws://127.0.0.1:47825/ws',
+    WebSocketImpl: ThrowingWS,
+    host: HOST,
+    reconnectMs: 10000,
+    onError: (e) => errors.push(e),
+  });
+  client.start();
+  client.stop();
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /Manifest entry not found/);
+});
+

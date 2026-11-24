@@ -6,33 +6,38 @@ import { h, s, mountSvg, setViewBox, toggleRow, sliderRow, section, loadJson } f
 
 export const LABEL_AT = ['tl', 'tr', 'bl', 'br', 'tc', 'bc'];
 export const KINDS = ['topbar', 'bottombar', 'buttons', 'caption', 'profile', 'badge', 'crop'];
+export const VIEW_MODES = ['ui', 'safe'];
+export const normalizeViewMode = (m) => (VIEW_MODES.includes(m) ? m : 'ui');
 
-// Generic icons on a -1..1 box (stroke only unless `fill`). Simple shapes, no brand artwork.
+const COUNTS = { heart: '42.8K', comment: '618', share: '2.1K', send: '2.1K', bookmark: '1.4K', repost: '890', up: '1.2K' };
+export const actionCount = (shape) => COUNTS[shape] || '';
+
+// Crisp modern outline icons on a -1..1 box (stroke only unless `fill`). Original drawings, no brand artwork.
 const dot = (cx, cy, r) => `M${cx - r} ${cy} a${r} ${r} 0 1 0 ${2 * r} 0 a${r} ${r} 0 1 0 ${-2 * r} 0`;
 export const ICONS = {
-  heart: { d: 'M0 .85 C-1.1 .1 -1 -.8 -.5 -.8 C-.2 -.8 0 -.55 0 -.4 C0 -.55 .2 -.8 .5 -.8 C1 -.8 1.1 .1 0 .85Z' },
-  comment: { d: 'M-.9 -.7 H.9 V.45 H-.2 L-.6 .9 V.45 H-.9Z' },
-  share: { d: 'M0 .5 V-.8 M-.5 -.3 L0 -.8 L.5 -.3 M-.8 .1 V.8 H.8 V.1' },
-  send: { d: 'M-.9 -.1 L.9 -.8 L.2 .85 L-.1 .15Z' },
-  upload: { d: 'M0 .5 V-.8 M-.5 -.3 L0 -.8 L.5 -.3 M-.8 .1 V.8 H.8 V.1' },
-  bookmark: { d: 'M-.55 -.9 H.55 V.9 L0 .4 L-.55 .9Z' },
-  more: { d: `${dot(-0.7, 0, 0.14)} ${dot(0, 0, 0.14)} ${dot(0.7, 0, 0.14)}`, fill: true },
-  play: { d: 'M-.5 -.8 L.8 0 L-.5 .8Z', fill: true },
-  back: { d: 'M.4 -.8 L-.4 0 L.4 .8' },
-  search: { d: `${dot(-0.1, -0.1, 0.6)} M.35 .35 L.85 .85` },
-  plus: { d: 'M0 -.8 V.8 M-.8 0 H.8' },
-  close: { d: 'M-.7 -.7 L.7 .7 M.7 -.7 L-.7 .7' },
-  music: { d: `M.4 -.8 V.45 M.4 -.8 L-.5 -.55 V.6 ${dot(-0.15, 0.6, 0.35)} ${dot(0.75, 0.45, 0.35)}` },
-  camera: { d: `M-.9 -.5 H-.4 L-.2 -.8 H.2 L.4 -.5 H.9 V.75 H-.9Z ${dot(0, 0.12, 0.4)}` },
-  home: { d: 'M-.85 .05 L0 -.8 L.85 .05 M-.6 -.15 V.8 H.6 V-.15' },
-  user: { d: `${dot(0, -0.35, 0.35)} M-.8 .85 C-.8 .2 .8 .2 .8 .85` },
-  mute: { d: 'M-.9 -.3 H-.5 L0 -.75 V.75 L-.5 .3 H-.9Z M.4 -.4 Q.75 0 .4 .4' },
-  fullscreen: { d: 'M-.8 -.3 V-.8 H-.3 M.8 -.3 V-.8 H.3 M-.8 .3 V.8 H-.3 M.8 .3 V.8 H.3' },
-  sliders: { d: `M-.8 -.4 H.8 M-.8 .4 H.8 ${dot(-0.25, -0.4, 0.2)} ${dot(0.3, 0.4, 0.2)}` },
-  up: { d: 'M0 .8 V-.8 M-.6 -.2 L0 -.8 L.6 -.2' },
-  down: { d: 'M0 -.8 V.8 M-.6 .2 L0 .8 L.6 .2' },
-  repost: { d: 'M-.8 -.2 V-.5 H.5 M.2 -.8 L.6 -.5 L.2 -.2 M.8 .2 V.5 H-.5 M-.2 .8 L-.6 .5 L-.2 .2' },
-  dot: { d: dot(0, 0, 0.5), fill: true },
+  heart: { d: 'M0 .84 C-.52 .42 -.96 .06 -.96 -.36 C-.96 -.68 -.71 -.9 -.42 -.9 C-.21 -.9 -.06 -.77 0 -.62 C.06 -.77 .21 -.9 .42 -.9 C.71 -.9 .96 -.68 .96 -.36 C.96 .06 .52 .42 0 .84Z' },
+  comment: { d: 'M0 -.86 C.54 -.86 .94 -.5 .94 -.04 C.94 .42 .54 .76 0 .76 C-.16 .76 -.31 .73 -.45 .67 L-.88 .86 L-.74 .46 C-.87 .32 -.94 .15 -.94 -.04 C-.94 -.5 -.54 -.86 0 -.86Z' },
+  share: { d: 'M.88 -.1 L.12 -.78 V-.36 C-.48 -.32 -.86 .04 -.88 .72 C-.62 .34 -.28 .18 .12 .18 V.58 L.88 -.1Z' },
+  send: { d: 'M.9 -.82 L-.88 -.14 L-.18 .14 L.12 .84 L.9 -.82Z M.9 -.82 L-.18 .14' },
+  upload: { d: 'M0 .42 V-.82 M-.45 -.38 L0 -.84 L.45 -.38 M-.78 .14 V.64 Q-.78 .84 -.58 .84 H.58 Q.78 .84 .78 .64 V.14' },
+  bookmark: { d: 'M-.58 -.86 H.58 Q.7 -.86 .7 -.72 V.88 L0 .44 L-.7 .88 V-.72 Q-.7 -.86 -.58 -.86Z' },
+  more: { d: `${dot(-0.66, 0, 0.14)} ${dot(0, 0, 0.14)} ${dot(0.66, 0, 0.14)}`, fill: true },
+  play: { d: 'M-.46 -.78 L.78 0 L-.46 .78Z', fill: true },
+  back: { d: 'M.32 -.78 L-.44 0 L.32 .78' },
+  search: { d: `${dot(-0.14, -0.14, 0.62)} M.32 .32 L.86 .86` },
+  plus: { d: 'M0 -.76 V.76 M-.76 0 H.76' },
+  close: { d: 'M-.68 -.68 L.68 .68 M.68 -.68 L-.68 .68' },
+  music: { d: `M.46 -.82 V.46 M.46 -.82 L-.46 -.56 V.58 ${dot(-0.66, 0.58, 0.24)} ${dot(0.26, 0.46, 0.24)}` },
+  camera: { d: `M-.72 -.5 H-.38 L-.24 -.76 H.24 L.38 -.5 H.72 Q.92 -.5 .92 -.3 V.56 Q.92 .76 .72 .76 H-.72 Q-.92 .76 -.92 .56 V-.3 Q-.92 -.5 -.72 -.5Z ${dot(0, 0.12, 0.36)}` },
+  home: { d: 'M-.84 -.04 L0 -.82 L.84 -.04 M-.62 -.22 V.68 Q-.62 .82 -.48 .82 H-.18 V.36 H.18 V.82 H.48 Q.62 .82 .62 .68 V-.22' },
+  user: { d: `${dot(0, -0.36, 0.34)} M-.76 .84 C-.74 .28 -.4 .12 0 .12 C.4 .12 .74 .28 .76 .84` },
+  mute: { d: 'M-.88 -.28 H-.48 L.02 -.72 V.72 L-.48 .28 H-.88 Q-.96 .28 -.96 .2 V-.2 Q-.96 -.28 -.88 -.28Z M.38 -.38 Q.74 0 .38 .38 M.62 -.62 Q1.08 0 .62 .62' },
+  fullscreen: { d: 'M-.82 -.32 V-.68 Q-.82 -.82 -.68 -.82 H-.32 M.82 -.32 V-.68 Q.82 -.82 .68 -.82 H.32 M-.82 .32 V.68 Q-.82 .82 -.68 .82 H-.32 M.82 .32 V.68 Q.82 .82 .68 .82 H.32' },
+  sliders: { d: `M-.84 -.42 H.84 M-.84 .42 H.84 ${dot(-0.28, -0.42, 0.2)} ${dot(0.3, 0.42, 0.2)}` },
+  up: { d: 'M0 .78 V-.78 M-.58 -.2 L0 -.78 L.58 -.2' },
+  down: { d: 'M0 -.78 V.78 M-.58 .2 L0 .78 L.58 .2' },
+  repost: { d: 'M-.78 -.18 V-.46 Q-.78 -.6 -.64 -.6 H.56 M.28 -.86 L.58 -.6 L.28 -.34 M.78 .18 V.46 Q.78 .6 .64 .6 H-.56 M-.28 .86 L-.58 .6 L-.28 .34' },
+  dot: { d: dot(0, 0, 0.44), fill: true },
 };
 
 const inUnit = (v) => typeof v === 'number' && v >= 0 && v <= 1;
@@ -112,23 +117,33 @@ export function coverCrop(sw, sh) {
 }
 
 const CSS = `
-.s-outside{fill:rgba(0,0,0,.6)}
-.s-frame{fill:none;stroke:rgba(255,255,255,.7);stroke-width:1;vector-effect:non-scaling-stroke}
-.s-zone{fill:rgba(0,0,0,.17);stroke:rgba(255,255,255,.4);stroke-width:1;vector-effect:non-scaling-stroke}
+.s-outside{fill:rgba(0,0,0,.68)}
+.s-frame{fill:none;stroke:rgba(255,255,255,.35);stroke-width:1;vector-effect:non-scaling-stroke}
+.s-scrim-top{fill:url(#s-grad-top)}
+.s-scrim-bot{fill:url(#s-grad-bot)}
+.s-nav-bg{fill:rgba(8,10,14,.52)}
+.s-nav-line{stroke:rgba(255,255,255,.14);stroke-width:1;vector-effect:non-scaling-stroke}
+.s-zone{fill:rgba(15,23,42,.22);stroke:rgba(255,255,255,.35);stroke-width:1;vector-effect:non-scaling-stroke}
 .s-zone.crop{fill:none;stroke:#7dd3fc;stroke-dasharray:6 4}
-.s-hl .s-zone.unsafe{fill:rgba(248,113,113,.34);stroke:#f87171}
-.s-safe{fill:rgba(52,211,153,.08);stroke:#34d399;stroke-width:1.5;stroke-dasharray:5 3;vector-effect:non-scaling-stroke}
-.s-icon{fill:none;stroke:#fff;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
+.s-hl .s-zone.unsafe{fill:url(#s-hatch);stroke:rgba(248,113,113,.85);stroke-dasharray:4 3}
+.s-safe{fill:rgba(16,185,129,.06);stroke:rgba(52,211,153,.8);stroke-width:1.25;stroke-dasharray:6 4;vector-effect:non-scaling-stroke}
+.s-bracket{fill:none;stroke:#34d399;stroke-width:2.2;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.s-safe-pill{fill:rgba(6,78,59,.85);stroke:rgba(52,211,153,.75);stroke-width:1;vector-effect:non-scaling-stroke}
+.s-safe-txt{fill:#a7f3d0;font:700 9.5px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;letter-spacing:.08em}
+.s-icon{fill:none;stroke:#fff;stroke-width:1.85;stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke}
 .s-icon.fill{fill:#fff;stroke:none}
-.s-bar{fill:rgba(255,255,255,.75)}
-.s-avatar-bg{fill:#4b5563;stroke:#fff;stroke-width:1.2}
-.s-text{fill:#fff;font-family:-apple-system,Helvetica,Arial,sans-serif;font-weight:600}
-.s-cap{font-weight:400}
-.s-pill{fill:rgba(255,255,255,.14);stroke:#fff;stroke-width:1.2;vector-effect:non-scaling-stroke}
-.s-label{fill:#fff;font:600 11px -apple-system,Helvetica,Arial,sans-serif;paint-order:stroke;stroke:rgba(0,0,0,.85);stroke-width:2.5px}
+.s-count{fill:rgba(255,255,255,.92);font:600 10px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-variant-numeric:tabular-nums}
+.s-bar{fill:rgba(255,255,255,.55)}
+.s-avatar-bg{fill:url(#s-av-grad);stroke:rgba(255,255,255,.92);stroke-width:1.5;vector-effect:non-scaling-stroke}
+.s-text{fill:#fff;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-weight:600;letter-spacing:-.01em}
+.s-cap{font-weight:400;fill:rgba(255,255,255,.92)}
+.s-pill{fill:rgba(255,255,255,.14);stroke:rgba(255,255,255,.78);stroke-width:1.15;vector-effect:non-scaling-stroke}
+.s-label{fill:#fff;font:600 10.5px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;paint-order:stroke;stroke:rgba(0,0,0,.85);stroke-width:2.5px}
+.s-fg-dim{opacity:.22}
 `;
 
 const KEY_PLATFORM = 'ot.social.platform';
+const KEY_MODE = 'ot.social.mode';
 const KEY_HL = 'ot.social.unsafe';
 const KEY_LABELS = 'ot.social.labels';
 const KEY_OPACITY = 'ot.social.opacity';
@@ -142,7 +157,8 @@ export function initSocial({ bus, layer, panel }) {
   const cache = new Map();
   let index = [];
   let platformId = store.get(KEY_PLATFORM) || '';
-  let highlight = store.get(KEY_HL) === '1'; // off by default
+  let viewMode = normalizeViewMode(store.get(KEY_MODE) || 'ui');
+  let highlight = store.get(KEY_HL) === '1' || viewMode === 'safe'; // off by default
   let showLabels = store.get(KEY_LABELS) === '1'; // off by default
   let opacity = Math.min(1, Math.max(0.3, parseFloat(store.get(KEY_OPACITY)) || 1));
   let profiles = loadJson(KEY_PROFILES, [], store);
@@ -167,7 +183,7 @@ export function initSocial({ bus, layer, panel }) {
   const MIN_TEXT = 12; // CSS px: handle, caption and button text never get smaller than this
   const textW = (str, fs, k = 0.56) => str.length * fs * k;
 
-  function drawIcon(g, ic, frame) {
+  function drawIcon(g, ic, frame, withCount) {
     const def = ICONS[ic.shape];
     if (!def) return;
     const k = Math.max(7, (ic.size * frame.w) / 2);
@@ -175,6 +191,12 @@ export function initSocial({ bus, layer, panel }) {
     const cx = Math.min(Math.max(frame.x + ic.x * frame.w, frame.x + k + 1), frame.x + frame.w - k - 1);
     const cy = Math.min(Math.max(frame.y + ic.y * frame.h, frame.y + k + 1), frame.y + frame.h - k - 1);
     g.appendChild(s('path', { d: def.d, class: 's-icon' + (def.fill ? ' fill' : ''), transform: `translate(${cx} ${cy}) scale(${k})` }));
+    if (withCount) {
+      const cnt = actionCount(ic.shape);
+      if (cnt && cy + k + 12 <= frame.y + frame.h - 2) {
+        g.appendChild(s('text', { x: cx, y: cy + k + 11, 'text-anchor': 'middle', class: 's-count' }, cnt));
+      }
+    }
   }
 
   // Draws avatar and handle; returns the right edge of the handle text (for the pill collision check).
@@ -191,14 +213,14 @@ export function initSocial({ bus, layer, panel }) {
       if (prof.avatar) {
         g.appendChild(s('image', { href: prof.avatar, x: cx - r, y: cy - r, width: 2 * r, height: 2 * r, 'clip-path': `url(#${id})`, preserveAspectRatio: 'xMidYMid slice' }));
       } else {
-        g.appendChild(s('circle', { cx, cy: cy - r * 0.2, r: r * 0.3, fill: '#d1d5db' }));
-        g.appendChild(s('ellipse', { cx, cy: cy + r * 0.85, rx: r * 0.62, ry: r * 0.5, fill: '#d1d5db', 'clip-path': `url(#${id})` }));
+        g.appendChild(s('circle', { cx, cy: cy - r * 0.18, r: r * 0.28, fill: 'rgba(255,255,255,.9)' }));
+        g.appendChild(s('ellipse', { cx, cy: cy + r * 0.82, rx: r * 0.58, ry: r * 0.46, fill: 'rgba(255,255,255,.9)', 'clip-path': `url(#${id})` }));
       }
     }
     if (z.handle) {
       const fs = Math.max(MIN_TEXT, z.handle.size * frame.w);
       const label = '@' + (prof.handle || 'yourhandle');
-      const x = Math.max(frame.x + z.handle.x * frame.w, avatarEdge + 5);
+      const x = Math.max(frame.x + z.handle.x * frame.w, avatarEdge + 6);
       g.appendChild(s('text', { x, y: frame.y + z.handle.y * frame.h + fs * 0.35, class: 's-text', 'font-size': fs }, label));
       handleEnd = x + textW(label, fs);
     }
@@ -225,6 +247,25 @@ export function initSocial({ bus, layer, panel }) {
       const x = frame.x + l.x * frame.w, y = y0 + i * step;
       if (chunks[i]) g.appendChild(s('text', { x, y: y + fs * 0.35, class: 's-text s-cap', 'font-size': fs }, chunks[i]));
       else if (!text) g.appendChild(s('rect', { x, y: y - 2, width: l.w * frame.w, height: 4, rx: 2, class: 's-bar' }));
+    }
+  }
+
+  function drawSafeFrame(root, sb) {
+    root.appendChild(s('rect', { x: sb.x, y: sb.y, width: sb.w, height: sb.h, rx: 4, class: 's-safe' }));
+    const arm = Math.max(8, Math.min(18, Math.min(sb.w, sb.h) * 0.12));
+    const x1 = sb.x, y1 = sb.y, x2 = sb.x + sb.w, y2 = sb.y + sb.h;
+    const corners = [
+      `M${x1} ${y1 + arm} V${y1} H${x1 + arm}`,
+      `M${x2 - arm} ${y1} H${x2} V${y1 + arm}`,
+      `M${x1} ${y2 - arm} V${y2} H${x1 + arm}`,
+      `M${x2 - arm} ${y2} H${x2} V${y2 - arm}`,
+    ].join(' ');
+    root.appendChild(s('path', { d: corners, class: 's-bracket' }));
+    if (sb.w >= 76 && sb.h >= 28) {
+      const pw = 68, ph2 = 16;
+      const px = sb.x + 6, py = sb.y + 6;
+      root.appendChild(s('rect', { x: px, y: py, width: pw, height: ph2, rx: 8, class: 's-safe-pill' }));
+      root.appendChild(s('text', { x: px + pw / 2, y: py + 11.2, 'text-anchor': 'middle', class: 's-safe-txt' }, 'SAFE AREA'));
     }
   }
 
@@ -255,50 +296,81 @@ export function initSocial({ bus, layer, panel }) {
     if (my !== token || p.id !== platformId) return; // a newer render is on its way
     svg.replaceChildren(s('style', {}, CSS));
     setViewBox(svg, w, ph);
-    // soft shadow so white icons and text stay readable on any picture (an SVG filter so it also exports)
-    svg.appendChild(s('defs', {}, s('filter', { id: 's-shadow', x: '-20%', y: '-20%', width: '140%', height: '140%' },
-      s('feDropShadow', { dx: 0, dy: 1, stdDeviation: 1.4, 'flood-color': '#000', 'flood-opacity': 0.6 }))));
+    const defs = s('defs', {},
+      s('filter', { id: 's-shadow', x: '-20%', y: '-20%', width: '140%', height: '140%' },
+        s('feDropShadow', { dx: 0, dy: 1, stdDeviation: 1.5, 'flood-color': '#000', 'flood-opacity': 0.55 })),
+      s('linearGradient', { id: 's-grad-top', x1: '0', y1: '0', x2: '0', y2: '1' },
+        s('stop', { offset: '0%', 'stop-color': '#000', 'stop-opacity': '0.52' }),
+        s('stop', { offset: '100%', 'stop-color': '#000', 'stop-opacity': '0' })),
+      s('linearGradient', { id: 's-grad-bot', x1: '0', y1: '0', x2: '0', y2: '1' },
+        s('stop', { offset: '0%', 'stop-color': '#000', 'stop-opacity': '0' }),
+        s('stop', { offset: '45%', 'stop-color': '#000', 'stop-opacity': '0.32' }),
+        s('stop', { offset: '100%', 'stop-color': '#000', 'stop-opacity': '0.68' })),
+      s('linearGradient', { id: 's-av-grad', x1: '0', y1: '0', x2: '1', y2: '1' },
+        s('stop', { offset: '0%', 'stop-color': '#6366f1' }),
+        s('stop', { offset: '100%', 'stop-color': '#ec4899' })),
+      s('pattern', { id: 's-hatch', width: 8, height: 8, patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)' },
+        s('rect', { width: 8, height: 8, fill: 'rgba(239,68,68,.20)' }),
+        s('line', { x1: 0, y1: 0, x2: 0, y2: 8, stroke: 'rgba(248,113,113,.38)', 'stroke-width': 2 })),
+    );
+    svg.appendChild(defs);
     const frame = fitFrame(w, ph, p.ref);
     const prof = profile();
+    const safeMode = viewMode === 'safe';
+    const showSafe = safeMode || highlight;
     // the platform's crop sits centred on the picture; everything outside it is darkened
     for (const r of [
       { x: 0, y: 0, w, h: frame.y }, { x: 0, y: frame.y + frame.h, w, h: ph - frame.y - frame.h },
       { x: 0, y: frame.y, w: frame.x, h: frame.h }, { x: frame.x + frame.w, y: frame.y, w: w - frame.x - frame.w, h: frame.h },
     ]) if (r.w > 0.5 && r.h > 0.5) svg.appendChild(s('rect', { x: r.x, y: r.y, width: r.w, height: r.h, class: 's-outside' }));
-    const root = s('g', { class: highlight ? 's-hl' : '', opacity: opacity });
+    const root = s('g', { class: showSafe ? 's-hl' : '', opacity: opacity });
     svg.appendChild(root);
-    // Clean by default: only the app's own UI (icons, handle, caption) is drawn. Zone boxes appear
-    // only with "Highlight unsafe areas" or "Show labels"; the crop outline only when the crop is
-    // smaller than the picture.
+
+    // Subtle top/bottom gradient scrims + frosted bottom nav bar in UI preview mode
+    if (!safeMode) {
+      const hasTop = p.zones.some((z) => z.kind === 'topbar');
+      const hasBottomChrome = p.zones.some((z) => z.kind === 'caption' || z.kind === 'profile' || z.kind === 'bottombar');
+      if (hasTop) root.appendChild(s('rect', { x: frame.x, y: frame.y, width: frame.w, height: frame.h * 0.14, class: 's-scrim-top' }));
+      if (hasBottomChrome) {
+        const sh = frame.h * 0.34;
+        root.appendChild(s('rect', { x: frame.x, y: frame.y + frame.h - sh, width: frame.w, height: sh, class: 's-scrim-bot' }));
+      }
+      for (const z of p.zones) {
+        if (z.kind === 'bottombar') {
+          const r = toPx(frame, z.rect);
+          root.appendChild(s('rect', { x: r.x, y: r.y, width: r.w, height: r.h, class: 's-nav-bg' }));
+          root.appendChild(s('line', { x1: r.x, y1: r.y, x2: r.x + r.w, y2: r.y, class: 's-nav-line' }));
+        }
+      }
+    }
+
     if (frame.w < w - 1 || frame.h < ph - 1) {
       root.appendChild(s('rect', { x: frame.x, y: frame.y, width: frame.w, height: frame.h, class: 's-frame' }));
     }
-    if (highlight || showLabels) {
+    if (showSafe || showLabels) {
       for (const z of p.zones) {
         const r = toPx(frame, z.rect);
-        root.appendChild(s('rect', { x: r.x, y: r.y, width: r.w, height: r.h, class: `s-zone ${z.kind}${z.unsafe ? ' unsafe' : ''}` }));
+        root.appendChild(s('rect', { x: r.x, y: r.y, width: r.w, height: r.h, rx: 3, class: `s-zone ${z.kind}${z.unsafe ? ' unsafe' : ''}` }));
       }
     }
-    if (highlight) {
-      const sb = toPx(frame, p.safe);
-      root.appendChild(s('rect', { x: sb.x, y: sb.y, width: sb.w, height: sb.h, class: 's-safe' }));
-      root.appendChild(s('text', { x: sb.x + 4, y: sb.y + 13, class: 's-label' }, 'safe'));
-    }
-    const fg = s('g', { filter: 'url(#s-shadow)' });
+    if (showSafe) drawSafeFrame(root, toPx(frame, p.safe));
+
+    const fg = s('g', { filter: 'url(#s-shadow)', class: safeMode ? 's-fg-dim' : '' });
     root.appendChild(fg);
     for (const z of p.zones) {
-      for (const ic of z.icons || []) drawIcon(fg, ic, frame);
+      const showCounts = !safeMode && z.kind === 'buttons' && (z.icons || []).length >= 2 && z.rect[3] >= 0.22;
+      for (const ic of z.icons || []) drawIcon(fg, ic, frame, showCounts);
       if (z.kind === 'caption' || z.lines) drawCaption(fg, z, frame, prof);
       const handleEnd = drawProfileBits(fg, z, frame, prof);
       if (z.pill) {
         const r = toPx(frame, [z.pill.x, z.pill.y, z.pill.w, z.pill.h]);
-        const fs = Math.max(MIN_TEXT, Math.min(r.h * 0.5, 13));
-        const needW = textW(z.pill.text, fs) + 14;
+        const fs = Math.max(MIN_TEXT, Math.min(r.h * 0.5, 12.5));
+        const needW = textW(z.pill.text, fs) + 16;
         const pw = Math.max(r.w, needW), ph2 = Math.max(r.h, fs + 8);
         const px = Math.min(r.x + r.w, frame.x + frame.w - 2) - pw;
         const py = Math.min(Math.max(r.y + r.h / 2 - ph2 / 2, frame.y + 1), frame.y + frame.h - ph2 - 1);
         if (px > handleEnd + 6) { // skip the pill when the crop is too narrow to fit it next to the handle
-          fg.appendChild(s('rect', { x: px, y: py, width: pw, height: ph2, rx: Math.min(ph2 / 2, 10), class: 's-pill' }));
+          fg.appendChild(s('rect', { x: px, y: py, width: pw, height: ph2, rx: Math.min(ph2 / 2, 8), class: 's-pill' }));
           fg.appendChild(s('text', { x: px + pw / 2, y: py + ph2 / 2 + fs * 0.35, 'text-anchor': 'middle', class: 's-text', 'font-size': fs }, z.pill.text));
         }
       }
@@ -323,6 +395,24 @@ export function initSocial({ bus, layer, panel }) {
     markPlatform();
     render();
   }
+
+  const modeGrid = h('div', { class: 'ui-chips', role: 'group', 'aria-label': 'View mode' });
+  const modeBtns = new Map();
+  const markMode = () => { for (const [id, b] of modeBtns) b.setAttribute('aria-pressed', String(id === viewMode)); };
+  function setMode(m) {
+    viewMode = normalizeViewMode(m);
+    store.set(KEY_MODE, viewMode);
+    if (viewMode === 'safe') { highlight = true; store.set(KEY_HL, '1'); hlToggle.set(true); }
+    else { highlight = false; store.set(KEY_HL, '0'); hlToggle.set(false); }
+    markMode();
+    render();
+  }
+  for (const [id, label] of [['ui', 'UI preview'], ['safe', 'Safe zones']]) {
+    const b = h('button', { type: 'button', class: 'ui-chip', 'data-view-mode': id, onclick: () => setMode(id) }, label);
+    modeBtns.set(id, b);
+    modeGrid.appendChild(b);
+  }
+  markMode();
 
   const select = h('select', { 'aria-label': 'Profile', onchange: (e) => { profileId = e.target.value; saveProfiles(); syncFields(); render(); } });
   const handleIn = h('input', { type: 'text', maxlength: 30, placeholder: 'yourhandle', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', 'aria-label': 'Handle', oninput: () => { profile().handle = handleIn.value.replace(/^@+/, '').replace(/\s+/g, ''); saveProfiles(); renderSoon(); } });
@@ -373,11 +463,12 @@ export function initSocial({ bus, layer, panel }) {
 
   fillSelect();
   syncFields();
-  const hlToggle = toggleRow('Highlight unsafe areas', highlight, (v) => { highlight = v; store.set(KEY_HL, v ? '1' : '0'); render(); }, 'Red = covered by the app, green = clear');
+  const hlToggle = toggleRow('Highlight unsafe areas', highlight, (v) => { highlight = v; store.set(KEY_HL, v ? '1' : '0'); if (!v && viewMode === 'safe') { viewMode = 'ui'; store.set(KEY_MODE, 'ui'); markMode(); } render(); }, 'Red = covered by the app, green = clear');
   const lblToggle = toggleRow('Show labels', showLabels, (v) => { showLabels = v; store.set(KEY_LABELS, v ? '1' : '0'); render(); }, 'Names of the top bar, buttons, caption…');
   const opSlider = sliderRow('Opacity', { min: 0.3, max: 1, step: 0.05, value: opacity, fmt: (v) => Math.round(v * 100) + '%' }, (v) => { opacity = v; store.set(KEY_OPACITY, v); render(); });
   panel.append(
     section('Platform', grid),
+    section('View mode', modeGrid),
     opSlider.el, lblToggle.el, hlToggle.el,
     section('Profile', h('div', { class: 'ui-profile' }, avatarImg, select), h('label', { class: 'ui-field' }, 'Handle', handleIn), h('label', { class: 'ui-field' }, 'Caption', capIn), h('div', { class: 'ui-btns' }, picBtn, newBtn, delBtn), fileIn),
   );

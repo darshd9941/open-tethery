@@ -146,12 +146,14 @@ function buildExe({ blob, cfgFile, exePath }) {
 }
 
 // Plain recursive copy: fs.cpSync crashes some Node 22 builds on Windows (0xC0000409).
-function copyDir(src, dst) {
+const VIEWER_SKIP = new Set(['test', 'node_modules', 'package.json', 'package-lock.json', 'README.md', 'CONTRACT.md']);
+function copyDir(src, dst, skipNames = null) {
   fs.rmSync(dst, { recursive: true, force: true });
   fs.mkdirSync(dst, { recursive: true });
   for (const e of fs.readdirSync(src, { withFileTypes: true })) {
+    if (e.name.startsWith('.') || (skipNames && skipNames.has(e.name))) continue;
     const s = path.join(src, e.name); const d = path.join(dst, e.name);
-    if (e.isDirectory()) copyDir(s, d);
+    if (e.isDirectory()) copyDir(s, d, skipNames);
     else if (e.isFile()) fs.copyFileSync(s, d);
   }
 }
@@ -191,7 +193,7 @@ function main(argv) {
   const exePath = path.join(opt.out, opt.exeName);
   buildExe({ blob, cfgFile, exePath });
   console.log('Exe written; copying viewer, profiles and product.json');
-  if (fs.existsSync(opt.viewer)) copyDir(opt.viewer, path.join(opt.out, 'viewer'));
+  if (fs.existsSync(opt.viewer)) copyDir(opt.viewer, path.join(opt.out, 'viewer'), VIEWER_SKIP);
   else console.warn('WARNING: viewer dir not found:', opt.viewer);
   const profiles = path.join(opt.helper, 'profiles');
   if (fs.existsSync(profiles)) copyDir(profiles, path.join(opt.out, 'profiles'));
@@ -203,4 +205,4 @@ function main(argv) {
 if (require.main === module) {
   try { main(process.argv); } catch (e) { console.error('ERROR:', e.message); process.exit(1); }
 }
-module.exports = { findEntry, bundle, miniBundle, writeSeaConfig, main, FUSE };
+module.exports = { findEntry, bundle, miniBundle, writeSeaConfig, copyDir, VIEWER_SKIP, main, FUSE };

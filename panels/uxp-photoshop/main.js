@@ -124,11 +124,12 @@ function renderQr(url) {
 function render() {
   const connected = client.connected;
   const helperDown = !ui.helperUp && !connected && ui.failures >= 2;
-  const live = connected && !!ui.doc && Date.now() - ui.lastFrameAt < LIVE_WINDOW_MS;
+  const live = connected && !!ui.doc && ui.lastFrameAt > 0;
+  const connecting = ui.helperUp && !connected;
 
-  el.text.textContent = live ? 'LIVE' : 'IDLE';
-  el.dot.className = 'dot' + (live ? ' on' : '');
-  el.pill.className = 'pill' + (live ? ' on' : '');
+  el.text.textContent = live ? 'LIVE' : connecting ? 'CONNECTING…' : 'IDLE';
+  el.dot.className = 'dot' + (live ? ' on' : connecting ? ' warn' : '');
+  el.pill.className = 'pill' + (live ? ' on' : connecting ? ' warn' : '');
 
   el.helperCard.className = 'helper-card' + (helperDown ? ' visible' : '');
 
@@ -157,12 +158,24 @@ function render() {
 
 // ------------------------------------------------------------------ wiring
 
+let psHost = null;
+try {
+  psHost = require('photoshop');
+} catch (error) {
+  ui.note = 'Could not load Photoshop API: ' + errorText(error);
+}
+
 const client = new SourceClient({
   url: HELPER_WS,
   WebSocketImpl: WebSocket,
   host: { app: 'photoshop', appName: 'Photoshop', version: '' },
   onStatus: (status) => {
-    if (status === 'connected') capture.invalidate(); // resend doc + frame after reconnects
+    if (status === 'connected') {
+      ui.note = null;
+      capture.invalidate(); // resend doc + frame after reconnects
+    } else if (status === 'disconnected') {
+      ui.lastFrameAt = 0;
+    }
     render();
   },
   onState: (state) => {
@@ -179,9 +192,11 @@ const client = new SourceClient({
 
 const capture = new PsCapture({
   client,
+  ps: psHost,
   getSettings: () => settings,
   onDoc: (info) => {
     ui.doc = info;
+    if (!info) ui.lastFrameAt = 0;
     render();
   },
   onFrame: (info) => {

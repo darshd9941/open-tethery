@@ -5,7 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import * as M from '../js/scope-math.js';
-import { validatePlatform, fitFrame, toPx, wrapText, coverCrop, ICONS } from '../js/social.js';
+import { validatePlatform, fitFrame, toPx, wrapText, coverCrop, ICONS, VIEW_MODES, normalizeViewMode, actionCount } from '../js/social.js';
 import { safeRect, thirdsLines, gridLines, matteRects, mergeConfig, MATTES, centreMark } from '../js/guides.js';
 import { mergeScopeConfig } from '../js/scopes.js';
 import { infoLines } from '../js/overlays/info.js';
@@ -146,6 +146,12 @@ test('social geometry helpers', () => {
   assert.deepEqual(wrapText('short', 10, 2), ['short']);
   const c = coverCrop(400, 300);
   assert.deepEqual(c, { sx: 50, sy: 0, side: 300 });
+  assert.deepEqual(VIEW_MODES, ['ui', 'safe']);
+  assert.equal(normalizeViewMode('safe'), 'safe');
+  assert.equal(normalizeViewMode('bogus'), 'ui');
+  assert.equal(actionCount('heart'), '42.8K');
+  assert.equal(actionCount('comment'), '618');
+  assert.equal(actionCount('more'), '');
 });
 
 test('guides geometry', () => {

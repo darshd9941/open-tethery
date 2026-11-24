@@ -450,3 +450,24 @@ test('slow viewer: frames are dropped, never queued', async () => {
     assert.strictEqual(otv1.decode(await ok.waitBinary((b) => otv1.decode(b) && otv1.decode(b).time === 77)).time, 77);
   });
 });
+
+test('disconnecting transmit clears stale frame and state for new viewers', async () => {
+  await withHelper(async ({ port, ingestPort, code, track }) => {
+    const tx = track(await connectTransmit({ port: ingestPort }));
+    tx.sendFrame(11.471);
+    await sleep(60);
+    tx.close();
+    await sleep(60);
+
+    const v = track(await connectViewer({ port, code }));
+    await v.waitFor('welcome');
+    const st = await v.waitFor((m) => m.t === 'state');
+    assert.strictEqual(st.status, 'idle');
+    assert.strictEqual(st.time, undefined);
+    assert.strictEqual(st.timecode, undefined);
+    assert.strictEqual(st.sequence, undefined);
+    await sleep(80);
+    assert.strictEqual(v.binary.length, 0, 'new viewer must not receive a stale frame from a disconnected editor');
+  });
+});
+

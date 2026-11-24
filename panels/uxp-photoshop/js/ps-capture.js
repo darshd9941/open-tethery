@@ -24,8 +24,8 @@ class PsCapture {
     this.onDoc = opts.onDoc || (() => {});
     this.onFrame = opts.onFrame || (() => {});
     this.onError = opts.onError || (() => {});
-    this.pollMs = opts.pollMs === undefined ? 300 : opts.pollMs;
-    this.debounceMs = opts.debounceMs === undefined ? 350 : opts.debounceMs;
+    this.pollMs = opts.pollMs === undefined ? 150 : opts.pollMs;
+    this.debounceMs = opts.debounceMs === undefined ? 150 : opts.debounceMs;
     this.now = opts.now || Date.now;
 
     this.docKey = null; // id:name:w:h, drives source-state
@@ -76,16 +76,28 @@ class PsCapture {
   activeDocument() {
     try {
       const app = this._ps().app;
-      if (app.documents && app.documents.length === 0) return null;
-      return app.activeDocument || null;
-    } catch {
+      if (app.documents && app.documents.length === 0) {
+        this._lastDocErr = null;
+        return null;
+      }
+      const doc = app.activeDocument || (app.documents && app.documents[0]) || null;
+      this._lastDocErr = null;
+      return doc;
+    } catch (error) {
+      const msg = 'Photoshop API: ' + errorText(error);
+      if (msg !== this._lastDocErr) {
+        this._lastDocErr = msg;
+        this.onError(msg);
+      }
       return null;
     }
   }
 
   static docInfo(doc) {
-    const width = Math.max(1, Math.round(doc.width));
-    const height = Math.max(1, Math.round(doc.height));
+    const rawW = doc.width && typeof doc.width === 'object' && doc.width.value !== undefined ? doc.width.value : doc.width;
+    const rawH = doc.height && typeof doc.height === 'object' && doc.height.value !== undefined ? doc.height.value : doc.height;
+    const width = Math.max(1, Math.round(Number(rawW)));
+    const height = Math.max(1, Math.round(Number(rawH)));
     return { id: doc.id, name: doc.title || doc.name || 'Untitled', width, height };
   }
 

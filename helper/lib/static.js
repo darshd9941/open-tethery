@@ -5,6 +5,9 @@
 
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
+
+const COMPRESSIBLE = new Set(['.html', '.js', '.mjs', '.css', '.json', '.webmanifest', '.svg', '.txt']);
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -109,11 +112,27 @@ function serveViewer(root, pathname, req, res, name) {
       return res.end('Not found');
     }
     const ext = path.extname(file).toLowerCase();
-    res.writeHead(200, {
+    const etag = `W/"${st.size}-${Math.trunc(st.mtimeMs)}"`;
+    const headers = {
       'Content-Type': MIME[ext] || 'application/octet-stream',
-      'Content-Length': st.size,
       'Cache-Control': 'no-cache',
-    });
+      ETag: etag,
+      Vary: 'Accept-Encoding',
+    };
+    if (req.headers && req.headers['if-none-match'] === etag) {
+      res.writeHead(304, headers);
+      return res.end();
+    }
+    const compressible = st.size >= 512 && COMPRESSIBLE.has(ext);
+    const wantsGzip = compressible && /\bgzip\b/i.test((req.headers && req.headers['accept-encoding']) || '');
+    if (wantsGzip) {
+      headers['Content-Encoding'] = 'gzip';
+      res.writeHead(200, headers);
+      if (head) return res.end();
+      return fs.createReadStream(file).on('error', () => res.destroy()).pipe(zlib.createGzip()).pipe(res);
+    }
+    headers['Content-Length'] = st.size;
+    res.writeHead(200, headers);
     if (head) return res.end();
     fs.createReadStream(file).on('error', () => res.destroy()).pipe(res);
   });

@@ -43,7 +43,7 @@ UsePreviousAppDir=yes
 VersionInfoVersion={#AppVersion}
 VersionInfoProductName={#AppName}
 UninstallDisplayName={#AppName}
-Compression=lzma2
+Compression=lzma2/ultra64
 SolidCompression=yes
 ; Ask to close Adobe apps that hold files we replace (Restart Manager) ...
 CloseApplications=yes

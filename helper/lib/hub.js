@@ -160,6 +160,7 @@ class Hub {
       if (!this.controlPanel()) this.failAllReqs('no-host');
     } else if (client.role === 'source') {
       this.model.clearHost('source', client.id);
+      if (!this.model.isLive()) this.latestFrame = null;
     }
     this.markDirty();
   }
@@ -474,9 +475,12 @@ class Hub {
   onTransmitConnection(connected) {
     this.model.setTransmitConnected(connected);
     this.jpegWantedSent = true; // a new plugin connection starts with "jpeg wanted" (the documented default)
-    if (!connected && this.h264Active) {
-      this.h264Active = false;
-      this.announceWebrtc();
+    if (!connected) {
+      if (this.h264Active) {
+        this.h264Active = false;
+        this.announceWebrtc();
+      }
+      if (!this.model.isLive()) this.latestFrame = null;
     }
     if (connected) this.updateJpegWanted();
     this.markDirty();
