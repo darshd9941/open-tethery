@@ -40,7 +40,7 @@ const PLACEHOLDER = placeholder();
 
 // Finds the viewer dir: explicit option / env, then ../../viewer relative to lib/ (repo layout).
 function findViewerDir(explicit) {
-  // The installer sets OT_VIEWER_DIR / OT_EXE_DIR; they win over repo-relative paths.
+  // OT_VIEWER_DIR / OT_EXE_DIR win over repo-relative paths; the exe's own folder is the last resort.
   const exeDir = process.env.OT_EXE_DIR;
   const candidates = [
     process.env.OT_VIEWER_DIR,
@@ -48,6 +48,8 @@ function findViewerDir(explicit) {
     exeDir && path.join(exeDir, 'viewer'),
     path.join(__dirname, '..', '..', 'viewer'),
     path.join(__dirname, '..', 'viewer'),
+    // Packaged helper (single exe): the installer puts viewer\ next to the exe.
+    path.join(path.dirname(process.execPath), 'viewer'),
   ];
   for (const c of candidates) {
     if (c && fs.existsSync(path.join(c, 'index.html'))) return path.resolve(c);

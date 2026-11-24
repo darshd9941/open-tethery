@@ -163,4 +163,11 @@ begin
       Exit;
     end;
   Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM {#HelperExe}', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  // Old "Open Tethery" helpers: the dev install ran node.exe from LocalAppData\OpenTethery and kept ports
+  // 47825/47826, so the new helper could not start. Stop every process running from our old or new folders.
+  Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+    '-NoProfile -ExecutionPolicy Bypass -Command "Get-CimInstance Win32_Process | Where-Object { $_.Name -eq ''OpenTetheryHelper.exe'' -or ($_.ExecutablePath -and ($_.ExecutablePath -like ''' +
+    ExpandConstant('{localappdata}') + '\OpenTethery\*'' -or $_.ExecutablePath -like ''' + ExpandConstant('{localappdata}') +
+    '\{#InstallDirName}\*'')) } | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }"',
+    '', SW_HIDE, ewWaitUntilTerminated, Code);
 end;
