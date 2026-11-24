@@ -23,7 +23,6 @@ test('shared ids, port, rule name and Run key are consistent across scripts', ()
     assert.match(text, /Software.Microsoft.Windows.CurrentVersion.Run/, `${name} Run key`);
   }
   assert.match(common, /9\.\.13/);
-  for (const v of [9, 10, 11, 12, 13]) assert.match(iss, new RegExp(`CSXS\\.${v}"`));
   assert.match(common, /com\.screenlive\.video/);
   assert.match(iss, /com\.screenlive\.video/);
   assert.match(common, /Live Video Preview\*/);

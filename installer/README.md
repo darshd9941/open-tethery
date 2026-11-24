@@ -10,7 +10,9 @@ Everything that puts Pocket Monitor on a PC. Run all commands from the repo root
 | `dev-install.ps1` | The "dev install" (M0): installs everything below on this PC, one UAC prompt, idempotent. |
 | `dev-uninstall.ps1` | Removes all of it. Also `dev-install.ps1 -Uninstall`. |
 | `start-helper.vbs` | Starts the helper hidden (no console window); used by the Run entry. |
-| `PocketMonitor.iss` | Inno Setup 6 script for the real `PocketMonitorSetup.exe` (M8). |
+| `PocketMonitor.iss` | Inno Setup 6 script for the real `PocketMonitorSetup-<version>.exe`. |
+| `build-release.ps1` | ONE command that builds the whole release (see "Make a release"). |
+| `sign-panel.ps1` | Signs the CEP panel into `dist\PocketMonitorPanel.zxp` (+ unpacked `dist\panel\`) with ZXPSignCmd. |
 | `check-update.md` | Design for the "update available" check (not built). |
 | `test/static.test.js` | Linux tests (`cd installer && npm install && npm test`). |
 
@@ -28,9 +30,39 @@ powershell -ExecutionPolicy Bypass -File installer\dev-install.ps1
 # remove everything
 powershell -ExecutionPolicy Bypass -File installer\dev-uninstall.ps1
 
-# real installer (Inno Setup 6 installed; needs steps 1, the built .prm and a .ccx in installer\dist first)
-"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\PocketMonitor.iss
+# real installer: see "Make a release" below
 ```
+
+## Make a release
+
+One command, on a Windows PC with the prerequisites:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File installer\build-release.ps1
+```
+
+Result: `installer\dist\PocketMonitorSetup-<version>.exe` and `.sha256` (version comes from `product.json`).
+Users download that one file, double-click, say Yes once; no PlayerDebugMode or developer settings (the panel is signed).
+They get the panel in Premiere Pro and After Effects (Window > Extensions), the Transmit plug-in, the helper (starts with Windows),
+firewall rules, optional Photoshop plug-in (checkbox), and a Start-menu uninstall. Running a newer setup upgrades in place.
+
+Prerequisites (once):
+
+1. Node 22 (`winget install OpenJS.NodeJS.LTS`).
+2. Visual Studio 2022 with "Desktop development with C++" (MSBuild is found with vswhere).
+3. Inno Setup 6: `winget install JRSoftware.InnoSetup`.
+4. Adobe ZXPSignCmd: get it from https://github.com/Adobe-CEP/CEP-Resources/tree/master/ZXPSignCMD, save as
+   `%USERPROFILE%\.pocketmonitor\ZXPSignCmd.exe` (or set `PM_ZXPSIGNCMD`, or `PM_ZXPSIGNCMD_URL` to auto-download).
+   Then create the panel certificate once: `powershell -File installer\sign-panel.ps1 -CreateCert`
+   (stored in `%USERPROFILE%\.pocketmonitor\panel-cert.p12`, outside the repo; back it up; set `PM_PANEL_CERT_PASS` to skip the password prompt).
+5. The licensed Adobe Premiere Pro C++ SDK unzipped into `sdk\` (git-ignored) or `PREMIERE_SDK` pointing at its `Examples` folder.
+6. Optional: `PM_SIGN_CERT` (.pfx path) and `PM_SIGN_PASS` to Authenticode-sign the helper exe, .prm and setup with signtool
+   (avoids SmartScreen warnings). Without them the build says so and continues.
+
+Steps the script runs: branding check, `npm ci`, helper exe (SEA), MSBuild Transmit plug-in, sign panel .zxp, pack Photoshop .ccx,
+compile .iss, optional Authenticode, SHA256. It stops with a plain-English message at the first problem.
+CI (`.github/workflows/release.yml`, on tags `v*`) only runs the tests and attaches the helper exe and .ccx: the final setup is built
+locally because the Adobe SDK is licensed and the signing certificates are private. `.github/workflows/ci.yml` runs `npm run test:all` on PRs.
 
 ## What dev-install does
 
@@ -69,14 +101,15 @@ the viewer from `OT_VIEWER_DIR` first and must not rely on `__dirname` for data 
 
 ## Installer (.iss) notes
 
+- Release setup installs the SIGNED panel (`dist\panel`, the unpacked .zxp) to `%APPDATA%\Adobe\CEP\extensions\<id>`; it writes no PlayerDebugMode. `dev-install.ps1` still installs the unsigned folder and sets it.
+- Components: "Premiere Pro and After Effects" (always) and "Photoshop" (optional). Uninstall also removes legacy Open Tethery and Live Preview leftovers.
 - `PrivilegesRequired=admin`: the firewall rule and the Program Files MediaCore folder need admin anyway, so one UAC "Yes"
   is simpler than a per-user install that elevates half way. Files still go to `%LOCALAPPDATA%`, `%APPDATA%`, HKCU.
   Caveat: if another admin account approves the prompt, those per-user paths are that admin's.
 - Closes Adobe apps: `CloseApplications=yes` (Restart Manager) plus a `[Code]` check by process name for
   Adobe Premiere Pro.exe, AfterFX.exe, Photoshop.exe that blocks until they are closed.
 - Start menu "Uninstall Pocket Monitor"; version from `version.txt`; same `AppId` so a newer setup upgrades in place.
-- Needs before compiling: `installer\dist\helper\*` (build script), `panels\cep`, `build\native\Release\PocketMonitorTransmit.prm`,
-  `installer\dist\PocketMonitorPhotoshop.ccx` (created by dev-install, or zip `panels\uxp-photoshop` and rename).
+- Needs before compiling (build-release.ps1 makes all): `installer\dist\helper\*`, `installer\dist\panel\*`, `build\native\Release\PocketMonitorTransmit.prm`, `installer\dist\PocketMonitorPhotoshop.ccx`.
 
 ## Needs PC test
 
@@ -91,3 +124,10 @@ the viewer from `OT_VIEWER_DIR` first and must not rely on `__dirname` for data 
 - [ ] `dev-uninstall.ps1` leaves nothing: folder, Run value, rule, panel, MediaCore folder.
 - [ ] Inno Setup: compiles, `skipifdoesntexist`/`skipifsourcedoesntexist` flags behave, Adobe-app check works, Start menu uninstall removes all, upgrade over an existing install.
 - [ ] Windows SmartScreen / antivirus reaction to an unsigned SEA exe and setup.
+- [ ] `build-release.ps1` end to end on Windows (vswhere/MSBuild lookup, ISCC lookup, every plain-English failure message).
+- [ ] `sign-panel.ps1 -CreateCert` then a normal run: ZXPSignCmd argument order/flags (`-selfSignedCert`, `-sign ... -tsa`, `-verify`), timestamp server reachable.
+- [ ] Signed panel loads in Premiere Pro and After Effects with PlayerDebugMode OFF (delete the CSXS keys first) and appears under Window > Extensions > Pocket Monitor.
+- [ ] The panel still works when installed from the unpacked .zxp (no `.debug`, no node_modules; helper launch from `start-helper.vbs`).
+- [ ] Setup: components page (Photoshop unticked skips the .ccx), license page, upgrade over an older build, uninstall removes legacy Open Tethery leftovers.
+- [ ] Authenticode signing with `PM_SIGN_CERT`/`PM_SIGN_PASS` and SmartScreen behaviour for the signed and unsigned setup.
+- [ ] GitHub release workflow on a test tag (windows-latest: helper exe + ccx artifacts).

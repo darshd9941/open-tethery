@@ -1,0 +1,34 @@
+# CI part of a release. The final PocketMonitorSetup-<version>.exe is built LOCALLY with
+# installer\build-release.ps1: it needs the licensed Adobe Premiere SDK (not in git), the panel
+# signing certificate and (optionally) a code-signing certificate. See installer/README.md.
+name: Release artifacts
+on:
+  push:
+    tags: ['v*']
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run install:all
+      - run: npm run test:all
+      - name: Build helper exe
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File installer/build-helper-exe.ps1
+      - name: Pack Photoshop plug-in (.ccx)
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force installer/dist | Out-Null
+          robocopy panels/uxp-photoshop installer/dist/ps-stage /E /XD test tools node_modules /XF package.json package-lock.json *.md | Out-Null
+          Compress-Archive -Path installer/dist/ps-stage/* -DestinationPath installer/dist/PocketMonitorPhotoshop.zip -Force
+          Move-Item installer/dist/PocketMonitorPhotoshop.zip installer/dist/PocketMonitorPhotoshop.ccx -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: helper-exe
+          path: installer/dist/helper/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: photoshop-ccx
+          path: installer/dist/PocketMonitorPhotoshop.ccx

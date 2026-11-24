@@ -1,5 +1,6 @@
-; Pocket Monitor installer (Inno Setup 6). Build: ISCC.exe installer\PocketMonitor.iss  ->  installer\Output\PocketMonitorSetup.exe
-; Needs first (see README.md): installer\build-helper-exe.ps1, the CEP/UXP panels, and the built Transmit .prm.
+; Pocket Monitor installer (Inno Setup 6). Normally built by installer\build-release.ps1 -> installer\dist\PocketMonitorSetup-<version>.exe
+; Needs first (see README.md): dist\helper (build-helper-exe), dist\panel (SIGNED panel from sign-panel.ps1),
+; dist\PocketMonitorPhotoshop.ccx and the built Transmit .prm. No PlayerDebugMode: the panel is signed.
 ;
 ; Privileges: PrivilegesRequired=admin. Two things need admin no matter what: the firewall rule and the shared
 ; Adobe MediaCore plug-in folder under Program Files. One UAC prompt ("Yes once") is simpler and more reliable than
@@ -35,17 +36,33 @@ DisableProgramGroupPage=yes
 PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
-OutputBaseFilename={#InstallDirName}Setup
-OutputDir=Output
+OutputBaseFilename={#InstallDirName}Setup-{#AppVersion}
+OutputDir=dist
+SetupLogging=yes
+UsePreviousAppDir=yes
+VersionInfoVersion={#AppVersion}
+VersionInfoProductName={#AppName}
+UninstallDisplayName={#AppName}
 Compression=lzma2
 SolidCompression=yes
 ; Ask to close Adobe apps that hold files we replace (Restart Manager) ...
 CloseApplications=yes
 CloseApplicationsFilter=Adobe Premiere Pro.exe,AfterFX.exe,Photoshop.exe,{#HelperExe}
 RestartApplications=no
-UninstallDisplayName={#AppName}
 UninstallDisplayIcon={app}\{#HelperExe}
 WizardStyle=modern
+WizardSizePercent=110
+#ifexist "..\LICENSE"
+LicenseFile=..\LICENSE
+#endif
+
+[Components]
+Name: "adobe"; Description: "Premiere Pro and After Effects (panel, Transmit plug-in, helper)"; Types: full custom; Flags: fixed
+Name: "photoshop"; Description: "Photoshop plug-in (optional)"; Types: full
+
+[Types]
+Name: "full"; Description: "Everything"
+Name: "custom"; Description: "Custom"; Flags: iscustom
 
 [Dirs]
 Name: "{app}"
@@ -67,17 +84,12 @@ Source: "dist\helper\profiles\*"; DestDir: "{app}\profiles"; Flags: ignoreversio
 Source: "start-helper.vbs"; DestDir: "{app}"; Flags: ignoreversion
 Source: "version.txt"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\product.json"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\panels\cep\*"; DestDir: "{userappdata}\Adobe\CEP\extensions\{#CepId}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "..\build\native\Release\{#PrmFile}"; DestDir: "{#MediaCoreDir}"; Flags: ignoreversion
-Source: "dist\{#InstallDirName}Photoshop.ccx"; DestDir: "{app}"; Flags: ignoreversion
+; SIGNED panel (unpacked .zxp from sign-panel.ps1): loads without PlayerDebugMode
+Source: "dist\panel\*"; DestDir: "{userappdata}\Adobe\CEP\extensions\{#CepId}"; Flags: ignoreversion recursesubdirs createallsubdirs; Components: adobe
+Source: "..\build\native\Release\{#PrmFile}"; DestDir: "{#MediaCoreDir}"; Flags: ignoreversion; Components: adobe
+Source: "dist\{#InstallDirName}Photoshop.ccx"; DestDir: "{app}"; Flags: ignoreversion; Components: photoshop
 
 [Registry]
-; Allow unsigned CEP panels (kept on at uninstall: other panels may rely on it)
-Root: HKCU; Subkey: "Software\Adobe\CSXS.9"; ValueType: string; ValueName: "PlayerDebugMode"; ValueData: "1"
-Root: HKCU; Subkey: "Software\Adobe\CSXS.10"; ValueType: string; ValueName: "PlayerDebugMode"; ValueData: "1"
-Root: HKCU; Subkey: "Software\Adobe\CSXS.11"; ValueType: string; ValueName: "PlayerDebugMode"; ValueData: "1"
-Root: HKCU; Subkey: "Software\Adobe\CSXS.12"; ValueType: string; ValueName: "PlayerDebugMode"; ValueData: "1"
-Root: HKCU; Subkey: "Software\Adobe\CSXS.13"; ValueType: string; ValueName: "PlayerDebugMode"; ValueData: "1"
 ; Start the helper with Windows
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "{#RunValue}"; ValueData: "wscript.exe ""{app}\start-helper.vbs"""; Flags: uninsdeletevalue
 
@@ -98,7 +110,7 @@ Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Live Phone Preview (TCP 47823)"""; Flags: runhidden
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""{#RuleName}"" dir=in action=allow protocol=TCP localport={#Port} profile=private"; Flags: runhidden
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""{#RuleName} (video)"" dir=in action=allow protocol=UDP program=""{app}\{#HelperExe}"" profile=private"; Flags: runhidden
-Filename: "{#UpiaExe}"; Parameters: "/install ""{app}\{#InstallDirName}Photoshop.ccx"""; Flags: runhidden skipifdoesntexist; StatusMsg: "Installing Photoshop plug-in..."
+Filename: "{#UpiaExe}"; Parameters: "/install ""{app}\{#InstallDirName}Photoshop.ccx"""; Flags: runhidden skipifdoesntexist; Components: photoshop; StatusMsg: "Installing Photoshop plug-in..."
 Filename: "{sys}\wscript.exe"; Parameters: """{app}\start-helper.vbs"""; Flags: nowait runasoriginaluser postinstall skipifsilent; Description: "Start the {#AppName} helper now"
 
 [UninstallRun]
@@ -106,8 +118,17 @@ Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM {#HelperExe}"; Flags: runhid
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#RuleName}"""; Flags: runhidden; RunOnceId: "DelRule"
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#RuleName} (video)"""; Flags: runhidden; RunOnceId: "DelRuleVideo"
 Filename: "{#UpiaExe}"; Parameters: "/remove {#PsPluginId}"; Flags: runhidden skipifdoesntexist; RunOnceId: "DelPsPlugin"
+Filename: "{#UpiaExe}"; Parameters: "/remove com.opentethery.photoshop"; Flags: runhidden skipifdoesntexist; RunOnceId: "DelLegacyPsPlugin"
+Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM OpenTetheryHelper.exe"; Flags: runhidden; RunOnceId: "KillLegacyHelper"
+Filename: "{sys}\reg.exe"; Parameters: "delete ""HKCU\Software\Microsoft\Windows\CurrentVersion\Run"" /v OpenTetheryHelper /f"; Flags: runhidden; RunOnceId: "DelLegacyRun"
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Open Tethery Helper"""; Flags: runhidden; RunOnceId: "DelLegacyRule"
 
 [UninstallDelete]
+; Legacy leftovers (old panel builds and the earlier "Open Tethery" name)
+Type: filesandordirs; Name: "{userappdata}\Adobe\CEP\extensions\com.screenlive.video"
+Type: filesandordirs; Name: "{userappdata}\Adobe\CEP\extensions\com.opentethery.panel"
+Type: filesandordirs; Name: "{commonpf64}\Adobe\Common\Plug-ins\7.0\MediaCore\OpenTethery"
+Type: filesandordirs; Name: "{localappdata}\OpenTethery"
 Type: filesandordirs; Name: "{userappdata}\Adobe\CEP\extensions\{#CepId}"
 Type: filesandordirs; Name: "{#MediaCoreDir}"
 Type: filesandordirs; Name: "{app}"

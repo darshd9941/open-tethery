@@ -83,3 +83,7 @@ Protocol ids stay as they are on purpose: `/health` still answers `"name": "open
 
 Upgrading from the earlier "Open Tethery" build: the installers remove its CEP panel, `%LOCALAPPDATA%\OpenTethery`,
 `MediaCore\OpenTethery`, the old start-up entry, the "Open Tethery Helper" firewall rules and the old Photoshop plug-in.
+
+## Releasing
+
+One command on a Windows PC builds the user-facing installer: `powershell -ExecutionPolicy Bypass -File installer\build-release.ps1`. Prerequisites and details: `installer/README.md` ("Make a release").
