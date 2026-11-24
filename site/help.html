@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Help - {name}</title>
+<meta name="description" content="Install, connect your phone and fix common problems.">
+<link rel="icon" href="icon.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="site"><div class="wrap">
+  <a class="brand" href="index.html"><img src="icon.png" alt=""><span data-product="name">Pocket Monitor</span></a>
+  <nav><a href="index.html">Home</a><a href="help.html" aria-current="page">Help</a><a href="https://github.com/darshd9941/open-tethery/releases/latest">Download</a></nav>
+</div></header>
+<main class="wrap">
+<section class="hero"><h1>Help</h1>
+<ul class="toc">
+  <li><a href="#install">Install</a></li><li><a href="#engine">Turn on the engine</a></li><li><a href="#phone">Connect your phone</a></li>
+  <li><a href="#sound">Sound</a></li><li><a href="#overlays">Overlays</a></li><li><a href="#trouble">Troubleshooting</a></li>
+  <li><a href="#uninstall">Uninstall</a></li><li><a href="#privacy">Privacy</a></li>
+</ul></section>
+
+<h2 id="install">Install</h2>
+<ol class="steps">
+  <li>Download the installer from the <a href="https://github.com/darshd9941/open-tethery/releases/latest">latest release</a>.</li>
+  <li>Close Premiere Pro and After Effects, run the installer and click Next until it finishes.</li>
+  <li>If Windows asks about the firewall, choose Allow. Without this the phone cannot connect.</li>
+  <li>Open Premiere Pro or After Effects. Go to <strong>Window &gt; Extensions &gt; <span data-product="name">Pocket Monitor</span></strong>.</li>
+</ol>
+
+<h2 id="engine">Turn on the engine</h2>
+<p>This tells your Adobe app to send its picture to <span data-product="name">Pocket Monitor</span>. You do it once.</p>
+<h3>Premiere Pro</h3>
+<p><strong>Edit &gt; Preferences &gt; Playback</strong>, then tick <span data-product="name">Pocket Monitor</span> under <strong>Video Device</strong>.</p>
+<h3>After Effects</h3>
+<p><strong>Edit &gt; Preferences &gt; Video Preview</strong>, then choose <span data-product="name">Pocket Monitor</span> as the output device.</p>
+<p class="small">The panel shows a green tick when the engine is on.</p>
+
+<h2 id="phone">Connect your phone</h2>
+<ol class="steps">
+  <li>Put the phone on the same Wi-Fi as the computer.</li>
+  <li>Point the phone camera at the QR code in the panel and open the link.</li>
+  <li>Or open the address shown under the QR code, and type the 4 letter code.</li>
+</ol>
+
+<h2 id="sound">Sound</h2>
+<p>In Premiere Pro, leave <strong>Audio Device</strong> on your speakers. If <span data-product="name">Pocket Monitor</span> is listed for audio, tick it too. On the phone, tap <strong>Sound</strong> to hear your edit. Phones keep sound off until you tap, so it is never a surprise.</p>
+
+<h2 id="overlays">Overlays</h2>
+<p>On the phone, tap <strong>Overlays</strong> to add guides, safe zones, and frames for common social formats. They show on the phone only. They are never added to your project.</p>
+
+<h2 id="trouble">Troubleshooting</h2>
+<details><summary>The phone cannot open the page</summary>
+<p>Check that the phone is on the same Wi-Fi as the computer, not mobile data and not a guest network. Some routers block devices from talking to each other (AP isolation). Try the phone's hotspot: join it from the computer, then scan again.</p></details>
+<details><summary>Windows Firewall blocked it</summary>
+<p>Open Windows Security &gt; Firewall &amp; network protection &gt; Allow an app through firewall. Tick <code>PocketMonitorHelper</code> for Private networks. Or run the installer again.</p></details>
+<details><summary>Different Wi-Fi names, or more than one connection</summary>
+<p>Use the <strong>Connection</strong> list in the panel. Choose the one that matches the network your phone is on, then scan the new QR code.</p></details>
+<details><summary>The panel says the helper is not running</summary>
+<p>Click <strong>Start helper</strong> in the panel. If it still fails, start <span data-product="name">Pocket Monitor</span> from the Start menu and wait a few seconds.</p></details>
+<details><summary>The picture is black or the panel says the engine is off</summary>
+<p>Redo <a href="#engine">Turn on the engine</a>. In Premiere Pro, restart playback after ticking it. In the panel menu (the three dots) choose <strong>Show guide again</strong> for the steps.</p></details>
+<details><summary>I need to send a report</summary>
+<p>Click <strong>Send report</strong> in the panel. It saves a small file on your computer with settings and recent messages. Nothing is uploaded. Attach the file to a <a href="https://github.com/darshd9941/open-tethery/issues">GitHub issue</a> if you want help.</p></details>
+
+<h2 id="uninstall">Uninstall</h2>
+<p>Windows Settings &gt; Apps &gt; <span data-product="name">Pocket Monitor</span> &gt; Uninstall. This removes the panel, the engine plugin and the helper.</p>
+
+<h2 id="privacy">Privacy</h2>
+<p>Nothing leaves your network. The picture and sound go from your computer straight to your phone over your own Wi-Fi. There is no account, no tracking and no cloud. The panel checks GitHub once a day to see if a new version exists, and sends nothing about you.</p>
+</main>
+<footer><div class="wrap">
+  <span data-product="name">Pocket Monitor</span> is free and open source. Not affiliated with or endorsed by Adobe.
+  Adobe, Premiere Pro and After Effects are trademarks of Adobe Inc.
+  <a href="help.html#privacy">Privacy</a>
+</div></footer>
+<script src="brand.js"></script>
+<script src="brand-fill.js"></script>
+</body></html>

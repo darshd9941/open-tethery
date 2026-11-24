@@ -119,6 +119,7 @@ test('panel shows code and QR, and the engine warning while Transmit is absent',
       };
     }`,
   }));
+  await panelPage.addInitScript(() => { try { localStorage.setItem('ot.guide.seen', '1'); } catch (e) {} });
   await panelPage.goto('file://' + path.join(ROOT, 'panels/cep/client/index.html'));
   await panelPage.waitForFunction((c) => document.getElementById('code').textContent === c, session.code);
   await panelPage.waitForFunction(() => { const q = document.getElementById('qr'); return q.complete && q.naturalWidth > 0; });
