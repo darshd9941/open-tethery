@@ -190,6 +190,7 @@ function main(argv) {
   fs.mkdirSync(opt.out, { recursive: true });
   const exePath = path.join(opt.out, opt.exeName);
   buildExe({ blob, cfgFile, exePath });
+  console.log('Exe written; copying viewer, profiles and product.json');
   if (fs.existsSync(opt.viewer)) copyDir(opt.viewer, path.join(opt.out, 'viewer'));
   else console.warn('WARNING: viewer dir not found:', opt.viewer);
   const profiles = path.join(opt.helper, 'profiles');
