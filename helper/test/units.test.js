@@ -216,10 +216,12 @@ test('config: env port overrides file', () => {
 });
 
 test('static: safeJoin blocks traversal', () => {
-  const root = '/srv/viewer';
-  assert.strictEqual(safeJoin(root, '/app.js'), '/srv/viewer/app.js');
-  assert.strictEqual(safeJoin(root, '/../etc/passwd'), '/srv/viewer/etc/passwd');
-  assert.strictEqual(safeJoin(root, '/%2e%2e/%2e%2e/etc/passwd'), '/srv/viewer/etc/passwd');
+  const path = require('path');
+  const root = path.resolve('/srv/viewer');
+  const inRoot = (...p) => path.join(root, ...p);
+  assert.strictEqual(safeJoin(root, '/app.js'), inRoot('app.js'));
+  assert.strictEqual(safeJoin(root, '/../etc/passwd'), inRoot('etc', 'passwd'));
+  assert.strictEqual(safeJoin(root, '/%2e%2e/%2e%2e/etc/passwd'), inRoot('etc', 'passwd'));
   assert.strictEqual(safeJoin(root, '/a%00b'), null);
   assert.strictEqual(safeJoin(root, '/a\\..\\b'), null);
   assert.strictEqual(safeJoin(root, '/%E0%A4%A'), null);

@@ -64,6 +64,7 @@ function safeJoin(root, urlPath) {
     return null;
   }
   if (decoded.includes('\0') || decoded.includes('\\')) return null;
+  root = path.resolve(root);
   const full = path.resolve(root, `.${path.posix.normalize(`/${decoded}`)}`);
   if (full !== root && !full.startsWith(root + path.sep)) return null;
   return full;

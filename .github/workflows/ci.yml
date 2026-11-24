@@ -17,3 +17,18 @@ jobs:
       - run: npm install -g playwright@1.63.0 && npx -y playwright@1.63.0 install --with-deps chromium
       - run: echo "NODE_PATH=$(npm root -g)" >> "$GITHUB_ENV"
       - run: npm run test:all
+  windows-unit:
+    # Same unit tests the Windows release job runs, so Windows-only failures show up on the PR.
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm run install:all
+      - run: node tools/apply-branding.js --check
+      - run: npm --prefix helper test
+      - run: npm --prefix viewer test
+      - run: npm --prefix panels/cep test
+      - run: npm --prefix panels/uxp-photoshop test
+      - run: npm --prefix installer test
