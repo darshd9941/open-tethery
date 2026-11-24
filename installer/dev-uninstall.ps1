@@ -59,7 +59,7 @@ if (-not $SkipNative) {
 if (-not $SkipPhotoshop) {
   if (Test-Path $script:UpiaExe) {
     Invoke-Step "Uninstall Photoshop plug-in $($script:PsPluginId) via UPIA" {
-      & $script:UpiaExe /remove $script:PsPluginId
+      & $script:UpiaExe /remove $script:AppName
     }
   } else {
     Write-Log "Remove the Photoshop plug-in $($script:PsPluginId) in Creative Cloud Desktop > Stock & Marketplace > Plugins > Manage plugins (or UXP Developer Tool > Remove)." 'Yellow'

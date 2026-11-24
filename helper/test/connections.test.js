@@ -95,7 +95,7 @@ test('report: redacts the session code everywhere', () => {
     interfaces: WINDOWS,
     recentStates: [{ code: 'CL7G' }],
     viewers: [],
-    version: '0.2.0',
+    version: require('../package.json').version,
   });
   const files = readZip(zip);
   assert.ok(files.length >= 8);

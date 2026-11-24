@@ -82,6 +82,9 @@ function targets() {
       [/("version": ")[^"]*(")/, (m, a, b) => a + json(P.version) + b],
     ])],
     ['installer/version.txt', (t, P) => P.version + '\n'],
+    ['helper/package.json', (t, P) => apply('helper/package.json', t, [
+      [/("version": ")[^"]*(")/, (m, a, b) => a + json(P.version) + b],
+    ])],
     ['installer/package.json', (t, P) => apply('installer/package.json', t, [
       [/("version": ")[^"]*(")/, (m, a, b) => a + json(P.version) + b],
     ])],

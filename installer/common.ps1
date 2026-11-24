@@ -91,7 +91,7 @@ function Remove-LegacyInstall {
   }
   Remove-Item (Join-Path (Find-MediaCoreRoot) $script:LegacyMediaCore) -Recurse -Force -ErrorAction SilentlyContinue
   if ((Test-Path $script:UpiaExe) -and $script:LegacyPsPluginId) {
-    & $script:UpiaExe /remove $script:LegacyPsPluginId 2>&1 | Out-Null
+    & $script:UpiaExe /remove 'Open Tethery' 2>&1 | Out-Null
   }
   if ($script:LegacyInstallDir -ne $script:InstallDir) {
     Remove-Item $script:LegacyInstallDir -Recurse -Force -ErrorAction SilentlyContinue

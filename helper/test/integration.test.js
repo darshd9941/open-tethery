@@ -54,7 +54,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 test('HTTP: health, session, viewer pages, static files, qr, log', async () => {
   await withHelper(async ({ port, code, track }) => {
     const health = JSON.parse((await get(port, '/health')).body);
-    assert.deepStrictEqual(health, { ok: true, name: 'open-tethery', product: 'Pocket Monitor', version: '0.2.0', protocol: 1 });
+    assert.deepStrictEqual(health, { ok: true, name: 'open-tethery', product: 'Pocket Monitor', version: require('../package.json').version, protocol: 1 });
 
     const prod = JSON.parse((await get(port, '/product.json')).body);
     assert.strictEqual(prod.name, require('../../product.json').name);
@@ -118,7 +118,7 @@ test('handshake: welcome, state, roles, perm default', async () => {
     assert.strictEqual(w.protocol, 1);
     assert.strictEqual(w.control, true);
     assert.strictEqual(w.webrtc, false);
-    assert.deepStrictEqual(w.server, { name: 'open-tethery', version: '0.2.0', pcName: require('os').hostname() });
+    assert.deepStrictEqual(w.server, { name: 'open-tethery', version: require('../package.json').version, pcName: require('os').hostname() });
     const st = await v.waitFor('state');
     assert.strictEqual(st.status, 'idle');
     assert.strictEqual(st.engine.transmit, false);

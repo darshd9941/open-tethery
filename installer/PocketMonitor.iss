@@ -102,7 +102,7 @@ Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM OpenTetheryHelper.exe"; Flag
 Filename: "{sys}\reg.exe"; Parameters: "delete ""HKCU\Software\Microsoft\Windows\CurrentVersion\Run"" /v OpenTetheryHelper /f"; Flags: runhidden
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Open Tethery Helper"""; Flags: runhidden
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Open Tethery Helper (video)"""; Flags: runhidden
-Filename: "{#UpiaExe}"; Parameters: "/remove com.opentethery.photoshop"; Flags: runhidden skipifdoesntexist
+Filename: "{#UpiaExe}"; Parameters: "/remove ""Open Tethery"""; Flags: runhidden skipifdoesntexist
 ; Replace the old "Live Video Preview" / "Live Phone Preview" rules and our own rule (idempotent)
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#RuleName}"""; Flags: runhidden; StatusMsg: "Updating firewall..."
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#RuleName} (video)"""; Flags: runhidden; StatusMsg: "Updating firewall..."
@@ -111,7 +111,7 @@ Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""{#RuleName}"" dir=in action=allow protocol=TCP localport={#Port} profile=private"; Flags: runhidden
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""{#RuleName} (video)"" dir=in action=allow protocol=UDP program=""{app}\{#HelperExe}"" profile=private"; Flags: runhidden
 ; Remove first: Adobe's installer skips a plug-in whose version it already has.
-Filename: "{#UpiaExe}"; Parameters: "/remove {#PsPluginId}"; Flags: runhidden skipifdoesntexist; Components: photoshop
+Filename: "{#UpiaExe}"; Parameters: "/remove ""{#AppName}"""; Flags: runhidden skipifdoesntexist; Components: photoshop
 Filename: "{#UpiaExe}"; Parameters: "/install ""{app}\{#InstallDirName}Photoshop.ccx"""; Flags: runhidden skipifdoesntexist; Components: photoshop; StatusMsg: "Installing Photoshop plug-in..."
 Filename: "{sys}\wscript.exe"; Parameters: """{app}\start-helper.vbs"""; Flags: nowait runasoriginaluser postinstall skipifsilent; Description: "Start the {#AppName} helper now"
 
@@ -119,8 +119,8 @@ Filename: "{sys}\wscript.exe"; Parameters: """{app}\start-helper.vbs"""; Flags: 
 Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM {#HelperExe}"; Flags: runhidden; RunOnceId: "KillHelper"
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#RuleName}"""; Flags: runhidden; RunOnceId: "DelRule"
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#RuleName} (video)"""; Flags: runhidden; RunOnceId: "DelRuleVideo"
-Filename: "{#UpiaExe}"; Parameters: "/remove {#PsPluginId}"; Flags: runhidden skipifdoesntexist; RunOnceId: "DelPsPlugin"
-Filename: "{#UpiaExe}"; Parameters: "/remove com.opentethery.photoshop"; Flags: runhidden skipifdoesntexist; RunOnceId: "DelLegacyPsPlugin"
+Filename: "{#UpiaExe}"; Parameters: "/remove ""{#AppName}"""; Flags: runhidden skipifdoesntexist; RunOnceId: "DelPsPlugin"
+Filename: "{#UpiaExe}"; Parameters: "/remove ""Open Tethery"""; Flags: runhidden skipifdoesntexist; RunOnceId: "DelLegacyPsPlugin"
 Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM OpenTetheryHelper.exe"; Flags: runhidden; RunOnceId: "KillLegacyHelper"
 Filename: "{sys}\reg.exe"; Parameters: "delete ""HKCU\Software\Microsoft\Windows\CurrentVersion\Run"" /v OpenTetheryHelper /f"; Flags: runhidden; RunOnceId: "DelLegacyRun"
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Open Tethery Helper"""; Flags: runhidden; RunOnceId: "DelLegacyRule"
