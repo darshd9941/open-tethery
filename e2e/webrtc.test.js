@@ -136,9 +136,18 @@ test('phone (Chromium) streams the H.264 clip over WebRTC, or falls back to JPEG
     assert.equal(stats.transport, 'webrtc');
     await waitFor(async () => (await page.locator('#statsList').count()) >= 0, 'stats list present');
     // the picture really moves: two canvas snapshots a moment apart differ
-    const snap = () => page.evaluate(() => { const c = document.getElementById('canvas'); return c.getContext('2d').getImageData(0, 0, c.width, c.height).data.slice(0, 200000).join(','); });
-    const a = await snap(); await sleep(400); const b = await snap();
-    assert.notEqual(a, b, 'video frames are updating');
+    // Hash the whole canvas (the moving part of the clip is not in the top rows) and allow a few
+    // seconds for a change, so a slow CI decoder that repeats a frame does not fail the check.
+    const snap = () => page.evaluate(() => {
+      const c = document.getElementById('canvas');
+      const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
+      let h = 2166136261;
+      for (let i = 0; i < d.length; i += 4) h = Math.imul(h ^ (d[i] | (d[i + 1] << 8) | (d[i + 2] << 16)), 16777619);
+      return h >>> 0;
+    });
+    const a = await snap();
+    const changed = await waitFor(async () => (await snap()) !== a, 'video frames are updating', 4000).catch(() => false);
+    assert.ok(changed, 'video frames are updating');
   } else {
     // Fallback path: JPEG keeps flowing and the canvas shows the JPEG test card (320x180).
     await waitFor(async () => (await canvasInfo()).w === 320, 'JPEG canvas after failure', 8000);
