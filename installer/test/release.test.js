@@ -83,6 +83,8 @@ test('release workflow: SDK from a private release asset, never an artifact; sec
   const rel = fs.readFileSync(path.join(repo, '.github', 'workflows', 'release.yml'), 'utf8');
   assert.match(rel, /gh release download sdk -p premiere-sdk\.zip\.enc/);
   assert.match(rel, /secrets\.SDK_PASSPHRASE/);
+  assert.match(rel, /& powershell @psArgs/);
+  assert.doesNotMatch(rel, /powershell @args/);
   assert.match(rel, /PREMIERE_SDK=/);
   assert.match(rel, /microsoft\/setup-msbuild/);
   assert.match(rel, /choco install innosetup -y/);
