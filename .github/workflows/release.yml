@@ -54,19 +54,27 @@ jobs:
           npm --prefix panels/uxp-photoshop test
           npm --prefix installer test
 
-      - name: Download the Adobe Premiere SDK (private release asset)
+      - name: Download and decrypt the Adobe Premiere SDK
+        # The SDK is stored ENCRYPTED (premiere-sdk.zip.enc on the 'sdk' pre-release), so the repo can be public.
+        # Only this job can decrypt it, with the SDK_PASSPHRASE secret. Never upload the decrypted SDK anywhere.
         env:
           GH_TOKEN: ${{ github.token }}
+          SDK_PASSPHRASE: ${{ secrets.SDK_PASSPHRASE }}
         run: |
           $zipDir = Join-Path $env:RUNNER_TEMP 'sdkzip'
           $sdkDir = Join-Path $env:RUNNER_TEMP 'sdk'
           New-Item -ItemType Directory -Force $zipDir, $sdkDir | Out-Null
-          gh release download sdk -p premiere-sdk.zip -D $zipDir --repo $env:GITHUB_REPOSITORY
+          $help = "One-time fix: on GitHub open this repo > Releases > Draft a new release, tag 'sdk', tick 'Set as a pre-release', attach premiere-sdk.zip.enc, Publish; and add the secret SDK_PASSPHRASE (Settings > Secrets and variables > Actions). Details: installer/README.md, 'Automatic releases'."
+          if (-not $env:SDK_PASSPHRASE) { Write-Host "::error::The SDK_PASSPHRASE secret is not set. $help"; exit 1 }
+          gh release download sdk -p premiere-sdk.zip.enc -D $zipDir --repo $env:GITHUB_REPOSITORY
+          $enc = Join-Path $zipDir 'premiere-sdk.zip.enc'
+          if ($LASTEXITCODE -ne 0 -or -not (Test-Path $enc)) { Write-Host "::error::premiere-sdk.zip.enc is missing from the 'sdk' release. $help"; exit 1 }
           $zip = Join-Path $zipDir 'premiere-sdk.zip'
-          if ($LASTEXITCODE -ne 0 -or -not (Test-Path $zip)) {
-            Write-Host "::error::The Adobe Premiere SDK is missing. One-time fix: zip your 'Premiere Pro 27.0 C++ SDK' folder as premiere-sdk.zip, then on GitHub open this repo > Releases > Draft a new release, tag 'sdk', tick 'Set as a pre-release', drag premiere-sdk.zip into the box, Publish. Then run this build again. (Details: installer/README.md, 'Automatic releases'.)"
-            exit 1
-          }
+          $openssl = 'C:\Program Files\Git\usr\bin\openssl.exe'
+          if (-not (Test-Path $openssl)) { $openssl = 'openssl' }
+          & $openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:SDK_PASSPHRASE -in $enc -out $zip
+          if ($LASTEXITCODE -ne 0) { Write-Host "::error::Could not decrypt the SDK. Check that SDK_PASSPHRASE matches the file. $help"; exit 1 }
+          Remove-Item $enc
           Expand-Archive -Path $zip -DestinationPath $sdkDir -Force
           Remove-Item $zip -Force
           # The folder that holds Headers (and Utils) is the SDK "Examples" folder.

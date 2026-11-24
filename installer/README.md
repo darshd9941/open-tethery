@@ -69,18 +69,19 @@ You normally do not run this yourself: see "Automatic releases" below. `build-re
 Push a tag and GitHub builds the installer and puts it on the Releases page. Users download it from there; the panel's
 "update available" check reads that same page.
 
-### One time: give GitHub the Adobe SDK
+### One time: give GitHub the Adobe SDK (encrypted, safe for a public repo)
 
-The SDK is licensed, so it is not in git. It is kept as a private file on your private repo.
+The SDK is licensed, so it is never in git and never public. GitHub keeps only an **encrypted** copy; the build
+unlocks it with a password stored as a secret, which nobody can read back.
 
-1. On your PC, find the folder `Premiere Pro 27.0 C++ SDK` (the one that contains `Examples`).
-2. Right-click it > Send to > Compressed (zipped) folder. Rename the zip to exactly `premiere-sdk.zip`.
-3. On GitHub open the repo > Releases > Draft a new release.
-4. In "Choose a tag" type `sdk` and create it. Title: `sdk`.
-5. Tick "Set as a pre-release" (so it is never shown as the latest version).
-6. Drag `premiere-sdk.zip` into the box. Click Publish release.
+1. Make the encrypted file (in Git Bash, from the folder that holds `Premiere Pro 27.0 C++ SDK`):
+   `zip -r premiere-sdk.zip "Premiere Pro 27.0 C++ SDK"` then
+   `openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -in premiere-sdk.zip -out premiere-sdk.zip.enc` (pick a long password).
+2. On GitHub open the repo > Releases > Draft a new release. In "Choose a tag" type `sdk` and create it.
+3. Tick "Set as a pre-release", drag in `premiere-sdk.zip.enc` (NOT the plain zip), Publish.
+4. Settings > Secrets and variables > Actions > New repository secret: name `SDK_PASSPHRASE`, value = the password.
 
-The repo is private, so only people with access can download it. Do this once; redo it only if you change SDK version.
+Do this once; redo it only if you change SDK version.
 
 ### Optional: secrets (Settings > Secrets and variables > Actions > New repository secret)
 
