@@ -145,9 +145,15 @@ function buildExe({ blob, cfgFile, exePath }) {
   run('npx', args);
 }
 
+// Plain recursive copy: fs.cpSync crashes some Node 22 builds on Windows (0xC0000409).
 function copyDir(src, dst) {
   fs.rmSync(dst, { recursive: true, force: true });
-  fs.cpSync(src, dst, { recursive: true });
+  fs.mkdirSync(dst, { recursive: true });
+  for (const e of fs.readdirSync(src, { withFileTypes: true })) {
+    const s = path.join(src, e.name); const d = path.join(dst, e.name);
+    if (e.isDirectory()) copyDir(s, d);
+    else if (e.isFile()) fs.copyFileSync(s, d);
+  }
 }
 
 // Exe name and display data come from product.json at the repo root.
@@ -184,6 +190,7 @@ function main(argv) {
   fs.mkdirSync(opt.out, { recursive: true });
   const exePath = path.join(opt.out, opt.exeName);
   buildExe({ blob, cfgFile, exePath });
+  console.log('Exe written; copying viewer, profiles and product.json');
   if (fs.existsSync(opt.viewer)) copyDir(opt.viewer, path.join(opt.out, 'viewer'));
   else console.warn('WARNING: viewer dir not found:', opt.viewer);
   const profiles = path.join(opt.helper, 'profiles');

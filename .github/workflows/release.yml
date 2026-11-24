@@ -151,7 +151,7 @@ jobs:
         run: |
           $psArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', 'installer/build-release.ps1', '-Ci', '-SdkPath', $env:PREMIERE_SDK, '-ZxpSignCmd', $env:PM_ZXPSIGNCMD)
           if ($env:PM_EXPECT_VERSION) { $psArgs += @('-ExpectVersion', $env:PM_EXPECT_VERSION) }
-          & powershell @args
+          & powershell @psArgs
           if ($LASTEXITCODE -ne 0) { exit 1 }
 
       - name: Write the release notes
