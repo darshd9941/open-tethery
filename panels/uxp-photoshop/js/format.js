@@ -30,6 +30,24 @@ function base64ToBytes(str) {
   return out.subarray(0, n);
 }
 
+function bytesToBase64(bytes) {
+  const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  const parts = [];
+  for (let i = 0; i < arr.length; i += 3) {
+    const a = arr[i];
+    const b = i + 1 < arr.length ? arr[i + 1] : 0;
+    const c = i + 2 < arr.length ? arr[i + 2] : 0;
+    const triple = (a << 16) | (b << 8) | c;
+    parts.push(
+      B64[(triple >> 18) & 63],
+      B64[(triple >> 12) & 63],
+      i + 1 < arr.length ? B64[(triple >> 6) & 63] : '=',
+      i + 2 < arr.length ? B64[triple & 63] : '='
+    );
+  }
+  return parts.join('');
+}
+
 function gcd(a, b) {
   while (b) [a, b] = [b, a % b];
   return a;
@@ -86,4 +104,4 @@ function errorText(error) {
   return error.message || String(error);
 }
 
-module.exports = { base64ToBytes, aspectString, fitSize, docLine, phonesText, shortUrl, errorText };
+module.exports = { base64ToBytes, bytesToBase64, aspectString, fitSize, docLine, phonesText, shortUrl, errorText };

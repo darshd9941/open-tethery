@@ -127,6 +127,7 @@ class PsCapture {
           this.docKey = null;
           this.lastSig = null;
           this.onDoc(null);
+          if (this.client && this.client.setSequence) this.client.setSequence(null);
         }
         return;
       }
@@ -165,19 +166,24 @@ class PsCapture {
 
     await core.executeAsModal(
       async () => {
-        const result = await imaging.getPixels({
+        let result;
+        const baseOpts = {
           documentID: doc.id,
           targetSize: { width: target.width, height: target.height },
           componentSize: 8,
           applyAlpha: true,
           colorSpace: 'RGB',
-          colorProfile: profile,
-        });
+        };
+        try {
+          result = await imaging.getPixels({ ...baseOpts, colorProfile: profile });
+        } catch {
+          result = await imaging.getPixels(baseOpts);
+        }
         try {
           got = { width: result.imageData.width, height: result.imageData.height };
           encoded = await imaging.encodeImageData({ imageData: result.imageData, base64: true });
         } finally {
-          if (result.imageData && result.imageData.dispose) result.imageData.dispose();
+          if (result && result.imageData && result.imageData.dispose) result.imageData.dispose();
         }
       },
       { commandName: require('./product').name }
@@ -185,6 +191,8 @@ class PsCapture {
 
     let jpeg;
     if (typeof encoded === 'string') jpeg = base64ToBytes(encoded);
+    else if (encoded instanceof ArrayBuffer) jpeg = new Uint8Array(encoded);
+    else if (ArrayBuffer.isView(encoded)) jpeg = new Uint8Array(encoded.buffer, encoded.byteOffset, encoded.byteLength);
     else if (encoded && typeof encoded.length === 'number') jpeg = Uint8Array.from(encoded);
     if (!jpeg || jpeg.length < 4) throw new Error('Photoshop returned an empty frame');
     return { jpeg, width: got.width, height: got.height, srcWidth: info.width, srcHeight: info.height };

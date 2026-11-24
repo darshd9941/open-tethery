@@ -124,6 +124,59 @@ function createHelper(opts = {}) {
         return sendJson(res, 500, { error: String(err.message || err) });
       }
     }
+    if (p === '/api/source/state' || p === '/api/source/frame' || p === '/api/source/log') {
+      if (!local) return deny();
+      if (req.method !== 'POST') return sendJson(res, 405, { error: 'method-not-allowed' });
+      const chunks = [];
+      let total = 0;
+      const limit = 48 * 1024 * 1024;
+      req.on('data', (d) => {
+        total += d.length;
+        if (total <= limit) chunks.push(d);
+      });
+      req.on('end', () => {
+        if (total > limit) return sendJson(res, 413, { error: 'too-large' });
+        let body;
+        try {
+          body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+        } catch {
+          return sendJson(res, 400, { error: 'bad-json' });
+        }
+        if (p === '/api/source/log') {
+          log(`source[http]: ${String(body.msg || body.error || '').slice(0, 500)}`);
+          return sendJson(res, 200, { ok: true });
+        }
+        if (p === '/api/source/state') {
+          if (body.sequence === null) {
+            hub.model.clearHost('source', 'http');
+            if (!hub.model.isLive()) hub.latestFrame = null;
+          } else {
+            hub.model.setHost('source', 'http', body);
+          }
+          hub.markDirty();
+          return sendJson(res, 200, { ok: true, viewers: hub.viewers().length });
+        }
+        // /api/source/frame
+        const b64 = typeof body.jpegBase64 === 'string' ? body.jpegBase64.replace(/^data:[^,]*,/, '') : '';
+        if (!b64) return sendJson(res, 400, { error: 'missing-jpeg' });
+        const jpeg = Buffer.from(b64, 'base64');
+        if (jpeg.length < 4) return sendJson(res, 400, { error: 'empty-jpeg' });
+        if (body.host || body.sequence) hub.model.setHost('source', 'http', { host: body.host, sequence: body.sequence });
+        hub.publishFrame({
+          origin: 'source',
+          sourceId: 'http',
+          jpeg,
+          flags: 1,
+          time: NaN,
+          width: Number(body.width) || 1,
+          height: Number(body.height) || 1,
+          srcWidth: Number(body.srcWidth) || Number(body.width) || 1,
+          srcHeight: Number(body.srcHeight) || Number(body.height) || 1,
+        });
+        return sendJson(res, 200, { ok: true, bytes: jpeg.length, viewers: hub.viewers().length });
+      });
+      return;
+    }
     if (p === '/api/log') {
       if (!local) return deny();
       const n = Math.min(2000, Math.max(1, Number(url.searchParams.get('n')) || 200));

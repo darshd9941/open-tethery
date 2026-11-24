@@ -487,4 +487,50 @@ test('photoshop mode helper skips Transmit ingest and stays isolated from video 
   }, { mode: 'photoshop', ingestPort: null });
 });
 
+function postJson(port, p, obj) {
+  return new Promise((resolve, reject) => {
+    const body = Buffer.from(JSON.stringify(obj), 'utf8');
+    const req = http.request(
+      { host: '127.0.0.1', port, path: p, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': body.length } },
+      (res) => {
+        const chunks = [];
+        res.on('data', (d) => chunks.push(d));
+        res.on('end', () => resolve({ status: res.statusCode, body: Buffer.concat(chunks).toString('utf8') }));
+      },
+    );
+    req.on('error', reject);
+    req.end(body);
+  });
+}
+
+test('HTTP source endpoints accept Photoshop state and base64 JPEG frames and fan out to viewers', async () => {
+  await withHelper(async ({ port, code, track }) => {
+    const v = track(await connectViewer({ port, code }));
+    await v.waitFor('welcome');
+
+    const stRes = await postJson(port, '/api/source/state', {
+      host: { app: 'photoshop', appName: 'Photoshop', version: '27.0' },
+      sequence: { name: 'poster.psd', width: 1080, height: 1350, aspect: '4x5' },
+    });
+    assert.strictEqual(stRes.status, 200);
+
+    const frRes = await postJson(port, '/api/source/frame', {
+      jpegBase64: JPEG.toString('base64'),
+      width: 320,
+      height: 400,
+      srcWidth: 1080,
+      srcHeight: 1350,
+    });
+    assert.strictEqual(frRes.status, 200);
+    const frame = otv1.decode(await v.waitBinary(() => true));
+    assert.strictEqual(frame.width, 320);
+    assert.strictEqual(frame.height, 400);
+    assert.strictEqual(frame.srcWidth, 1080);
+    assert.strictEqual(frame.srcHeight, 1350);
+    const st = await v.waitFor((m) => m.t === 'state' && m.status === 'live' && m.sequence && m.sequence.name === 'poster.psd');
+    assert.strictEqual(st.host.app, 'photoshop');
+  }, { mode: 'photoshop', ingestPort: null });
+});
+
+
 

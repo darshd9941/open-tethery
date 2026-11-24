@@ -161,10 +161,18 @@ if ($SkipPhotoshop) {
     Invoke-Step "Build $ccx from $psSrc (zip, id $($script:PsPluginId))" {
       if (-not (Test-Path $psSrc)) { throw "Photoshop plug-in source not found: $psSrc" }
       New-Item -ItemType Directory -Force (Split-Path $ccx) | Out-Null
-      $zip = [IO.Path]::ChangeExtension($ccx, '.zip')
-      Remove-Item $zip, $ccx -Force -ErrorAction SilentlyContinue
-      Compress-Archive -Path (Join-Path $psSrc '*') -DestinationPath $zip -Force
-      Move-Item $zip $ccx -Force
+      $packer = Join-Path $psSrc 'tools\pack-ccx.js'
+      $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+      if ($nodeCmd -and (Test-Path $packer)) {
+        Remove-Item $ccx -Force -ErrorAction SilentlyContinue
+        & $nodeCmd.Source $packer $ccx
+        if ($LASTEXITCODE -ne 0) { throw "pack-ccx.js failed with exit code $LASTEXITCODE" }
+      } else {
+        $zip = [IO.Path]::ChangeExtension($ccx, '.zip')
+        Remove-Item $zip, $ccx -Force -ErrorAction SilentlyContinue
+        Compress-Archive -Path (Join-Path $psSrc '*') -DestinationPath $zip -Force
+        Move-Item $zip $ccx -Force
+      }
     }
   }
   if (Test-Path $script:UpiaExe) {
