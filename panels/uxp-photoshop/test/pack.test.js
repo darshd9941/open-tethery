@@ -25,3 +25,9 @@ test('pack-ccx makes a valid zip with manifest at the root and no dev files', ()
     if (e.code !== 'ENOENT') throw e; // unzip not installed: skip the external check
   }
 });
+
+test('manifest allows the helper with and without the port (UXP matches some hosts only without it)', () => {
+  const m = JSON.parse(require('fs').readFileSync(require('path').join(__dirname, '..', 'manifest.json'), 'utf8'));
+  const d = m.requiredPermissions.network.domains;
+  for (const u of ['http://127.0.0.1', 'ws://127.0.0.1', 'http://127.0.0.1:47825', 'ws://127.0.0.1:47825']) assert.ok(d.includes(u), u);
+});
