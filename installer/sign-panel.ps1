@@ -74,8 +74,19 @@ if ($LASTEXITCODE -ge 8) { throw "Copying the panel failed (robocopy exit $LASTE
 # 2. Sign with a timestamp (so the signature stays valid after the certificate expires).
 $zxp = Join-Path $OutDir $zxpName
 Remove-Item $zxp -Force -ErrorAction SilentlyContinue
-& $zxpSign -sign $stage $zxp $CertPath $pass -tsa $TimestampUrl
-if ($LASTEXITCODE -ne 0 -or -not (Test-Path $zxp)) { throw "Signing failed (ZXPSignCmd exit $LASTEXITCODE). Check the password and that $TimestampUrl is reachable." }
+# ZXPSignCmd 4.1.1 can crash (0xC0000005) when a timestamp server misbehaves, so try a second server and
+# finally sign without a timestamp (fine for our 20-year self-signed certificate).
+$attempts = @($TimestampUrl, 'http://timestamp.sectigo.com', '')
+$codes = @()
+foreach ($tsa in $attempts) {
+  Remove-Item $zxp -Force -ErrorAction SilentlyContinue
+  if ($tsa) { & $zxpSign -sign $stage $zxp $CertPath $pass -tsa $tsa } else { & $zxpSign -sign $stage $zxp $CertPath $pass }
+  $codes += $LASTEXITCODE
+  if ($LASTEXITCODE -eq 0 -and (Test-Path $zxp)) { break }
+  Write-Warning "ZXPSignCmd failed (exit $LASTEXITCODE) with timestamp server '$tsa'; trying the next option."
+}
+if (-not (Test-Path $zxp)) { throw "Signing failed (ZXPSignCmd exit codes: $($codes -join ', ')). Check the certificate password." }
+if (-not $tsa) { Write-Warning 'Signed WITHOUT a timestamp (no timestamp server worked).' }
 & $zxpSign -verify $zxp -certInfo | Out-Null
 if ($LASTEXITCODE -ne 0) { throw 'The signed .zxp did not verify.' }
 
