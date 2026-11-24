@@ -28,13 +28,22 @@ function probeExisting(port) {
   });
 }
 
+function parseMode(argv) {
+  for (let i = 2; i < argv.length; i++) {
+    if (argv[i] === '--mode' && argv[i + 1]) return argv[i + 1];
+    if (argv[i].startsWith('--mode=')) return argv[i].slice('--mode='.length);
+  }
+  return undefined;
+}
+
 async function main() {
-  const helper = createHelper();
+  const mode = parseMode(process.argv);
+  const helper = createHelper({ mode });
   try {
     await helper.start();
   } catch (err) {
     if (err.code === 'EADDRINUSE') {
-      const port = err.port || 47825;
+      const port = err.port || (mode === 'photoshop' ? 47823 : 47825);
       if (await probeExisting(port)) process.exit(0); // already running: stay quiet
       console.error(`Port ${port} is in use by another program. Set OPEN_TETHERY_PORT to use a different port.`);
       process.exit(1);

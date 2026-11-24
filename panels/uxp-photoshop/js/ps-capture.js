@@ -120,36 +120,40 @@ class PsCapture {
 
   // Cheap poll: detect document switch/resize/rename and edits.
   tick() {
-    const doc = this.activeDocument();
-    if (!doc) {
-      if (this.docKey !== null) {
-        this.docKey = null;
-        this.lastSig = null;
-        this.onDoc(null);
+    try {
+      const doc = this.activeDocument();
+      if (!doc) {
+        if (this.docKey !== null) {
+          this.docKey = null;
+          this.lastSig = null;
+          this.onDoc(null);
+        }
+        return;
       }
-      return;
+      const info = PsCapture.docInfo(doc);
+      const key = [info.id, info.name, info.width, info.height].join(':');
+      if (key !== this.docKey) {
+        this.docKey = key;
+        this.client.setSequence({
+          name: info.name,
+          width: info.width,
+          height: info.height,
+          aspect: aspectString(info.width, info.height),
+        });
+        this.onDoc(info);
+      }
+      if (this.capturing) return;
+      const sig = PsCapture.signature(doc);
+      if (sig === this.lastSig || sig === this.pendingSig) return;
+      this.pendingSig = sig;
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = setTimeout(() => {
+        this.pendingSig = null;
+        this.captureNow();
+      }, this.debounceMs);
+    } catch (error) {
+      this.onError('Capture: ' + errorText(error));
     }
-    const info = PsCapture.docInfo(doc);
-    const key = [info.id, info.name, info.width, info.height].join(':');
-    if (key !== this.docKey) {
-      this.docKey = key;
-      this.client.setSequence({
-        name: info.name,
-        width: info.width,
-        height: info.height,
-        aspect: aspectString(info.width, info.height),
-      });
-      this.onDoc(info);
-    }
-    if (this.capturing) return;
-    const sig = PsCapture.signature(doc);
-    if (sig === this.lastSig || sig === this.pendingSig) return;
-    this.pendingSig = sig;
-    clearTimeout(this.debounceTimer);
-    this.debounceTimer = setTimeout(() => {
-      this.pendingSig = null;
-      this.captureNow();
-    }, this.debounceMs);
   }
 
   async _grab(doc, size, profile) {

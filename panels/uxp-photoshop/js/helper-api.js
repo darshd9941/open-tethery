@@ -2,7 +2,7 @@
 
 // Loopback HTTP endpoints of the helper (docs/PROTOCOL.md section 1).
 
-const HELPER_PORT = 47825;
+const HELPER_PORT = 47823;
 const HELPER_HTTP = 'http://127.0.0.1:' + HELPER_PORT;
 const HELPER_WS = 'ws://127.0.0.1:' + HELPER_PORT + '/ws';
 

@@ -13,10 +13,10 @@ test('session calls hit the loopback endpoints', async () => {
   assert.equal((await getSession(fakeFetch)).code, 'CL7G');
   await newSession(fakeFetch);
   assert.deepEqual(seen, [
-    ['http://127.0.0.1:47825/api/session', 'GET'],
-    ['http://127.0.0.1:47825/api/session/new', 'POST'],
+    ['http://127.0.0.1:47823/api/session', 'GET'],
+    ['http://127.0.0.1:47823/api/session/new', 'POST'],
   ]);
-  assert.equal(HELPER_WS, 'ws://127.0.0.1:47825/ws');
+  assert.equal(HELPER_WS, 'ws://127.0.0.1:47823/ws');
 });
 
 test('non-200 answers reject', async () => {

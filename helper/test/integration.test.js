@@ -471,3 +471,20 @@ test('disconnecting transmit clears stale frame and state for new viewers', asyn
   });
 });
 
+test('photoshop mode helper skips Transmit ingest and stays isolated from video helper', async () => {
+  await withHelper(async ({ port: psPort, ingestPort: psIngest, code: psCode, track }) => {
+    assert.strictEqual(psIngest, 0, 'photoshop helper must not open a Transmit TCP ingest port');
+    const health = JSON.parse((await get(psPort, '/health')).body);
+    assert.strictEqual(health.mode, 'photoshop');
+
+    const src = track(await connectSource({ port: psPort }));
+    src.sendBinary(otv1.encodeFrame({ seq: 0, width: 320, height: 180, srcWidth: 1080, srcHeight: 1350, jpeg: JPEG }));
+    const v = track(await connectViewer({ port: psPort, code: psCode }));
+    await v.waitFor('welcome');
+    const frame = otv1.decode(await v.waitBinary(() => true));
+    assert.strictEqual(frame.srcWidth, 1080);
+    assert.strictEqual(frame.srcHeight, 1350);
+  }, { mode: 'photoshop', ingestPort: null });
+});
+
+
