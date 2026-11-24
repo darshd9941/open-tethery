@@ -78,7 +78,11 @@ class PsCapture {
       const app = this._ps().app;
       if (app.documents && app.documents.length === 0) return null;
       return app.activeDocument || null;
-    } catch {
+    } catch (error) {
+      if (!this.reportedDocError) {
+        this.reportedDocError = true;
+        this.onError('Cannot read the open document: ' + String((error && error.message) || error));
+      }
       return null;
     }
   }

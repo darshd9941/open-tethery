@@ -250,6 +250,16 @@ render();
 pollSession();
 setInterval(pollSession, SESSION_POLL_MS);
 setInterval(render, 1000); // lets LIVE fall back to IDLE when frames stop
-client.start();
-capture.start();
+// Show start-up failures in the panel instead of failing silently.
+try {
+  client.start();
+} catch (error) {
+  ui.note = 'Picture link failed to start: ' + errorText(error);
+}
+try {
+  capture.start();
+} catch (error) {
+  ui.note = 'Document watcher failed to start: ' + errorText(error);
+}
+render();
 setTimeout(loadProfiles, 0);

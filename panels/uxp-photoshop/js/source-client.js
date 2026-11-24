@@ -120,8 +120,14 @@ class SourceClient {
     try {
       ws = new this.WS(this.url);
     } catch (error) {
-      this._lost();
-      return;
+      // Some UXP builds want the protocols argument; try once more with an empty list.
+      try {
+        ws = new this.WS(this.url, []);
+      } catch (error2) {
+        this.onError('Could not open the picture link: ' + String((error2 && error2.message) || error2));
+        this._lost();
+        return;
+      }
     }
     try {
       ws.binaryType = 'arraybuffer';
@@ -156,8 +162,12 @@ class SourceClient {
     ws.onerror = () => {
       /* onclose follows */
     };
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       if (this.ws !== ws) return;
+      if (this.status !== 'connected') {
+        const why = event && (event.reason || event.code);
+        this.onError('Picture link closed before it connected' + (why ? ' (' + why + ')' : ''));
+      }
       this.ws = null;
       this._lost();
     };

@@ -182,6 +182,7 @@ class Hub {
   }
 
   reject(client, code, extra = {}) {
+    if (code !== 'bad-code') this.log(`rejected ${client.ip} (origin ${client.origin || 'none'}): ${code}`);
     client.send({ t: 'error', code, ...extra });
     setTimeout(() => client.ws.close(4001, code), 20);
   }
