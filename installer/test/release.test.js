@@ -70,7 +70,7 @@ test('workflow YAML files parse and have the expected triggers', (t) => {
     assert.match(text, /^name:/m);
     assert.match(text, /^jobs:/m);
     const r2 = cp.spawnSync('python3', ['-I', '-c', 'import sys,yaml;d=yaml.safe_load(open(sys.argv[1]));assert "jobs" in d', path.join(wfDir, f)], { encoding: 'utf8' });
-    if (!r2.error && !/No module named yaml/.test(r2.stderr)) assert.strictEqual(r2.status, 0, f + ': ' + r2.stderr);
+    if (!r2.error && !/No module named '?yaml'?/.test(r2.stderr)) assert.strictEqual(r2.status, 0, f + ': ' + r2.stderr);
   }
   const rel = fs.readFileSync(path.join(wfDir, 'release.yml'), 'utf8');
   assert.match(rel, /tags:\s*\['v\*'\]/);
