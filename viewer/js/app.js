@@ -563,7 +563,10 @@ function showEntry({ prefill, error, retryInSec } = {}) {
   }
   renderBoxes();
   const first = boxes[chars.findIndex((c) => !c)] || boxes[CODE_LENGTH - 1];
-  setTimeout(() => first.focus(), 50);
+  // Deferred focus (iOS needs the box visible first), but never steal focus
+  // from a user who has already started typing the next attempt: that would
+  // overwrite a typed character and the 4th char would never submit.
+  setTimeout(() => { if (!chars.some(Boolean) || prefill) first.focus(); }, 50);
 }
 
 function applyEdit(index, text) {
