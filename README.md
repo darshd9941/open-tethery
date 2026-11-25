@@ -6,6 +6,7 @@
 Scan a QR code, press play (or paint a layer), and see your work live on your phone — with sound, realistic social-app overlays, safe zones, scopes, and playback controls. **Nothing to install on your phone. 100% local over your Wi-Fi.**
 
 [![Download for Windows](https://img.shields.io/badge/Download_for_Windows-PocketMonitorSetup.exe-0f9d8f?style=for-the-badge&logo=windows&logoColor=white)](https://github.com/darshd9941/open-tethery/releases/latest)
+[![Get Pro on Gumroad](https://img.shields.io/badge/Pro_%26_1--Click_Installer-Gumroad-ff90e8?style=for-the-badge&logo=gumroad&logoColor=black)](https://darshandj.gumroad.com/l/pocket-monitor)
 [![Help & Website](https://img.shields.io/badge/Guide_%26_Help-Website-1f2937?style=for-the-badge)](https://darshd9941.github.io/open-tethery/)
 
 ![Windows 10 | 11](https://img.shields.io/badge/Windows-10%20%7C%2011%20(64--bit)-0078D6)
@@ -225,8 +226,8 @@ Pocket Monitor's core is **free and open source forever** under the [GNU GPLv3](
 | Edition | Price | What's included |
 |---|---|---|
 | **Open Source (GitHub)** | **Free forever** | Full Premiere Pro, After Effects & Photoshop live preview, synced audio, social overlays + safe zones, scopes, guides, playback controls, and full GPLv3 source code. |
-| **1-Click Installer (Gumroad)** | **$5+ (pay what you want)** | 1-click Windows installer download on Gumroad + updates for this release line. |
-| **Pocket Monitor Pro (Early Access)** | **$19 one-time** | Lifetime Pro access: upcoming code-signed Windows installer (no SmartScreen warning), upcoming macOS build, plus Pro features (custom brand/client overlay presets, multi-client review links, LUT preview). |
+| **[1-Click Installer (Gumroad)](https://darshandj.gumroad.com/l/pocket-monitor)** | **$5+ (pay what you want)** | 1-click Windows installer download on Gumroad + updates for this release line. |
+| **[Pocket Monitor Pro (Early Access)](https://darshandj.gumroad.com/l/pocket-monitor)** | **$19 one-time** | Lifetime Pro access: upcoming code-signed Windows installer (no SmartScreen warning), upcoming macOS build, plus Pro features (custom brand/client overlay presets, multi-client review links, LUT preview). |
 
 ## License
 
