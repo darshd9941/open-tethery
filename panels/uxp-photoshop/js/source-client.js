@@ -22,8 +22,8 @@ class SourceClient {
     this.onStatus = opts.onStatus || (() => {});
     this.onState = opts.onState || (() => {});
     this.onError = opts.onError || (() => {});
-    this.setTimeoutFn = opts.setTimeoutFn || setTimeout;
-    this.clearTimeoutFn = opts.clearTimeoutFn || clearTimeout;
+    this.setTimeoutFn = opts.setTimeoutFn || ((fn, ms) => setTimeout(fn, ms));
+    this.clearTimeoutFn = opts.clearTimeoutFn || ((id) => clearTimeout(id));
 
     this.ws = null;
     this.status = 'disconnected'; // disconnected | connecting | connected
@@ -120,6 +120,7 @@ class SourceClient {
     try {
       ws = new this.WS(this.url);
     } catch (error) {
+      this.onError('WebSocket: ' + String((error && error.message) || error));
       this._lost();
       return;
     }

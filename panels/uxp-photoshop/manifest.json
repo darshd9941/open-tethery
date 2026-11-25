@@ -2,24 +2,18 @@
   "manifestVersion": 5,
   "id": "com.pocketmonitor.photoshop",
   "name": "Pocket Monitor",
-  "version": "0.2.0",
+  "version": "0.3.4",
   "main": "index.html",
   "host": {
     "app": "PS",
-    "minVersion": "24.0.0"
+    "minVersion": "24.0.0",
+    "data": {
+      "apiVersion": 2
+    }
   },
   "requiredPermissions": {
     "network": {
-      "domains": [
-        "http://127.0.0.1:47825",
-        "ws://127.0.0.1:47825",
-        "http://127.0.0.1",
-        "ws://127.0.0.1",
-        "http://localhost:47825",
-        "ws://localhost:47825",
-        "http://localhost",
-        "ws://localhost"
-      ]
+      "domains": "all"
     }
   },
   "entrypoints": [

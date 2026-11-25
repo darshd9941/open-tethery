@@ -59,6 +59,19 @@ test('no document: nothing sent', async () => {
   assert.equal(client.frames.length, 0);
 });
 
+test('photoshop API error in activeDocument is surfaced via onError instead of swallowed', () => {
+  const errors = [];
+  const brokenPs = {
+    app: {
+      get documents() { throw new Error('UXP host unavailable'); },
+    },
+  };
+  const cap = new PsCapture({ client: fakeClient(), ps: brokenPs, debounceMs: 0, onError: (e) => errors.push(e) });
+  cap.tick();
+  assert.equal(errors.length, 1);
+  assert.match(errors[0], /UXP host unavailable/);
+});
+
 test('captures a downscaled frame, tags the profile, reports source-state', async () => {
   calls.length = 0;
   state.docs = [doc()];

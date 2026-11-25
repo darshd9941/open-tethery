@@ -23,9 +23,9 @@ const { isLoopbackAddress, normalizeIp } = require('./session');
 // opts override config: rtc (a createRtc() result, for tests), port, ingestPort, lanIp, allowControl, viewerDir, logFile, echo,
 // helloTimeoutMs, configPath, env.
 function createHelper(opts = {}) {
-  const cfg = loadConfig({ env: opts.env, configPath: opts.configPath });
+  const cfg = loadConfig({ env: opts.env, configPath: opts.configPath, mode: opts.mode });
   for (const k of ['port', 'ingestPort', 'lanIp', 'allowControl', 'viewerDir']) if (opts[k] !== undefined) cfg[k] = opts[k];
-  const log = createLogger({ file: opts.logFile === undefined ? path.join(cfg.dir, 'helper.log') : opts.logFile, echo: opts.echo !== false });
+  const log = createLogger({ file: opts.logFile === undefined ? path.join(cfg.dir, cfg.logFileName) : opts.logFile, echo: opts.echo !== false });
   const viewerDir = findViewerDir(cfg.viewerDir);
   const product = opts.product || loadProduct();
   // OT_RTC_HOST_ADDRESSES (comma separated) adds extra ICE host addresses, e.g. 127.0.0.1 for tests.
@@ -62,7 +62,9 @@ function createHelper(opts = {}) {
     if (p === '/health') {
       // Public and harmless; the CEP panel (file:// origin) fetches it, so allow cross-origin reads.
       res.setHeader('Access-Control-Allow-Origin', '*');
-      return sendJson(res, 200, { ok: true, name: 'open-tethery', product: product.name, version: pkg.version, protocol: 1 });
+      const body = { ok: true, name: 'open-tethery', product: product.name, version: pkg.version, protocol: 1 };
+      if (cfg.mode === 'photoshop') body.mode = 'photoshop';
+      return sendJson(res, 200, body);
     }
     if (p === '/product.json') {
       res.setHeader('Access-Control-Allow-Origin', '*');
@@ -122,6 +124,59 @@ function createHelper(opts = {}) {
         return sendJson(res, 500, { error: String(err.message || err) });
       }
     }
+    if (p === '/api/source/state' || p === '/api/source/frame' || p === '/api/source/log') {
+      if (!local) return deny();
+      if (req.method !== 'POST') return sendJson(res, 405, { error: 'method-not-allowed' });
+      const chunks = [];
+      let total = 0;
+      const limit = 48 * 1024 * 1024;
+      req.on('data', (d) => {
+        total += d.length;
+        if (total <= limit) chunks.push(d);
+      });
+      req.on('end', () => {
+        if (total > limit) return sendJson(res, 413, { error: 'too-large' });
+        let body;
+        try {
+          body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+        } catch {
+          return sendJson(res, 400, { error: 'bad-json' });
+        }
+        if (p === '/api/source/log') {
+          log(`source[http]: ${String(body.msg || body.error || '').slice(0, 500)}`);
+          return sendJson(res, 200, { ok: true });
+        }
+        if (p === '/api/source/state') {
+          if (body.sequence === null) {
+            hub.model.clearHost('source', 'http');
+            if (!hub.model.isLive()) hub.latestFrame = null;
+          } else {
+            hub.model.setHost('source', 'http', body);
+          }
+          hub.markDirty();
+          return sendJson(res, 200, { ok: true, viewers: hub.viewers().length });
+        }
+        // /api/source/frame
+        const b64 = typeof body.jpegBase64 === 'string' ? body.jpegBase64.replace(/^data:[^,]*,/, '') : '';
+        if (!b64) return sendJson(res, 400, { error: 'missing-jpeg' });
+        const jpeg = Buffer.from(b64, 'base64');
+        if (jpeg.length < 4) return sendJson(res, 400, { error: 'empty-jpeg' });
+        if (body.host || body.sequence) hub.model.setHost('source', 'http', { host: body.host, sequence: body.sequence });
+        hub.publishFrame({
+          origin: 'source',
+          sourceId: 'http',
+          jpeg,
+          flags: 1,
+          time: NaN,
+          width: Number(body.width) || 1,
+          height: Number(body.height) || 1,
+          srcWidth: Number(body.srcWidth) || Number(body.width) || 1,
+          srcHeight: Number(body.srcHeight) || Number(body.height) || 1,
+        });
+        return sendJson(res, 200, { ok: true, bytes: jpeg.length, viewers: hub.viewers().length });
+      });
+      return;
+    }
     if (p === '/api/log') {
       if (!local) return deny();
       const n = Math.min(2000, Math.max(1, Number(url.searchParams.get('n')) || 200));
@@ -167,20 +222,22 @@ function createHelper(opts = {}) {
           resolve();
         });
       });
-      log(`${product.name} helper ${pkg.version} listening on port ${boundPort}; session code ${hub.code}`);
+      log(`${product.name} helper (${cfg.mode}) ${pkg.version} listening on port ${boundPort}; session code ${hub.code}`);
       log(viewerDir ? `viewer files: ${viewerDir}` : 'viewer files not found; serving placeholder page');
-      ingest = await startIngest({
-        port: cfg.ingestPort,
-        log,
-        onFrame: (f) => hub.onTransmitFrame(f),
-        onH264: (au) => hub.onTransmitH264(au),
-        onAudio: (a) => hub.onTransmitAudio(a),
-        onState: (s) => hub.onTransmitState(s),
-        onHeartbeat: () => hub.onTransmitHeartbeat(),
-        onConnection: (c) => hub.onTransmitConnection(c),
-      });
-      hub.setPluginLink((buf) => ingest.send(buf));
-      if (!ingest.ok) log(`WARNING: could not listen on 127.0.0.1:${cfg.ingestPort}; Transmit plugin cannot connect`);
+      if (cfg.ingestPort !== null) {
+        ingest = await startIngest({
+          port: cfg.ingestPort,
+          log,
+          onFrame: (f) => hub.onTransmitFrame(f),
+          onH264: (au) => hub.onTransmitH264(au),
+          onAudio: (a) => hub.onTransmitAudio(a),
+          onState: (s) => hub.onTransmitState(s),
+          onHeartbeat: () => hub.onTransmitHeartbeat(),
+          onConnection: (c) => hub.onTransmitConnection(c),
+        });
+        hub.setPluginLink((buf) => ingest.send(buf));
+        if (!ingest.ok) log(`WARNING: could not listen on 127.0.0.1:${cfg.ingestPort}; Transmit plugin cannot connect`);
+      }
       return { port: boundPort, ingestPort: this.ingestPort };
     },
     async stop() {

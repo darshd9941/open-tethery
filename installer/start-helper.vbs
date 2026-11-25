@@ -5,3 +5,4 @@ Set sh = CreateObject("WScript.Shell")
 dir = fso.GetParentFolderName(WScript.ScriptFullName)
 sh.Environment("Process")("OT_VIEWER_DIR") = dir & "\viewer"
 sh.Run """" & dir & "\PocketMonitorHelper.exe""", 0, False
+sh.Run """" & dir & "\PocketMonitorHelper.exe"" --mode photoshop", 0, False

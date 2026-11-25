@@ -3,6 +3,7 @@
 
 $script:AppName      = 'Pocket Monitor'
 $script:HelperPort   = 47825
+$script:PhotoshopPort = 47823
 $script:HelperExe    = 'PocketMonitorHelper.exe'
 $script:RuleName     = 'Pocket Monitor Helper'
 $script:RunKeyPath   = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Run'

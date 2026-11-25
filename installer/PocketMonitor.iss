@@ -43,7 +43,7 @@ UsePreviousAppDir=yes
 VersionInfoVersion={#AppVersion}
 VersionInfoProductName={#AppName}
 UninstallDisplayName={#AppName}
-Compression=lzma2
+Compression=lzma2/ultra64
 SolidCompression=yes
 ; Ask to close Adobe apps that hold files we replace (Restart Manager) ...
 CloseApplications=yes
@@ -105,17 +105,21 @@ Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=
 Filename: "{#UpiaExe}"; Parameters: "/remove com.opentethery.photoshop"; Flags: runhidden skipifdoesntexist
 ; Replace the old "Live Video Preview" / "Live Phone Preview" rules and our own rule (idempotent)
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#RuleName}"""; Flags: runhidden; StatusMsg: "Updating firewall..."
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#RuleName} (Photoshop)"""; Flags: runhidden; StatusMsg: "Updating firewall..."
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#RuleName} (video)"""; Flags: runhidden; StatusMsg: "Updating firewall..."
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Live Video Preview (TCP 47825)"""; Flags: runhidden
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Live Phone Preview (TCP 47823)"""; Flags: runhidden
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""{#RuleName}"" dir=in action=allow protocol=TCP localport={#Port} profile=private"; Flags: runhidden
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""{#RuleName} (Photoshop)"" dir=in action=allow protocol=TCP localport=47823 profile=private"; Flags: runhidden
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall add rule name=""{#RuleName} (video)"" dir=in action=allow protocol=UDP program=""{app}\{#HelperExe}"" profile=private"; Flags: runhidden
+Filename: "{#UpiaExe}"; Parameters: "/remove {#PsPluginId}"; Flags: runhidden skipifdoesntexist; Components: photoshop
 Filename: "{#UpiaExe}"; Parameters: "/install ""{app}\{#InstallDirName}Photoshop.ccx"""; Flags: runhidden skipifdoesntexist; Components: photoshop; StatusMsg: "Installing Photoshop plug-in..."
 Filename: "{sys}\wscript.exe"; Parameters: """{app}\start-helper.vbs"""; Flags: nowait runasoriginaluser postinstall skipifsilent; Description: "Start the {#AppName} helper now"
 
 [UninstallRun]
 Filename: "{sys}\taskkill.exe"; Parameters: "/F /IM {#HelperExe}"; Flags: runhidden; RunOnceId: "KillHelper"
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#RuleName}"""; Flags: runhidden; RunOnceId: "DelRule"
+Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#RuleName} (Photoshop)"""; Flags: runhidden; RunOnceId: "DelRulePs"
 Filename: "{sys}\netsh.exe"; Parameters: "advfirewall firewall delete rule name=""{#RuleName} (video)"""; Flags: runhidden; RunOnceId: "DelRuleVideo"
 Filename: "{#UpiaExe}"; Parameters: "/remove {#PsPluginId}"; Flags: runhidden skipifdoesntexist; RunOnceId: "DelPsPlugin"
 Filename: "{#UpiaExe}"; Parameters: "/remove com.opentethery.photoshop"; Flags: runhidden skipifdoesntexist; RunOnceId: "DelLegacyPsPlugin"

@@ -100,11 +100,13 @@ if (-not (Test-Path (Join-Path $distHelper 'viewer'))) {
 # The Run key and this script use it; the panel starts the exe / node.exe directly.
 $launchExe = if ($useExe) { Join-Path $script:InstallDir $script:HelperExe } else { Join-Path $script:InstallDir 'node.exe' }
 $launchArgs = if ($useExe) { '' } else { '"' + (Join-Path $script:InstallDir ('helper\' + $helperMain)) + '"' }
+$psLaunchArgs = if ($useExe) { '--mode photoshop' } else { '"' + (Join-Path $script:InstallDir ('helper\' + $helperMain)) + '" --mode photoshop' }
 $launcherPs1 = Join-Path $script:InstallDir 'start-helper.ps1'
 Invoke-Step 'Write start-helper.ps1 launcher' {
-  $line = "Start-Process -WindowStyle Hidden -WorkingDirectory '$($script:InstallDir)' -FilePath '$launchExe'"
-  if ($launchArgs) { $line += " -ArgumentList '$launchArgs'" }
-  Set-Content -Path $launcherPs1 -Encoding UTF8 -Value $line
+  $line1 = "Start-Process -WindowStyle Hidden -WorkingDirectory '$($script:InstallDir)' -FilePath '$launchExe'"
+  if ($launchArgs) { $line1 += " -ArgumentList '$launchArgs'" }
+  $line2 = "Start-Process -WindowStyle Hidden -WorkingDirectory '$($script:InstallDir)' -FilePath '$launchExe' -ArgumentList '$psLaunchArgs'"
+  Set-Content -Path $launcherPs1 -Encoding UTF8 -Value @($line1, $line2)
 }
 
 # ---- 2. CEP panel (Premiere Pro + After Effects) ----
@@ -159,16 +161,31 @@ if ($SkipPhotoshop) {
     Invoke-Step "Build $ccx from $psSrc (zip, id $($script:PsPluginId))" {
       if (-not (Test-Path $psSrc)) { throw "Photoshop plug-in source not found: $psSrc" }
       New-Item -ItemType Directory -Force (Split-Path $ccx) | Out-Null
-      $zip = [IO.Path]::ChangeExtension($ccx, '.zip')
-      Remove-Item $zip, $ccx -Force -ErrorAction SilentlyContinue
-      Compress-Archive -Path (Join-Path $psSrc '*') -DestinationPath $zip -Force
-      Move-Item $zip $ccx -Force
+      $packer = Join-Path $psSrc 'tools\pack-ccx.js'
+      $nodeCmd = Get-Command node -ErrorAction SilentlyContinue
+      if ($nodeCmd -and (Test-Path $packer)) {
+        Remove-Item $ccx -Force -ErrorAction SilentlyContinue
+        & $nodeCmd.Source $packer $ccx
+        if ($LASTEXITCODE -ne 0) { throw "pack-ccx.js failed with exit code $LASTEXITCODE" }
+      } else {
+        $zip = [IO.Path]::ChangeExtension($ccx, '.zip')
+        Remove-Item $zip, $ccx -Force -ErrorAction SilentlyContinue
+        Compress-Archive -Path (Join-Path $psSrc '*') -DestinationPath $zip -Force
+        Move-Item $zip $ccx -Force
+      }
     }
   }
   if (Test-Path $script:UpiaExe) {
     Invoke-Step "Install Photoshop plug-in via UnifiedPluginInstallerAgent: $ccx" {
-      & $script:UpiaExe /install $ccx
-      Write-Log "  UPIA exit code $LASTEXITCODE (restart Photoshop; Plugins > $($script:AppName))"
+      # UPIA returns status -506 ("already installed") if the same id/version exists, while still exiting 0.
+      & $script:UpiaExe /remove $script:PsPluginId 2>&1 | Out-Null
+      $out = & $script:UpiaExe /install $ccx 2>&1
+      $out | ForEach-Object { Write-Host $_ }
+      if ($out -match 'Failed to install') {
+        Write-Log "  WARNING: UPIA reported a failure above. Check Photoshop is closed and retry." 'Red'
+      } else {
+        Write-Log "  UPIA exit code $LASTEXITCODE (restart Photoshop; Plugins > $($script:AppName))"
+      }
     }
   } else {
     Write-Log "UnifiedPluginInstallerAgent not found. Double-click $ccx to install via Creative Cloud, or load" 'Yellow'
@@ -183,6 +200,12 @@ Invoke-Step "Firewall rule '$($script:RuleName)' inbound TCP $($script:HelperPor
   New-NetFirewallRule -DisplayName $script:RuleName -Direction Inbound -Action Allow -Protocol TCP `
     -LocalPort $script:HelperPort -Profile Private `
     -Description "Lets phones on your private Wi-Fi open the $($script:AppName) preview." | Out-Null
+}
+Invoke-Step "Firewall rule '$($script:RuleName) (Photoshop)' inbound TCP $($script:PhotoshopPort) Private" {
+  Remove-NetFirewallRule -DisplayName "$($script:RuleName) (Photoshop)" -ErrorAction SilentlyContinue
+  New-NetFirewallRule -DisplayName "$($script:RuleName) (Photoshop)" -Direction Inbound -Action Allow -Protocol TCP `
+    -LocalPort $script:PhotoshopPort -Profile Private `
+    -Description "Lets phones on your private Wi-Fi open the $($script:AppName) Photoshop preview." | Out-Null
 }
 Invoke-Step "Firewall rule '$($script:RuleName) (video)' inbound UDP for the helper program, Private" {
   Remove-NetFirewallRule -DisplayName "$($script:RuleName) (video)" -ErrorAction SilentlyContinue
@@ -202,26 +225,29 @@ Invoke-Step "Run entry $($script:RunKeyPath)\$($script:RunValueName)" {
   New-ItemProperty -Path $script:RunKeyPath -Name $script:RunValueName -Value $cmd -PropertyType String -Force | Out-Null
 }
 
-# ---- 7. Start helper and check /health ----
+# ---- 7. Start both helpers and check /health ----
 if ($NoStart) {
-  Write-Log 'Not starting helper (-NoStart).'
+  Write-Log 'Not starting helpers (-NoStart).'
 } else {
-  Invoke-Step 'Start helper (hidden)' {
+  Invoke-Step 'Start video & Photoshop helpers (hidden)' {
     if ($launchArgs) { Start-Process -WindowStyle Hidden -WorkingDirectory $script:InstallDir -FilePath $launchExe -ArgumentList $launchArgs }
     else { Start-Process -WindowStyle Hidden -WorkingDirectory $script:InstallDir -FilePath $launchExe }
+    Start-Process -WindowStyle Hidden -WorkingDirectory $script:InstallDir -FilePath $launchExe -ArgumentList $psLaunchArgs
   }
   if ($WhatIfPreference) {
-    Write-Host "WHATIF: GET http://127.0.0.1:$($script:HelperPort)/health expecting ok=true" -ForegroundColor Cyan
+    Write-Host "WHATIF: GET http://127.0.0.1:$($script:HelperPort)/health and :$($script:PhotoshopPort)/health expecting ok=true" -ForegroundColor Cyan
   } else {
-    $ok = $false
-    for ($i = 0; $i -lt 15 -and -not $ok; $i++) {
-      Start-Sleep -Seconds 1
-      try {
-        $h = Invoke-RestMethod "http://127.0.0.1:$($script:HelperPort)/health" -TimeoutSec 2
-        if ($h.ok -and $h.name -eq 'open-tethery') { $ok = $true; Write-Log "Helper OK: $($h.name) $($h.version) protocol $($h.protocol)" 'Green' }
-      } catch { }
+    foreach ($pair in @(@('Video helper', $script:HelperPort), @('Photoshop helper', $script:PhotoshopPort))) {
+      $label = $pair[0]; $port = $pair[1]; $ok = $false
+      for ($i = 0; $i -lt 15 -and -not $ok; $i++) {
+        Start-Sleep -Seconds 1
+        try {
+          $h = Invoke-RestMethod "http://127.0.0.1:$port/health" -TimeoutSec 2
+          if ($h.ok -and $h.name -eq 'open-tethery') { $ok = $true; Write-Log "$label OK (port $port): $($h.name) $($h.version) protocol $($h.protocol)" 'Green' }
+        } catch { }
+      }
+      if (-not $ok) { Write-Log "$label did not answer on port $port. See $($script:LogFile)." 'Red'; exit 1 }
     }
-    if (-not $ok) { Write-Log "Helper did not answer on port $($script:HelperPort). See $($script:LogFile)." 'Red'; exit 1 }
   }
 }
 

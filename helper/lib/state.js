@@ -97,7 +97,10 @@ class StateModel {
 
   clearHost(kind, id) {
     (kind === 'panel' ? this.panels : this.sources).delete(id);
-    if (kind === 'source') this.liveSources.delete(id);
+    if (kind === 'source') {
+      this.liveSources.delete(id);
+      if (this.frame && this.frame.sourceId === id) this.frame = null;
+    }
   }
 
   setTransmitConnected(connected) {
@@ -106,6 +109,8 @@ class StateModel {
       this.transmit.state = {};
       this.transmit.lastActivityAt = 0;
       this.transmitPlaying = false;
+      if (this.frame && this.frame.origin === 'transmit') this.frame = null;
+      this.audio = null;
     }
   }
 

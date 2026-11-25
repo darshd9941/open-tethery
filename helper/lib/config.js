@@ -10,6 +10,7 @@ const os = require('os');
 const path = require('path');
 
 const DEFAULTS = { port: 47825, ingestPort: 47826, lanIp: null, allowControl: true, viewerDir: null };
+const PHOTOSHOP_PORT = 47823;
 
 function configDir(env = process.env) {
   if (process.platform === 'win32') {
@@ -22,14 +23,24 @@ function validPort(n) {
   return Number.isInteger(n) && n >= 0 && n <= 65535;
 }
 
-function loadConfig({ env = process.env, configPath } = {}) {
-  const file = configPath || path.join(configDir(env), 'config.json');
-  const cfg = { ...DEFAULTS, configPath: file, dir: path.dirname(file) };
+function loadConfig({ env = process.env, configPath, mode } = {}) {
+  const resolvedMode = mode || env.OPEN_TETHERY_MODE || 'video';
+  const isPs = resolvedMode === 'photoshop';
+  const file = configPath || path.join(configDir(env), isPs ? 'photoshop-config.json' : 'config.json');
+  const cfg = {
+    ...DEFAULTS,
+    mode: isPs ? 'photoshop' : 'video',
+    port: isPs ? PHOTOSHOP_PORT : DEFAULTS.port,
+    ingestPort: isPs ? null : DEFAULTS.ingestPort,
+    logFileName: isPs ? 'photoshop-helper.log' : 'helper.log',
+    configPath: file,
+    dir: path.dirname(file),
+  };
   try {
     const parsed = JSON.parse(fs.readFileSync(file, 'utf8'));
     if (parsed && typeof parsed === 'object') {
       if (validPort(parsed.port)) cfg.port = parsed.port;
-      if (validPort(parsed.ingestPort)) cfg.ingestPort = parsed.ingestPort;
+      if (!isPs && validPort(parsed.ingestPort)) cfg.ingestPort = parsed.ingestPort;
       if (typeof parsed.lanIp === 'string' && parsed.lanIp) cfg.lanIp = parsed.lanIp;
       if (typeof parsed.allowControl === 'boolean') cfg.allowControl = parsed.allowControl;
       if (typeof parsed.viewerDir === 'string' && parsed.viewerDir) cfg.viewerDir = parsed.viewerDir;
