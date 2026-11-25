@@ -218,6 +218,20 @@ powershell -ExecutionPolicy Bypass -File installer\dev-install.ps1 -SkipNative
 - Product name, version, and IDs live in [`product.json`](product.json). Run `node tools/apply-branding.js` after editing it.
 - Pushing a `v<version>` tag matching `product.json` triggers [`.github/workflows/release.yml`](.github/workflows/release.yml) to build and publish `PocketMonitorSetup-<version>.exe` automatically.
 
+## Free vs. Pro Edition
+
+Pocket Monitor's core is **free and open source forever** under the [GNU GPLv3](LICENSE).
+
+| Edition | Price | What's included |
+|---|---|---|
+| **Open Source (GitHub)** | **Free forever** | Full Premiere Pro, After Effects & Photoshop live preview, synced audio, social overlays + safe zones, scopes, guides, playback controls, and full GPLv3 source code. |
+| **1-Click Installer (Gumroad)** | **$5+ (pay what you want)** | 1-click Windows installer download on Gumroad + updates for this release line. |
+| **Pocket Monitor Pro (Early Access)** | **$19 one-time** | Lifetime Pro access: upcoming code-signed Windows installer (no SmartScreen warning), upcoming macOS build, plus Pro features (custom brand/client overlay presets, multi-client review links, LUT preview). |
+
+## License
+
+Licensed under the [GNU General Public License v3.0](LICENSE).
+
 ---
 
 <sub>Pocket Monitor is an independent open-source project, not affiliated with or endorsed by Adobe. Premiere Pro, After Effects, and Photoshop are trademarks of Adobe Inc. Social platform overlays are original vector drawings.</sub>
