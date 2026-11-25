@@ -3,60 +3,117 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{name} - see your edit on your phone</title>
-<meta name="description" content="Watch your Premiere Pro or After Effects picture live on your phone, with overlays and sound.">
+<title>{name} — Live phone monitor for Premiere Pro, After Effects &amp; Photoshop</title>
+<meta name="description" content="Turn your phone into a live second monitor for Premiere Pro, After Effects, and Photoshop over Wi-Fi — with sound, social overlays, safe zones, and scopes. Free and open source.">
 <link rel="icon" href="icon.png">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
 <header class="site"><div class="wrap">
   <a class="brand" href="index.html"><img src="icon.png" alt=""><span data-product="name">Pocket Monitor</span></a>
-  <nav><a href="index.html" aria-current="page">Home</a><a href="help.html">Help</a><a href="https://github.com/darshd9941/open-tethery/releases/latest">Download</a></nav>
+  <nav>
+    <a href="index.html" aria-current="page">Home</a>
+    <a href="#install">Install</a>
+    <a href="help.html">Help</a>
+    <a href="https://github.com/darshd9941/open-tethery">GitHub</a>
+    <a class="nav-cta" href="https://github.com/darshd9941/open-tethery/releases/latest">Download</a>
+  </nav>
 </div></header>
+
 <main class="wrap">
 <section class="hero">
-  <h1>See your edit on your phone, live.</h1>
-  <p class="lead"><span data-product="name">Pocket Monitor</span> sends the picture and sound from Premiere Pro or After Effects to any phone on your Wi-Fi. Add guides, safe zones and social frames on top. No cables, no account, no app to install on the phone.</p>
-  <div class="cta">
-    <a class="btn" href="https://github.com/darshd9941/open-tethery/releases/latest">Download for Windows</a>
-    <a class="btn ghost" href="help.html">How it works</a>
+  <div class="badges">
+    <span class="badge">Premiere Pro</span>
+    <span class="badge">After Effects</span>
+    <span class="badge">Photoshop</span>
+    <span class="badge muted">Windows 10 / 11</span>
   </div>
-  <p class="small">Free. Version <span data-product="version"></span>.</p>
+  <h1>See your edit &amp; canvas live on your phone.</h1>
+  <p class="lead"><span data-product="name">Pocket Monitor</span> turns any phone or tablet on your Wi-Fi into a real-time second monitor for Premiere Pro, After Effects, and Photoshop. Check framing, captions, social overlays, and colour on the screen your audience actually uses — with <strong>no phone app, no cables, and no exports</strong>.</p>
+  <div class="cta">
+    <a class="btn" href="https://github.com/darshd9941/open-tethery/releases/latest">Download for Windows (.exe)</a>
+    <a class="btn ghost" href="#install">60-second setup</a>
+    <a class="btn ghost" href="help.html">Troubleshooting &amp; Help</a>
+  </div>
+  <p class="small">Free &amp; open source · Version <span data-product="version"></span> · 100% local on your Wi-Fi</p>
 </section>
 
 <section aria-labelledby="shots">
   <h2 id="shots">What it looks like</h2>
   <div class="shots">
-    <figure><img src="img/phone-live.png" alt="Live picture on a phone" loading="lazy"><figcaption>Your picture on the phone</figcaption></figure>
-    <figure><img src="img/phone-overlays.png" alt="Phone with social frame overlays" loading="lazy"><figcaption>Overlays and frames</figcaption></figure>
-    <figure><img src="img/panel.png" alt="The panel inside Premiere Pro" loading="lazy"><figcaption>The panel with the QR code</figcaption></figure>
-    <figure><img src="img/guide.png" alt="First-run guide in the panel" loading="lazy"><figcaption>A short guide the first time</figcaption></figure>
+    <figure><img src="img/phone-live.png" alt="Live picture on a phone" loading="lazy"><figcaption>Live Program Monitor or PSD canvas</figcaption></figure>
+    <figure><img src="img/phone-overlays.png" alt="Phone with social frame overlays" loading="lazy"><figcaption>Social UI preview &amp; safe zones</figcaption></figure>
+    <figure><img src="img/panel.png" alt="The panel inside Premiere Pro" loading="lazy"><figcaption>Scan the QR code in Adobe</figcaption></figure>
+    <figure><img src="img/guide.png" alt="First-run guide in the panel" loading="lazy"><figcaption>Guided one-time setup</figcaption></figure>
   </div>
 </section>
 
-<section aria-labelledby="how">
-  <h2 id="how">Three steps</h2>
-  <ol class="steps">
-    <li>Run the installer. Open Premiere Pro or After Effects, then <strong>Window &gt; Extensions &gt; <span data-product="name">Pocket Monitor</span></strong>.</li>
-    <li>Turn on the engine in the preferences (the panel shows the exact clicks).</li>
-    <li>Scan the QR code with your phone. Tap Overlays or Sound.</li>
-  </ol>
+<section aria-labelledby="features">
+  <h2 id="features">Built for real editors &amp; designers</h2>
+  <div class="cards">
+    <div class="card">
+      <h3>Live playback + sound</h3>
+      <p>Streams Premiere Pro and After Effects frames in real time (H.264 over WebRTC with JPEG fallback) plus synced Premiere audio on your phone speaker.</p>
+    </div>
+    <div class="card">
+      <h3>Photoshop live canvas</h3>
+      <p>Updates your phone automatically as you paint, tweak typography, or adjust colour — with sRGB and Display P3 ICC profile tagging.</p>
+    </div>
+    <div class="card">
+      <h3>Social frames &amp; safe zones</h3>
+      <p>Instagram Reels/Feed/Story, TikTok, YouTube Shorts, X, and more. Toggle between realistic <strong>UI preview</strong> and hatched <strong>Safe zones</strong>.</p>
+    </div>
+    <div class="card">
+      <h3>Scopes &amp; guides</h3>
+      <p>Histogram, waveform, vectorscope, audio meters, false colour, zebras, rule of thirds, and cinema mattes — all rendered on the phone.</p>
+    </div>
+    <div class="card">
+      <h3>Run Premiere &amp; Photoshop together</h3>
+      <p>Video (port 47825) and Photoshop (port 47823) run as completely separate helpers, so both apps can stay open with zero conflicts.</p>
+    </div>
+    <div class="card">
+      <h3>100% private &amp; local</h3>
+      <p>Frames go straight from your PC to your phone over your own Wi-Fi, hotspot, or USB tether. No account, no cloud server, no watermark.</p>
+    </div>
+  </div>
+</section>
+
+<section id="install" aria-labelledby="how">
+  <h2 id="how">Install in 3 easy steps</h2>
+  <div class="step-grid">
+    <div class="step-card">
+      <div class="step-num">1</div>
+      <h3>Run the Windows installer</h3>
+      <p>Close Premiere Pro, After Effects, and Photoshop. Download and run <code>PocketMonitorSetup.exe</code> and click <strong>Yes</strong> when Windows asks.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">2</div>
+      <h3>Open the panel in Adobe</h3>
+      <p><strong>Premiere / AE:</strong> <code>Window › Extensions › Pocket Monitor</code> (and tick Pocket Monitor in Preferences › Playback / Video Preview once).<br><strong>Photoshop:</strong> <code>Plugins › Pocket Monitor</code> (no extra setup).</p>
+    </div>
+    <div class="step-card">
+      <div class="step-num">3</div>
+      <h3>Scan the QR code</h3>
+      <p>Point your phone camera at the QR code. No app to install — it opens right in Safari or Chrome. Tap <strong>Frame</strong>, <strong>Scopes</strong>, or <strong>Sound</strong>.</p>
+    </div>
+  </div>
 </section>
 
 <section aria-labelledby="req">
-  <h2 id="req">What you need</h2>
+  <h2 id="req">Requirements</h2>
   <ul class="req">
-    <li>Windows 10 or 11</li>
-    <li>Premiere Pro or After Effects 2024 or newer</li>
-    <li>A phone on the same Wi-Fi as the computer</li>
+    <li><strong>PC:</strong> Windows 10 or 11 (64-bit) — macOS planned</li>
+    <li><strong>Adobe apps:</strong> Premiere Pro 2024+, After Effects 2024+, or Photoshop 2023 (24.0)+</li>
+    <li><strong>Phone / tablet:</strong> Any modern browser on the same Wi-Fi, hotspot, USB tether, or Tailscale</li>
   </ul>
-  <p class="small">Your video never leaves your network. <a href="help.html#privacy">Read more</a>.</p>
+  <p class="small">Your video and artwork never leave your local network. <a href="help.html#privacy">Read privacy details</a> · <a href="help.html#trouble">Troubleshooting</a>.</p>
 </section>
 </main>
+
 <footer><div class="wrap">
   <span data-product="name">Pocket Monitor</span> is free and open source. Not affiliated with or endorsed by Adobe.
-  Adobe, Premiere Pro and After Effects are trademarks of Adobe Inc.
-  <a href="help.html#privacy">Privacy</a>
+  Adobe, Premiere Pro, After Effects, and Photoshop are trademarks of Adobe Inc.
+  <a href="help.html#privacy">Privacy</a> · <a href="https://github.com/darshd9941/open-tethery">Source on GitHub</a>
 </div></footer>
 <script src="brand.js"></script>
 <script src="brand-fill.js"></script>
